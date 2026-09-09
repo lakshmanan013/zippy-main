@@ -1571,20 +1571,7 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
 
   // If role is Manager or Regional Manager, provide view switch
   if (isManager && managerViewMode === "received") {
-    return (
-      <div>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-          <button
-            className="rpt-btn-outline"
-            style={{ fontSize: "0.8rem", height: 32 }}
-            onClick={() => setManagerViewMode("create")}
-          >
-            + Create New Field Report
-          </button>
-        </div>
-        <ReceivedReportsSection data={data} role={role} currentRecord={currentRecord} />
-      </div>
-    );
+    return <ReceivedReportsSection data={data} role={role} currentRecord={currentRecord} />;
   }
 
   return (
