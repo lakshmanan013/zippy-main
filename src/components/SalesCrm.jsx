@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { VscSearch } from "react-icons/vsc";
 import {
   fetchList,
   TABLE_CONFIG,
@@ -1697,7 +1698,7 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
               value={doctorSearch}
               onChange={(e) => setDoctorSearch(e.target.value)}
             />
-            <span className="rpt-search-icon">🔍</span>
+            <span className="rpt-search-icon"><VscSearch /></span>
           </div>
         </div>
 
@@ -2056,7 +2057,7 @@ function DoctorsView({ data, execId }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <span className="rpt-search-icon">🔍</span>
+            <span className="rpt-search-icon"><VscSearch /></span>
           </div>
         </div>
         <div className="rpt-field">
