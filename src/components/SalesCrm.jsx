@@ -12,7 +12,14 @@ import {
 import logo from "../assets/zenve-zippy-logo.png";
 import "./SalesCRM.css";
 import PlanView from "./planView.jsx";
-import { usePlanStats, PLAN_MONTH_KEY, PLAN_MONTH_LABEL } from "./planData.js";
+import {
+  usePlanStats,
+  PLAN_MONTH_KEY,
+  PLAN_MONTH_LABEL,
+  getCurrentMonthKey,
+  formatMonthLabel,
+  getAvailableMonthOptions,
+} from "./planData.js";
 import { fetchSubmissionReports, createSubmissionReport, updateSubmissionReport, deleteSubmissionReport } from "./reportData.js";
 
 /* ─────────────────────────────────────────────────────────
@@ -1309,43 +1316,30 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
     [data.coverage, exec]
   );
 
-  const territoryDoctors = useMemo(
-    () => data.doctors.filter((d) => myPincodes.has(d.pincode)),
-    [data.doctors, myPincodes]
-  );
+  const territoryDoctors = useMemo(() => {
+    if (!data.doctors || data.doctors.length === 0) return [];
+    // 1. Doctors matching assigned pincodes
+    let list = data.doctors.filter((d) => myPincodes.has(d.pincode));
+    // 2. If no coverage pincodes assigned or no match, match by executive's city or region
+    if (list.length === 0 && exec) {
+      list = data.doctors.filter((d) => {
+        const docCity = (d.city || "").toLowerCase().trim();
+        const execCity = (exec.city || "").toLowerCase().trim();
+        const execRegion = (exec.region || "").toLowerCase().trim();
+        const isCityMatch = execCity && (docCity === execCity || (docCity.includes("bang") && execCity.includes("bang")));
+        const isRegionMatch = execRegion && (docCity.includes(execRegion) || (d.name || "").toLowerCase().includes(execRegion));
+        return isCityMatch || isRegionMatch;
+      });
+    }
+    // 3. Fallback to all available doctors so executive is never blocked
+    if (list.length === 0) {
+      list = data.doctors;
+    }
+    return list;
+  }, [data.doctors, myPincodes, exec]);
 
-  // Build initial visits from live territory doctors
+  // Visits in today's report
   const [visits, setVisits] = useState([]);
-
-  // Re-seed whenever the exec / territory doctors change
-  useEffect(() => {
-    if (territoryDoctors.length === 0) return;
-    setVisits(
-      territoryDoctors.map((doc) => ({
-        id: doc.id,
-        advaitNo: String(doc.id),
-        doctorName: doc.name?.toUpperCase() ?? "UNKNOWN",
-        tag: doc.specializations
-          ? doc.specializations.split(",")[0].trim().toUpperCase().slice(0, 6)
-          : "GEN",
-        qualification: doc.qualification || "",
-        pincode: doc.pincode,
-        phone: doc.phone || "—",
-        city: doc.city || "—",
-        brands: "—",
-        campaign: "—",
-        status: "Not Reported",
-        preCallObjective: "",
-        preCallNotes: "",
-        callOutcome: "",
-        prescriptions: "",
-        feedback: "",
-        nextVisitDate: "",
-      }))
-    );
-    setSubmitted(false);
-    setSelectedIds(new Set());
-  }, [territoryDoctors]);
 
   // Check if a report was already submitted for today / selected reportDate
   useEffect(() => {
@@ -1371,10 +1365,9 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
           try {
             const savedVisits = JSON.parse(latest.visits_json);
             if (Array.isArray(savedVisits) && savedVisits.length > 0) {
-              setVisits((prev) => {
-                const savedMap = new Map(savedVisits.map((v) => [v.id, v]));
-                return prev.map((v) => (savedMap.has(v.id) ? { ...v, ...savedMap.get(v.id) } : v));
-              });
+              setVisits(savedVisits);
+              setSelectedIds(new Set());
+              return;
             }
           } catch { /* ignore */ }
         }
@@ -1387,16 +1380,33 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
     return () => { mounted = false; };
   }, [exec?.id, reportDate, isManager, managerName, regionalManagerName]);
 
-  // Dropdown search — doctors not yet in the visit list
+  // Dropdown search — doctors from region not yet in the visit list
   const addableDoctors = useMemo(() => {
     const inList = new Set(visits.map((v) => v.id));
-    return territoryDoctors.filter((d) => !inList.has(d.id));
-  }, [territoryDoctors, visits]);
+    const term = doctorSearch.trim().toLowerCase();
+    return territoryDoctors.filter((d) => {
+      if (inList.has(d.id)) return false;
+      if (!term) return true;
+      return (
+        d.name?.toLowerCase().includes(term) ||
+        d.qualification?.toLowerCase().includes(term) ||
+        d.specializations?.toLowerCase().includes(term) ||
+        String(d.id).includes(term) ||
+        String(d.pincode ?? "").includes(term) ||
+        (d.city && d.city.toLowerCase().includes(term))
+      );
+    });
+  }, [territoryDoctors, visits, doctorSearch]);
 
   function handleAddDoctor() {
     if (!selectedDoctor) return;
-    const doc = territoryDoctors.find((d) => String(d.id) === selectedDoctor);
+    const doc = data.doctors.find((d) => String(d.id) === String(selectedDoctor))
+      || territoryDoctors.find((d) => String(d.id) === String(selectedDoctor));
     if (!doc) return;
+    if (visits.some((v) => v.id === doc.id)) {
+      setSelectedDoctor("");
+      return;
+    }
     setVisits((prev) => [
       ...prev,
       {
@@ -1422,6 +1432,36 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
       },
     ]);
     setSelectedDoctor("");
+  }
+
+  function handleAddAllDoctors() {
+    const inList = new Set(visits.map((v) => v.id));
+    const toAdd = territoryDoctors.filter((d) => !inList.has(d.id));
+    if (toAdd.length === 0) return;
+    setVisits((prev) => [
+      ...prev,
+      ...toAdd.map((doc) => ({
+        id: doc.id,
+        advaitNo: String(doc.id),
+        doctorName: doc.name?.toUpperCase() ?? "UNKNOWN",
+        tag: doc.specializations
+          ? doc.specializations.split(",")[0].trim().toUpperCase().slice(0, 6)
+          : "GEN",
+        qualification: doc.qualification || "",
+        pincode: doc.pincode,
+        phone: doc.phone || "—",
+        city: doc.city || "—",
+        brands: "—",
+        campaign: "—",
+        status: "Not Reported",
+        preCallObjective: "",
+        preCallNotes: "",
+        callOutcome: "",
+        prescriptions: "",
+        feedback: "",
+        nextVisitDate: "",
+      })),
+    ]);
   }
 
   function handleRemoveVisits() {
@@ -1567,8 +1607,7 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
   const pendingCount = visits.length - reportedCount;
 
   const isLoading = data.loading;
-  const noTerritory = !isLoading && myPincodes.size === 0;
-  const noDoctors = !isLoading && myPincodes.size > 0 && territoryDoctors.length === 0;
+  const noDoctors = !isLoading && territoryDoctors.length === 0;
 
   // If role is Manager or Regional Manager, provide view switch
   if (isManager && managerViewMode === "received") {
@@ -1705,16 +1744,41 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
         <div className="rpt-select-wrap">
           <label>Select Doctor</label>
           <select value={selectedDoctor} onChange={(e) => setSelectedDoctor(e.target.value)}>
-            <option value="">— Choose Doctor from Region —</option>
+            <option value="">
+              {addableDoctors.length === 0 && territoryDoctors.length > 0
+                ? `— All region doctors added (${territoryDoctors.length}) —`
+                : addableDoctors.length === 0
+                ? "— No doctors found in region —"
+                : `— Choose Doctor from Region (${addableDoctors.length}) —`}
+            </option>
             {addableDoctors.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.name}{d.specializations ? ` · ${d.specializations.split(",")[0].trim()}` : ""}
+                {d.name}{d.specializations ? ` · ${d.specializations.split(",")[0].trim()}` : ""}{d.city ? ` (${d.city})` : ""}
               </option>
             ))}
           </select>
         </div>
 
-        <button className="rpt-btn-primary" onClick={handleAddDoctor}> Add</button>
+        <button
+          className="rpt-btn-primary"
+          onClick={handleAddDoctor}
+          disabled={!selectedDoctor}
+          title={selectedDoctor ? "Add selected doctor to today's visit list" : "Please choose a doctor first"}
+        >
+          + Add
+        </button>
+
+        {addableDoctors.length > 0 && (
+          <button
+            className="rpt-btn-outline"
+            style={{ fontWeight: 600 }}
+            onClick={handleAddAllDoctors}
+            title="Add all available doctors from your region to today's report"
+          >
+            + Add All ({addableDoctors.length})
+          </button>
+        )}
+
         {selectedIds.size > 0 ? (
           <>
             <button
@@ -1761,10 +1825,24 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
       <div className="panel table-panel rpt-table-panel">
         {isLoading ? (
           <p className="rpt-empty-state">Loading doctors from your territory…</p>
-        ) : noTerritory ? (
-          <p className="rpt-empty-state">No pin codes assigned to this executive yet.</p>
         ) : noDoctors ? (
-          <p className="rpt-empty-state">No doctors found in your assigned pin codes.</p>
+          <p className="rpt-empty-state">No doctors found in your assigned region.</p>
+        ) : visits.length === 0 ? (
+          <div className="rpt-empty-state" style={{ padding: "2.5rem 1rem", textAlign: "center" }}>
+            <p style={{ margin: "0 0 0.4rem", fontSize: "1.05rem", fontWeight: 600 }}>No visits added for today's report yet.</p>
+            <p style={{ margin: "0 0 1.25rem", color: "var(--muted-foreground)", fontSize: "0.85rem" }}>
+              Select a doctor from your region above and click <strong>+ Add</strong>, or add all doctors at once to begin reporting.
+            </p>
+            {territoryDoctors.length > 0 && (
+              <button
+                className="rpt-btn-primary"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                onClick={handleAddAllDoctors}
+              >
+                + Add All Region Doctors ({territoryDoctors.length})
+              </button>
+            )}
+          </div>
         ) : (
           <table>
             <thead>
@@ -1884,12 +1962,6 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
             </span>
           )}
         </span>
-        <button
-          className={"rpt-btn-final" + (submitted ? " rpt-btn-final-done" : "")}
-          onClick={handleFinalSubmit}
-        >
-          {submitted ? "✓ Submitted" : "FINAL SUBMIT"}
-        </button>
       </div>
 
       {/* ── MODALS ── */}
@@ -1969,12 +2041,29 @@ function DoctorsView({ data, execId }) {
     [data.coverage, exec]
   );
 
-  const myDoctors = useMemo(
-    () => data.doctors.filter((d) => myPincodes.has(d.pincode)),
-    [data.doctors, myPincodes]
-  );
+  const myDoctors = useMemo(() => {
+    if (!data.doctors || data.doctors.length === 0) return [];
+    let list = data.doctors.filter((d) => myPincodes.has(d.pincode));
+    if (list.length === 0 && exec) {
+      list = data.doctors.filter((d) => {
+        const docCity = (d.city || "").toLowerCase().trim();
+        const execCity = (exec.city || "").toLowerCase().trim();
+        const execRegion = (exec.region || "").toLowerCase().trim();
+        const isCityMatch = execCity && (docCity === execCity || (docCity.includes("bang") && execCity.includes("bang")));
+        const isRegionMatch = execRegion && (docCity.includes(execRegion) || (d.name || "").toLowerCase().includes(execRegion));
+        return isCityMatch || isRegionMatch;
+      });
+    }
+    if (list.length === 0) {
+      list = data.doctors;
+    }
+    return list;
+  }, [data.doctors, myPincodes, exec]);
 
-  const pincodeList = useMemo(() => [...myPincodes].sort(), [myPincodes]);
+  const pincodeList = useMemo(
+    () => [...new Set(myDoctors.map((d) => d.pincode).filter(Boolean))].sort(),
+    [myDoctors]
+  );
 
   const activeCount = myDoctors.filter(
     (d) => d.is_active === "Yes" || d.is_active === true
@@ -2016,7 +2105,7 @@ function DoctorsView({ data, execId }) {
           <div className="stat-icon orange">⊞</div>
           <div>
             <span>Pin Codes</span>
-            <strong>{myPincodes.size}</strong>
+            <strong>{pincodeList.length || myPincodes.size}</strong>
             <small>Assigned coverage</small>
           </div>
         </div>
@@ -2082,8 +2171,8 @@ function DoctorsView({ data, execId }) {
       {/* ── TABLE ── */}
       {data.loading ? (
         <div className="panel rpt-empty-state">Loading doctors…</div>
-      ) : myPincodes.size === 0 ? (
-        <div className="panel rpt-empty-state">No pin codes assigned to this executive yet.</div>
+      ) : myDoctors.length === 0 ? (
+        <div className="panel rpt-empty-state">No doctors found for this executive's region.</div>
       ) : filtered.length === 0 ? (
         <div className="panel rpt-empty-state">No doctors match your search.</div>
       ) : (
@@ -2165,14 +2254,15 @@ function DoctorsView({ data, execId }) {
    Shown on both Executive and Team dashboards whenever a
    monthly plan exists for the current period.
 ───────────────────────────────────────────────────────── */
-function PlanTargetPanel({ planStats, onGoToPlan }) {
+function PlanTargetPanel({ planStats, monthLabel, onGoToPlan }) {
+  const label = monthLabel || PLAN_MONTH_LABEL;
   if (!planStats || !planStats.has_plan) {
     return (
       <div className="panel pln-target-panel pln-target-empty-card">
         <div className="pln-target-header">
           <div>
             <h2 className="pln-target-title">
-              Monthly Visit Target — {PLAN_MONTH_LABEL}
+              Monthly Visit Target — {label}
             </h2>
             <p className="pln-hint">Individual visit target</p>
           </div>
@@ -2226,7 +2316,7 @@ function PlanTargetPanel({ planStats, onGoToPlan }) {
       <div className="pln-target-header">
         <div>
           <h2 className="pln-target-title">
-            Monthly Visit Target — {PLAN_MONTH_LABEL}
+            Monthly Visit Target — {label}
           </h2>
           <p className="pln-hint">
             {daily_target} doctors/day · {working_days} working days
@@ -2284,9 +2374,11 @@ function PlanTargetPanel({ planStats, onGoToPlan }) {
    TEAM PLAN TARGET PANEL (Managers & Regional Managers)
    Shows aggregate visit target + per-employee breakdown
 ───────────────────────────────────────────────────────── */
-function TeamPlanTargetPanel({ execsInScope, onGoToPlan, onTeamStatsLoaded }) {
+function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, onTeamStatsLoaded }) {
   const [teamPlans, setTeamPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const activeMonth = monthKey || PLAN_MONTH_KEY;
+  const activeMonthLabel = monthLabel || formatMonthLabel(activeMonth);
 
   useEffect(() => {
     let cancelled = false;
@@ -2299,7 +2391,7 @@ function TeamPlanTargetPanel({ execsInScope, onGoToPlan, onTeamStatsLoaded }) {
     Promise.all(
       execsInScope.map(async (exec) => {
         try {
-          const res = await fetch(`${API_BASE}/plan-stats/${exec.id}?month_key=${PLAN_MONTH_KEY}`);
+          const res = await fetch(`${API_BASE}/plan-stats/${exec.id}?month_key=${activeMonth}`);
           const stats = await res.json();
           return { exec, stats };
         } catch {
@@ -2331,7 +2423,7 @@ function TeamPlanTargetPanel({ execsInScope, onGoToPlan, onTeamStatsLoaded }) {
       }
     });
     return () => { cancelled = true; };
-  }, [execsInScope]); // eslint-disable-line
+  }, [execsInScope, activeMonth]); // eslint-disable-line
 
   const totalTarget = teamPlans.reduce((sum, r) => sum + (r.stats?.total_doctors || 0), 0);
   const totalCompleted = teamPlans.reduce((sum, r) => sum + (r.stats?.completed || 0), 0);
@@ -2351,7 +2443,7 @@ function TeamPlanTargetPanel({ execsInScope, onGoToPlan, onTeamStatsLoaded }) {
       <div className="pln-target-header">
         <div>
           <h2 className="pln-target-title">
-            Team Visit Target — {PLAN_MONTH_LABEL}
+            Team Visit Target — {activeMonthLabel}
           </h2>
           <p className="pln-hint">
             Overall team target across {execsInScope.length} executive{execsInScope.length !== 1 ? "s" : ""}
@@ -2466,7 +2558,7 @@ function TeamPlanTargetPanel({ execsInScope, onGoToPlan, onTeamStatsLoaded }) {
 /* ─────────────────────────────────────────────────────────
    EXECUTIVE DASHBOARD
 ───────────────────────────────────────────────────────── */
-function ExecutiveDashboard({ data, execId, planStats, onGoToPlan }) {
+function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan }) {
   const { executives, coverage, tasks, doctors, products } = data;
   const exec = executives.find((e) => e.id === execId) || executives[0];
   const myPincodes = new Set(coverage.filter((c) => c.executive_id === exec?.id).map((c) => c.pincode));
@@ -2521,7 +2613,7 @@ function ExecutiveDashboard({ data, execId, planStats, onGoToPlan }) {
       {/* ── Top Grid: Tasks by Priority side-by-side with Plan Target Panel ── */}
       <div className="two-columns">
         <Chart title="My Tasks by Priority" categories={["Low", "Medium", "High"]} targets={totals} achieved={doneByPriority} />
-        <PlanTargetPanel planStats={planStats} onGoToPlan={onGoToPlan} />
+        <PlanTargetPanel planStats={planStats} monthLabel={monthLabel} onGoToPlan={onGoToPlan} />
       </div>
 
       {/* ── Second Grid: Achievement Overview & Task Status ── */}
@@ -2542,7 +2634,7 @@ function ExecutiveDashboard({ data, execId, planStats, onGoToPlan }) {
 /* ─────────────────────────────────────────────────────────
    TEAM DASHBOARD (Managers & Regional Managers)
 ───────────────────────────────────────────────────────── */
-function TeamDashboard({ data, region, scopeLabel, onGoToPlan }) {
+function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToPlan }) {
   const { executives, coverage, tasks, doctors } = data;
   const execsInScope = region ? executives.filter((e) => e.region === region) : executives;
   const [teamStatsSummary, setTeamStatsSummary] = useState(null);
@@ -2588,7 +2680,7 @@ function TeamDashboard({ data, region, scopeLabel, onGoToPlan }) {
       {/* ── Top Grid: Team Target vs Achievement side-by-side with Team Plan Target Panel ── */}
       <div className="two-columns">
         <Chart title="Team Target vs Achievement" categories={categories.length ? categories : ["—"]} targets={targets.length ? targets : [0]} achieved={achieved.length ? achieved : [0]} />
-        <TeamPlanTargetPanel execsInScope={execsInScope} onGoToPlan={onGoToPlan} onTeamStatsLoaded={setTeamStatsSummary} />
+        <TeamPlanTargetPanel execsInScope={execsInScope} monthKey={monthKey} monthLabel={monthLabel} onGoToPlan={onGoToPlan} onTeamStatsLoaded={setTeamStatsSummary} />
       </div>
 
       <div className="two-columns">
@@ -2654,9 +2746,13 @@ export default function SalesCrm({ role, onSwitchRole, onExit }) {
     }
   }, [role, activeSection]);
 
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey);
+  const selectedMonthLabel = formatMonthLabel(selectedMonth);
+  const monthOptions = useMemo(() => getAvailableMonthOptions(selectedMonth), [selectedMonth]);
+
   // ── Plan stats for the active executive (shown on the dashboard)
   // usePlanStats is a lightweight hook: just one GET /plan-stats/{id} call
-  const { stats: planStats } = usePlanStats(execId, PLAN_MONTH_KEY);
+  const { stats: planStats } = usePlanStats(execId, selectedMonth);
 
   const regions = useMemo(
     () => [...new Set(data.executives.map((e) => e.region).filter(Boolean))],
@@ -2808,6 +2904,15 @@ export default function SalesCrm({ role, onSwitchRole, onExit }) {
               </div>
             )}
 
+            <div className="role-switch">
+              <label>Month</label>
+              <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                {monthOptions.map((opt) => (
+                  <option key={opt.key} value={opt.key}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+
             <button
               className="profile-avatar-btn"
               title={currentRecord ? `${currentRecord.name} — view profile` : "No profile selected"}
@@ -2829,6 +2934,7 @@ export default function SalesCrm({ role, onSwitchRole, onExit }) {
                   data={data}
                   execId={execId}
                   planStats={planStats}
+                  monthLabel={selectedMonthLabel}
                   onGoToPlan={() => setActiveSection("plan")}
                 />
               )}
@@ -2837,6 +2943,8 @@ export default function SalesCrm({ role, onSwitchRole, onExit }) {
                   data={data}
                   region={region || null}
                   scopeLabel="Active team members"
+                  monthKey={selectedMonth}
+                  monthLabel={selectedMonthLabel}
                   onGoToPlan={() => setActiveSection("approvals")}
                 />
               )}
@@ -2845,6 +2953,8 @@ export default function SalesCrm({ role, onSwitchRole, onExit }) {
                   data={data}
                   region={region || null}
                   scopeLabel="Across all regions"
+                  monthKey={selectedMonth}
+                  monthLabel={selectedMonthLabel}
                   onGoToPlan={() => setActiveSection("approvals")}
                 />
               )}
@@ -2871,6 +2981,8 @@ export default function SalesCrm({ role, onSwitchRole, onExit }) {
               data={data}
               execId={execId}
               role={role}
+              monthKey={selectedMonth}
+              onMonthChange={setSelectedMonth}
               initialTab={activeSection === "approvals" ? "approvals" : "overview"}
               regionFilter={region}
               onTabChange={(newTab) => {

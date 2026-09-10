@@ -1,11 +1,21 @@
 import { useState } from "react";
-import { PLAN_MONTH_LABEL, RESCHEDULE_REASONS, VISIT_TIME_OPTIONS, formatDateLong, getPlanToday } from "./planData.js";
+import {
+  PLAN_MONTH_LABEL,
+  RESCHEDULE_REASONS,
+  VISIT_TIME_OPTIONS,
+  formatDateLong,
+  getPlanToday,
+  getMonthBounds,
+  formatMonthLabel,
+  getCurrentMonthKey,
+} from "./planData.js";
 import { StatusBadge, PriorityBadge, DoctorMiniCard } from "./PlanBits.jsx";
 
 /* ───────────────────────── CREATE MONTHLY PLAN ───────────────────────── */
-export function CreatePlanModal({ totalAssigned, workingDaysCount, onClose, onCreate }) {
+export function CreatePlanModal({ totalAssigned, workingDaysCount, monthLabel, monthKey, onClose, onCreate }) {
   const [method, setMethod] = useState("auto");
   const dailyTarget = workingDaysCount > 0 ? Math.ceil(totalAssigned / workingDaysCount) : 0;
+  const displayMonth = monthLabel || (monthKey ? formatMonthLabel(monthKey) : PLAN_MONTH_LABEL);
 
   return (
     <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -14,7 +24,7 @@ export function CreatePlanModal({ totalAssigned, workingDaysCount, onClose, onCr
         <div className="zzc-modal-form">
           <div className="zzc-field">
             <label>Month</label>
-            <input value={PLAN_MONTH_LABEL} disabled />
+            <input value={displayMonth} disabled />
           </div>
           <div className="pln-two-col">
             <div className="zzc-field">
@@ -166,9 +176,10 @@ export function VisitReportModal({ doctor, task, existingReport, onClose, onSubm
 }
 
 /* ───────────────────────── RESCHEDULE ───────────────────────── */
-export function RescheduleModal({ doctor, task, onClose, onReschedule }) {
+export function RescheduleModal({ doctor, task, monthKey, onClose, onReschedule }) {
   const [date, setDate] = useState(task.scheduledDate);
   const [reason, setReason] = useState(RESCHEDULE_REASONS[0]);
+  const bounds = getMonthBounds(monthKey || task.scheduledDate?.slice(0, 7) || getCurrentMonthKey());
 
   function handleSave(e) {
     e.preventDefault();
@@ -183,7 +194,7 @@ export function RescheduleModal({ doctor, task, onClose, onReschedule }) {
         <form id="rescheduleForm" className="zzc-modal-form" onSubmit={handleSave}>
           <div className="zzc-field">
             <label>New Date *</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min="2026-09-01" max="2026-09-30" required />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={bounds.min} max={bounds.max} required />
           </div>
           <div className="zzc-field">
             <label>Reason *</label>
@@ -202,8 +213,10 @@ export function RescheduleModal({ doctor, task, onClose, onReschedule }) {
 }
 
 /* ───────────────────────── MANUAL SCHEDULE (one doctor) ───────────────────────── */
-export function ScheduleDoctorModal({ doctor, onClose, onSchedule }) {
-  const [date, setDate] = useState(getPlanToday());
+export function ScheduleDoctorModal({ doctor, monthKey, onClose, onSchedule }) {
+  const activeMonthKey = monthKey || getCurrentMonthKey();
+  const bounds = getMonthBounds(activeMonthKey);
+  const [date, setDate] = useState(() => getPlanToday(activeMonthKey));
   const [time, setTime] = useState(VISIT_TIME_OPTIONS[0]);
 
   function handleSave(e) {
@@ -219,7 +232,7 @@ export function ScheduleDoctorModal({ doctor, onClose, onSchedule }) {
         <form id="scheduleDoctorForm" className="zzc-modal-form" onSubmit={handleSave}>
           <div className="zzc-field">
             <label>Visit Date *</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min="2026-09-01" max="2026-09-30" required />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={bounds.min} max={bounds.max} required />
           </div>
           <div className="zzc-field">
             <label>Visit Time</label>

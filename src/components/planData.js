@@ -12,11 +12,70 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE } from "../api.js";
 
-/* ────────────────────────────── constants ───────────────────────────── */
-export const PLAN_YEAR        = 2026;
-export const PLAN_MONTH_INDEX = 8;           // September (0-based)
-export const PLAN_MONTH_KEY   = "2026-09";
-export const PLAN_MONTH_LABEL = "September 2026";
+/* ────────────────────────────── helpers & formats ────────────────────── */
+function pad(n) { return String(n).padStart(2, "0"); }
+function dateStr(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
+
+/* ────────────────────────────── dynamic month helpers ───────────────────── */
+export function parseMonthKey(key) {
+  if (!key || typeof key !== "string" || !key.includes("-")) {
+    const now = new Date();
+    return { year: now.getFullYear(), monthIndex: now.getMonth() };
+  }
+  const [y, m] = key.split("-").map(Number);
+  return { year: y, monthIndex: (m || 1) - 1 };
+}
+
+export function toMonthKey(year, monthIndex) {
+  return `${year}-${pad(monthIndex + 1)}`;
+}
+
+export function formatMonthLabel(key) {
+  const { year, monthIndex } = parseMonthKey(key);
+  const dt = new Date(year, monthIndex, 1);
+  return dt.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+}
+
+export function getCurrentMonthKey() {
+  const now = new Date();
+  return toMonthKey(now.getFullYear(), now.getMonth());
+}
+
+export function getCurrentMonthLabel() {
+  return formatMonthLabel(getCurrentMonthKey());
+}
+
+export function getMonthBounds(monthKey = getCurrentMonthKey()) {
+  const { year, monthIndex } = parseMonthKey(monthKey);
+  const min = `${year}-${pad(monthIndex + 1)}-01`;
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  const max = `${year}-${pad(monthIndex + 1)}-${pad(lastDay)}`;
+  return { min, max };
+}
+
+export function getAvailableMonthOptions(centerMonthKey) {
+  const base = parseMonthKey(centerMonthKey || getCurrentMonthKey());
+  const curKey = getCurrentMonthKey();
+  const options = [];
+  for (let offset = -3; offset <= 3; offset++) {
+    const dt = new Date(base.year, base.monthIndex + offset, 1);
+    const key = toMonthKey(dt.getFullYear(), dt.getMonth());
+    const label = dt.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    options.push({
+      key,
+      label: key === curKey ? `${label} (Current)` : label,
+      rawLabel: label,
+      isCurrent: key === curKey,
+    });
+  }
+  return options;
+}
+
+/* ────────────────────────────── constants & compatibility ───────────────────── */
+export const PLAN_YEAR        = new Date().getFullYear();
+export const PLAN_MONTH_INDEX = new Date().getMonth();
+export const PLAN_MONTH_KEY   = getCurrentMonthKey();
+export const PLAN_MONTH_LABEL = getCurrentMonthLabel();
 export const MANAGER_NAME     = "Emily";
 
 export const TASK_STATUSES = [
@@ -49,9 +108,6 @@ export function parseApprovers(str) {
 }
 
 /* ────────────────────────────── date helpers ────────────────────────── */
-function pad(n) { return String(n).padStart(2, "0"); }
-function dateStr(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
-
 export function parseDateSafe(val) {
   if (!val) return null;
   if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
@@ -90,14 +146,35 @@ export function formatDateShort(iso) {
   return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 }
 
-export function getPlanToday() {
+export function getPlanToday(monthKey = getCurrentMonthKey()) {
   const real = new Date();
-  const y = real.getFullYear(), m = real.getMonth(), d = real.getDate();
-  if (y === PLAN_YEAR && m === PLAN_MONTH_INDEX) return dateStr(y, m, d);
-  return "2026-09-08";
+  const realKey = toMonthKey(real.getFullYear(), real.getMonth());
+  if (monthKey === realKey) {
+    return dateStr(real.getFullYear(), real.getMonth(), real.getDate());
+  }
+  const workingDays = getWorkingDays(monthKey);
+  if (!workingDays.length) return `${monthKey}-01`;
+  if (monthKey > realKey) {
+    return workingDays[0];
+  } else {
+    return workingDays[workingDays.length - 1];
+  }
 }
 
-export function getWorkingDays(year = PLAN_YEAR, monthIndex = PLAN_MONTH_INDEX) {
+export function getWorkingDays(monthKeyOrYear = getCurrentMonthKey(), maybeMonthIndex) {
+  let year, monthIndex;
+  if (typeof monthKeyOrYear === "string") {
+    const parsed = parseMonthKey(monthKeyOrYear);
+    year = parsed.year;
+    monthIndex = parsed.monthIndex;
+  } else if (typeof monthKeyOrYear === "number") {
+    year = monthKeyOrYear;
+    monthIndex = typeof maybeMonthIndex === "number" ? maybeMonthIndex : 0;
+  } else {
+    const parsed = parseMonthKey(getCurrentMonthKey());
+    year = parsed.year;
+    monthIndex = parsed.monthIndex;
+  }
   const days = [];
   const last = new Date(year, monthIndex + 1, 0).getDate();
   for (let d = 1; d <= last; d++) {
@@ -108,7 +185,7 @@ export function getWorkingDays(year = PLAN_YEAR, monthIndex = PLAN_MONTH_INDEX) 
 }
 
 /* ────────────────────────────── derived stats ───────────────────────── */
-export function computeStats(assignedDoctors, planDoctors) {
+export function computeStats(assignedDoctors, planDoctors, monthKey = getCurrentMonthKey()) {
   const totalAssigned  = assignedDoctors.length;
   const planned        = planDoctors.length;
   const completed      = planDoctors.filter((p) => p.status === "Completed").length;
@@ -118,8 +195,8 @@ export function computeStats(assignedDoctors, planDoctors) {
   const completionPct  = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
   const unplanned      = totalAssigned - planned;
 
-  const workingDays    = getWorkingDays();
-  const today          = getPlanToday();
+  const workingDays    = getWorkingDays(monthKey);
+  const today          = getPlanToday(monthKey);
   const daysPassed     = workingDays.filter((d) => d <= today).length;
   const expectedPct    = workingDays.length > 0 ? Math.round((daysPassed / workingDays.length) * 100) : 0;
 
@@ -140,7 +217,7 @@ export function getDoctorMap(assignedDoctors) {
   return map;
 }
 
-export function validatePlanForSubmission(assignedDoctors, planDoctors) {
+export function validatePlanForSubmission(assignedDoctors, planDoctors, monthKey = getCurrentMonthKey()) {
   const errors = [];
   const scheduledIds = new Set(planDoctors.map((p) => p.doctorId ?? p.doctor_id));
   const unplanned = assignedDoctors.filter((d) => !scheduledIds.has(d.id));
@@ -154,9 +231,10 @@ export function validatePlanForSubmission(assignedDoctors, planDoctors) {
     seen.add(id);
   });
   if (dups > 0) errors.push(`${dups} duplicate doctor visit${dups > 1 ? "s" : ""} found in the plan.`);
-  const outOfMonth = planDoctors.filter((p) => !(p.scheduledDate ?? p.scheduled_date)?.startsWith(PLAN_MONTH_KEY));
+  const label = formatMonthLabel(monthKey);
+  const outOfMonth = planDoctors.filter((p) => !(p.scheduledDate ?? p.scheduled_date)?.startsWith(monthKey));
   if (outOfMonth.length > 0)
-    errors.push(`${outOfMonth.length} visit${outOfMonth.length > 1 ? "s are" : " is"} scheduled outside ${PLAN_MONTH_LABEL}.`);
+    errors.push(`${outOfMonth.length} visit${outOfMonth.length > 1 ? "s are" : " is"} scheduled outside ${label}.`);
   return errors;
 }
 
@@ -440,7 +518,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
 
 
   const createPlan = useCallback(async (method) => {
-    const workingDays = getWorkingDays();
+    const workingDays = getWorkingDays(monthKey);
     const totalDoctors = store.assignedDoctors.length;
     const dailyTarget  = Math.ceil(totalDoctors / Math.max(1, workingDays.length));
 
@@ -452,7 +530,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
         body: JSON.stringify({
           executive_id:    execId,
           month_key:       monthKey,
-          month_label:     PLAN_MONTH_LABEL,
+          month_label:     formatMonthLabel(monthKey),
           working_days:    workingDays.length,
           daily_target:    dailyTarget,
           total_doctors:   totalDoctors,

@@ -15,20 +15,6 @@ export function PlanStatusBadge({ status }) {
   return <span className={cls}>{status}</span>;
 }
 
-export function HealthPill({ health }) {
-  const map = {
-    "On Track": { cls: "pln-health-good", dot: "🟢" },
-    "Needs Attention": { cls: "pln-health-warn", dot: "🟡" },
-    "Behind Plan": { cls: "pln-health-bad", dot: "🔴" },
-  };
-  const m = map[health] || map["On Track"];
-  return (
-    <span className={"pln-health " + m.cls}>
-      <span aria-hidden="true">{m.dot}</span> {health}
-    </span>
-  );
-}
-
 export function ProgressBar({ pct, label }) {
   return (
     <div className="pln-progress-wrap">

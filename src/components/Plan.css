@@ -88,12 +88,6 @@
 .pln-planstatus-completed     { background: oklch(92% .06 165); color: oklch(38% .12 165); }
 .pln-planstatus-rejected      { background: oklch(94% .04 25); color: var(--destructive); }
 
-/* ---------- health pill ---------- */
-.pln-health { font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
-.pln-health-good { background: oklch(92% .06 165); color: oklch(38% .12 165); }
-.pln-health-warn { background: oklch(95% .07 75);  color: oklch(48% .13 75); }
-.pln-health-bad  { background: oklch(94% .04 25);  color: var(--destructive); }
-
 /* ---------- action row (task buttons) ---------- */
 .pln-action-row { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
 

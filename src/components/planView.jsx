@@ -13,12 +13,14 @@ import {
   PLAN_MONTH_KEY,
   PLAN_MONTH_LABEL,
   parseApprovers,
+  getCurrentMonthKey,
+  formatMonthLabel,
+  getAvailableMonthOptions,
 } from "./planData.js";
 import {
   StatusBadge,
   PriorityBadge,
   PlanStatusBadge,
-  HealthPill,
   ProgressBar,
   SummaryCards,
   DoctorMiniCard,
@@ -38,7 +40,7 @@ import { VscSearch } from "react-icons/vsc";
    Convert a real API doctor (from useSalesData) into the
    shape planView components expect.
 ───────────────────────────────────────────────────────── */
-function adaptDoctor(doc, index) {
+function adaptDoctor(doc, index, monthKey = getCurrentMonthKey()) {
   if (!doc) return null;
   return {
     id: doc.id,
@@ -52,7 +54,7 @@ function adaptDoctor(doc, index) {
     phone: doc.phone ?? "—",
     priority: index < 10 ? "High" : index < 25 ? "Medium" : "Low",
     manager: "Manager",
-    assignedDate: `${PLAN_MONTH_KEY}-01`,
+    assignedDate: `${monthKey}-01`,
     pincode: doc.pincode ?? "",
     rating: doc.rating ?? null,
     verificationStatus: doc.verification_status ?? "",
@@ -94,14 +96,15 @@ function TaskActions({ task, onStart, onComplete, onReschedule, onCancel }) {
 /* ─────────────────────────────────────────────────────────
    OVERVIEW TAB
 ───────────────────────────────────────────────────────── */
-function OverviewTab({ store, stats, execName, onCreatePlan, onResetEmpty, isExecutive, onSubmitPlan }) {
+function OverviewTab({ store, stats, execName, monthLabel, onCreatePlan, onResetEmpty, isExecutive, onSubmitPlan }) {
   const { monthlyPlan, assignedDoctors } = store;
+  const label = monthLabel || PLAN_MONTH_LABEL;
 
   if (!monthlyPlan) {
     return (
       <div className="panel pln-empty-panel">
         <div className="pln-empty-icon">🗓</div>
-        <h3>No monthly plan for {PLAN_MONTH_LABEL}</h3>
+        <h3>No monthly plan for {label}</h3>
         <p>
           <strong>{assignedDoctors.length} doctors</strong> are available in your territory for
           this month.
@@ -132,7 +135,7 @@ function OverviewTab({ store, stats, execName, onCreatePlan, onResetEmpty, isExe
       <div className="pln-overview-head">
         <div>
           <h3 style={{ margin: 0 }}>
-            {PLAN_MONTH_LABEL} — {execName}
+            {label} — {execName}
           </h3>
           <p className="pln-hint" style={{ margin: "2px 0 0" }}>
             Working days: {monthlyPlan.workingDays} · Daily target:{" "}
@@ -141,7 +144,6 @@ function OverviewTab({ store, stats, execName, onCreatePlan, onResetEmpty, isExe
         </div>
         <div className="pln-overview-head-right">
           <PlanStatusBadge status={monthlyPlan.status} />
-          <HealthPill health={stats.planHealth} />
         </div>
       </div>
 
@@ -276,7 +278,7 @@ function OverviewTab({ store, stats, execName, onCreatePlan, onResetEmpty, isExe
    ASSIGNED DOCTORS TAB
    Uses real API doctors passed via assignedDoctors
 ───────────────────────────────────────────────────────── */
-function AssignedDoctorsTab({ store, planDoctorMap }) {
+function AssignedDoctorsTab({ store, planDoctorMap, monthKey }) {
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -317,7 +319,7 @@ function AssignedDoctorsTab({ store, planDoctorMap }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <span className="rpt-search-icon">🔍</span>
+            <span className="rpt-search-icon"><VscSearch /></span>
           </div>
         </div>
         <div className="rpt-field">
@@ -464,6 +466,7 @@ function AssignedDoctorsTab({ store, planDoctorMap }) {
       {scheduling && (
         <ScheduleDoctorModal
           doctor={scheduling}
+          monthKey={monthKey}
           onClose={() => setScheduling(null)}
           onSchedule={(date, time) => {
             store.scheduleDoctor(scheduling.id, date, time);
@@ -478,10 +481,12 @@ function AssignedDoctorsTab({ store, planDoctorMap }) {
 /* ─────────────────────────────────────────────────────────
    CALENDAR TAB
 ───────────────────────────────────────────────────────── */
-function CalendarTab({ store, doctorMap, openTaskReport, openReschedule }) {
+function CalendarTab({ store, doctorMap, monthKey, monthLabel, openTaskReport, openReschedule }) {
+  const activeMonthKey = monthKey || getCurrentMonthKey();
+  const label = monthLabel || formatMonthLabel(activeMonthKey);
   const [selectedDate, setSelectedDate] = useState(null);
-  const workingDays = getWorkingDays();
-  const today = getPlanToday();
+  const workingDays = getWorkingDays(activeMonthKey);
+  const today = getPlanToday(activeMonthKey);
 
   const byDate = useMemo(() => {
     const map = new Map();
@@ -493,8 +498,7 @@ function CalendarTab({ store, doctorMap, openTaskReport, openReschedule }) {
   }, [store.planDoctors]);
 
   const allDaysInMonth = useMemo(() => {
-    if (!workingDays.length) return [];
-    const [y, m] = workingDays[0].split("-").map(Number);
+    const [y, m] = activeMonthKey.split("-").map(Number);
     const last = new Date(y, m, 0).getDate();
     return Array.from({ length: last }, (_, i) => {
       const d = i + 1;
@@ -504,14 +508,14 @@ function CalendarTab({ store, doctorMap, openTaskReport, openReschedule }) {
         dow: dt.getDay(),
       };
     });
-  }, [workingDays]);
+  }, [activeMonthKey]);
 
   const leadingBlanks = allDaysInMonth.length ? allDaysInMonth[0].dow : 0;
 
   return (
     <div className="panel pln-calendar-panel">
       <div className="panel-title">
-        <h2>Monthly Calendar — {PLAN_MONTH_LABEL}</h2>
+        <h2>Monthly Calendar — {label}</h2>
       </div>
       <div className="pln-cal-legend">
         <span>
@@ -599,8 +603,8 @@ function CalendarTab({ store, doctorMap, openTaskReport, openReschedule }) {
 /* ─────────────────────────────────────────────────────────
    DAILY TASKS TAB
 ───────────────────────────────────────────────────────── */
-function DailyTasksTab({ store, doctorMap, openTaskReport, openReschedule }) {
-  const today = getPlanToday();
+function DailyTasksTab({ store, doctorMap, monthKey, openTaskReport, openReschedule }) {
+  const today = getPlanToday(monthKey || getCurrentMonthKey());
   const tomorrow = addDaysStr(today, 1);
   const weekEnd = addDaysStr(today, 6);
   const [filter, setFilter] = useState("today");
@@ -721,6 +725,7 @@ function DailyTasksTab({ store, doctorMap, openTaskReport, openReschedule }) {
 function PlanTableTab({
   store,
   doctorMap,
+  monthKey,
   openTaskReport,
   openReschedule,
   onSubmitPlan,
@@ -741,7 +746,8 @@ function PlanTableTab({
   function handleSubmit() {
     const errors = validatePlanForSubmission(
       store.assignedDoctors,
-      store.planDoctors
+      store.planDoctors,
+      monthKey || getCurrentMonthKey()
     );
     setValidationErrors(errors);
     if (errors.length === 0) {
@@ -904,7 +910,7 @@ function PlanTableTab({
 function ApprovalCard({ exec, monthKey, assignedDoctors, managerName, managerRole }) {
   const store = usePlanStore(exec.id, monthKey, assignedDoctors);
   const [action, setAction] = useState(null);
-  const stats = computeStats(store.assignedDoctors, store.planDoctors);
+  const stats = computeStats(store.assignedDoctors, store.planDoctors, monthKey);
   const plan = store.monthlyPlan;
 
   const isApproved = plan?.status === "Approved";
@@ -919,7 +925,7 @@ function ApprovalCard({ exec, monthKey, assignedDoctors, managerName, managerRol
         <div>
           <h2 style={{ margin: 0 }}>{exec.name}</h2>
           <p className="doc-muted" style={{ margin: "2px 0 0", fontSize: "0.78rem" }}>
-            {exec.employee_code || `SE-00${exec.id}`} · {exec.region || "Territory"}
+            {exec.employee_code || `SE-00${exec.id}`} · {exec.region || "Region"}
           </p>
         </div>
         {plan ? (
@@ -936,7 +942,7 @@ function ApprovalCard({ exec, monthKey, assignedDoctors, managerName, managerRol
       )}
       {!store.loading && !plan && (
         <p className="doc-muted">
-          No monthly plan submitted yet for {PLAN_MONTH_LABEL}.
+          No monthly plan submitted yet for {formatMonthLabel(monthKey)}.
         </p>
       )}
       {!store.loading && plan && (
@@ -1181,13 +1187,6 @@ function ApprovalsTab({
   );
 }
 
-/* ─────────────────────────────────────────────────────────
-   MAIN PLAN VIEW
-   data           — from useSalesData() in SalesCrm.jsx
-   execId         — numeric ID of the selected executive
-   role           — "executive" | "manager" | "regional"
-   onStatsChange  — callback(stats) called when plan stats change
-───────────────────────────────────────────────────────── */
 export default function PlanView({
   data,
   execId,
@@ -1197,8 +1196,19 @@ export default function PlanView({
   initialTab = "overview",
   regionFilter = "",
   onTabChange,
+  monthKey: propMonthKey,
+  onMonthChange,
 }) {
-  const monthKey = PLAN_MONTH_KEY;
+  const [internalMonthKey, setInternalMonthKey] = useState(getCurrentMonthKey);
+  const monthKey = propMonthKey || internalMonthKey;
+  const monthLabel = formatMonthLabel(monthKey);
+  const monthOptions = useMemo(() => getAvailableMonthOptions(monthKey), [monthKey]);
+
+  function handleMonthSelect(newKey) {
+    if (onMonthChange) onMonthChange(newKey);
+    else setInternalMonthKey(newKey);
+  }
+
   const isManager = role === "manager" || role === "regional";
 
   // ── Derive the "assigned doctors" for this exec from the live API data
@@ -1216,8 +1226,8 @@ export default function PlanView({
     if (!data?.doctors?.length) return [];
     return data.doctors
       .filter((d) => myPincodes.has(d.pincode))
-      .map(adaptDoctor);
-  }, [data?.doctors, myPincodes]);
+      .map((d, i) => adaptDoctor(d, i, monthKey));
+  }, [data?.doctors, myPincodes, monthKey]);
 
   // ── Store (API-backed, falls back to cache / demo)
   const store = usePlanStore(execId, monthKey, assignedDoctors);
@@ -1247,8 +1257,8 @@ export default function PlanView({
     return map;
   }, [store.planDoctors]);
   const stats = useMemo(
-    () => computeStats(store.assignedDoctors, store.planDoctors),
-    [store.assignedDoctors, store.planDoctors]
+    () => computeStats(store.assignedDoctors, store.planDoctors, monthKey),
+    [store.assignedDoctors, store.planDoctors, monthKey]
   );
 
   // Notify parent whenever stats change (used by dashboard stat cards)
@@ -1256,7 +1266,7 @@ export default function PlanView({
     if (!isManager && onStatsChange) onStatsChange(stats, store.monthlyPlan);
   }, [stats, store.monthlyPlan, onStatsChange, isManager]);
 
-  const workingDays = getWorkingDays();
+  const workingDays = getWorkingDays(monthKey);
   const exec = data?.executives?.find((e) => e.id === execId) ||
     data?.executives?.[0] || { name: "Sales Executive" };
 
@@ -1297,27 +1307,55 @@ export default function PlanView({
         </div>
       )}
 
-      {/* ── Tab bar ── */}
-      <div className="rpt-tabs-bar panel" style={{ padding: ".45rem .75rem" }}>
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={"rpt-tab" + (tab === t.key ? " active" : "")}
-            onClick={() => handleTabSelect(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-        {!isManager && !store.monthlyPlan && (
-          <button
-            type="button"
-            className="zzc-btn zzc-btn-primary"
-            style={{ marginLeft: "auto", height: 32, fontSize: ".75rem" }}
-            onClick={() => setCreating(true)}
-          >
-            + Create Monthly Plan
-          </button>
-        )}
+      {/* ── Tab bar with Month Selector ── */}
+      <div className="rpt-tabs-bar panel" style={{ padding: ".45rem .75rem", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "4px" }}>
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              className={"rpt-tab" + (tab === t.key ? " active" : "")}
+              onClick={() => handleTabSelect(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div className="role-switch" style={{ margin: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+            <label style={{ fontSize: ".72rem", textTransform: "uppercase", fontWeight: 600, color: "#64748b" }}>Month</label>
+            <select
+              value={monthKey}
+              onChange={(e) => handleMonthSelect(e.target.value)}
+              style={{
+                height: 32,
+                fontSize: ".8rem",
+                padding: "2px 8px",
+                borderRadius: 6,
+                borderColor: "var(--border)",
+                background: "var(--background)",
+                color: "var(--foreground)",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {monthOptions.map((opt) => (
+                <option key={opt.key} value={opt.key}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {!isManager && !store.monthlyPlan && (
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-primary"
+              style={{ height: 32, fontSize: ".75rem", whiteSpace: "nowrap" }}
+              onClick={() => setCreating(true)}
+            >
+              + Create Monthly Plan
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Tab content ── */}
@@ -1327,6 +1365,7 @@ export default function PlanView({
             store={store}
             stats={stats}
             execName={exec.name}
+            monthLabel={monthLabel}
             isExecutive={!isManager}
             onCreatePlan={() => setCreating(true)}
             onResetEmpty={store.resetToEmpty}
@@ -1335,7 +1374,7 @@ export default function PlanView({
         )}
 
         {tab === "doctors" && (
-          <AssignedDoctorsTab store={store} planDoctorMap={planDoctorMap} />
+          <AssignedDoctorsTab store={store} planDoctorMap={planDoctorMap} monthKey={monthKey} />
         )}
 
         {tab === "calendar" &&
@@ -1343,6 +1382,8 @@ export default function PlanView({
             <CalendarTab
               store={store}
               doctorMap={doctorMap}
+              monthKey={monthKey}
+              monthLabel={monthLabel}
               openTaskReport={openTaskReport}
               openReschedule={openReschedule}
             />
@@ -1357,6 +1398,7 @@ export default function PlanView({
             <DailyTasksTab
               store={store}
               doctorMap={doctorMap}
+              monthKey={monthKey}
               openTaskReport={openTaskReport}
               openReschedule={openReschedule}
             />
@@ -1371,6 +1413,8 @@ export default function PlanView({
             <PlanTableTab
               store={store}
               doctorMap={doctorMap}
+              monthKey={monthKey}
+              monthLabel={monthLabel}
               openTaskReport={openTaskReport}
               openReschedule={openReschedule}
               onSubmitPlan={store.submitMonthlyPlan}
