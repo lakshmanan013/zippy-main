@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { fetchList, fetchOne, createRecord, updateRecord, TABLE_CONFIG, coerceFieldValue, buildRecordPayload } from "../api.js";
 
-// IMPORTANT: the backend's update_* endpoints validate the request body
-// against the same pydantic ...Create model used for creation, which has
-// required fields with no defaults (Product.name, Doctor.name,
-// Inventory.product_id / seller_id). Sending only the single changed
-// field fails with 422 Unprocessable Content before exclude_unset=True
-// ever runs. Every updateRecord() call below goes through
-// buildRecordPayload(), which merges the already-fetched record with
-// just the changed field(s) so every required field is always present.
 
 const WORKING_SETS = [
   { key: "products", label: "Medicines & Products" },
@@ -161,7 +153,7 @@ export default function BulkTools() {
     }
   }
 
- function applyStockChange() {
+  function applyStockChange() {
     if (!stockApplicable || !stockValueValid) return;
     runBusy(async () => {
       const delta = Number(stockValue);
@@ -200,7 +192,7 @@ export default function BulkTools() {
   }
 
   function applyPriceChange() {
-    if(!priceApplicable || !priceValueValid) return;
+    if (!priceApplicable || !priceValueValid) return;
     runBusy(async () => {
       const rows = await getFilteredProducts();
       const value = Number(priceValue) || 0;
@@ -227,7 +219,7 @@ export default function BulkTools() {
     });
   }
 
-function applyAssignPincode() {
+  function applyAssignPincode() {
     if (!assignPincodeValue.trim()) return;
     runBusy(async () => {
       const rows = await getFilteredWorkingSet();
@@ -346,15 +338,15 @@ function applyAssignPincode() {
           </div>
         </div>
 
-         <div className="bulk-operation-grid">
+        <div className="bulk-operation-grid">
           <div className="bulk-card">
             <h3>Mass stock update</h3>
             <p>
               {workingSet === "inventory"
                 ? "Updates inventory.available_quantity."
                 : workingSet === "products"
-                ? "Updates products.stock_quantity."
-                : "Doctors don't have a stock field — switch to Medicines & Products or Inventory to use this."}
+                  ? "Updates products.stock_quantity."
+                  : "Doctors don't have a stock field — switch to Medicines & Products or Inventory to use this."}
             </p>
             <div className="bulk-input-row">
               <select value={stockOp} onChange={(e) => setStockOp(e.target.value)}>
@@ -420,7 +412,7 @@ function applyAssignPincode() {
             </div>
           </div>
 
-           <div className="bulk-card">
+          <div className="bulk-card">
             <h3>CSV / JSON import</h3>
             <p>
               First row = column names. Include an id column to update existing rows, omit it to create new ones.
