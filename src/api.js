@@ -537,7 +537,7 @@ async function handleResponse(res) {
     try {
       const body = await res.json();
       detail = body.detail || JSON.stringify(body);
-    } catch (_) {
+    } catch (e) {
       /* ignore parse errors */
     }
     throw new Error(detail);
@@ -572,7 +572,7 @@ export async function fetchStatCounts(statConfig) {
       try {
         const count = await fetchCount(stat.tableKey);
         return [stat.key, count];
-      } catch (_) {
+      } catch (e) {
         return [stat.key, null]; // null = failed to load, shown as "—"
       }
     })

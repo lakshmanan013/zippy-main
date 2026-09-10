@@ -9,7 +9,7 @@ export default function StatsGrid({ refreshTrigger, stats = STATS }) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
     fetchStatCounts(stats).then((result) => {
       if (!cancelled) {
         setCounts(result);
@@ -19,7 +19,7 @@ export default function StatsGrid({ refreshTrigger, stats = STATS }) {
     return () => {
       cancelled = true;
     };
-  }, [refreshTrigger]);
+  }, [refreshTrigger, stats]);
 
   return (
     <div className="zzc-stats-grid">

@@ -350,8 +350,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    setTimeout(() => {
+      if (!cancelled) {
+        setLoading(true);
+        setError(null);
+      }
+    }, 0);
 
     Promise.all([
       fetchList("pet_parents"),

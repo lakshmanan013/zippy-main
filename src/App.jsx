@@ -56,7 +56,8 @@ export default function App() {
   }, [currentKey]);
 
   useEffect(() => {
-    loadRecords();
+    const t = setTimeout(() => loadRecords(), 0);
+    return () => clearTimeout(t);
   }, [loadRecords]);
 
     const filtered = useMemo(() => {
@@ -71,7 +72,8 @@ export default function App() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
   useEffect(() => {
-    setCurrentPage((page) => Math.min(page, totalPages));
+    const t = setTimeout(() => setCurrentPage((page) => Math.min(page, totalPages)), 0);
+    return () => clearTimeout(t);
   }, [totalPages]);
 
   const safePage = Math.min(currentPage, totalPages);
@@ -276,7 +278,7 @@ function SalesTeamStats({ refreshTrigger }) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
     Promise.all([
       fetchStatCounts(SALES_TEAM_STATS),
       fetchList("executive_tasks").catch(() => []),
