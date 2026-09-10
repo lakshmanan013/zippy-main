@@ -1439,11 +1439,11 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
       prev.map((v) =>
         selectedIds.has(v.id)
           ? {
-              ...v,
-              status: "Reported",
-              callOutcome: v.callOutcome || "Interested",
-              brands: v.brands === "—" ? "Standard Detailing" : v.brands,
-            }
+            ...v,
+            status: "Reported",
+            callOutcome: v.callOutcome || "Interested",
+            brands: v.brands === "—" ? "Standard Detailing" : v.brands,
+          }
           : v
       )
     );

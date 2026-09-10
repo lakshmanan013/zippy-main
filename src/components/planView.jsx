@@ -32,6 +32,7 @@ import {
   DayDetailModal,
 } from "./PlanModals.jsx";
 import "./Plan.css";
+import { VscSearch } from "react-icons/vsc";
 
 /* ─────────────────────────────────────────────────────────
    Convert a real API doctor (from useSalesData) into the
@@ -40,22 +41,22 @@ import "./Plan.css";
 function adaptDoctor(doc, index) {
   if (!doc) return null;
   return {
-    id:           doc.id,
-    doctorCode:   `DOC${String(doc.id).padStart(4, "0")}`,
-    name:         doc.name ?? "Dr. Unknown",
+    id: doc.id,
+    doctorCode: `DOC${String(doc.id).padStart(4, "0")}`,
+    name: doc.name ?? "Dr. Unknown",
     specialization: doc.specializations?.split(",")[0]?.trim() ?? "General Physician",
-    hospital:     "—",            // not in DB schema but we have qualification
+    hospital: "—",            // not in DB schema but we have qualification
     qualification: doc.qualification ?? "",
-    city:         doc.city ?? "—",
-    location:     doc.pincode ?? "—",
-    phone:        doc.phone ?? "—",
-    priority:     index < 10 ? "High" : index < 25 ? "Medium" : "Low",
-    manager:      "Manager",
+    city: doc.city ?? "—",
+    location: doc.pincode ?? "—",
+    phone: doc.phone ?? "—",
+    priority: index < 10 ? "High" : index < 25 ? "Medium" : "Low",
+    manager: "Manager",
     assignedDate: `${PLAN_MONTH_KEY}-01`,
-    pincode:      doc.pincode ?? "",
-    rating:       doc.rating ?? null,
+    pincode: doc.pincode ?? "",
+    rating: doc.rating ?? null,
     verificationStatus: doc.verification_status ?? "",
-    isActive:     doc.is_active === "Yes" || doc.is_active === true,
+    isActive: doc.is_active === "Yes" || doc.is_active === true,
   };
 }
 
@@ -637,12 +638,12 @@ function DailyTasksTab({ store, doctorMap, openTaskReport, openReschedule }) {
   const list = buckets[filter] || [];
 
   const filters = [
-    { key: "today",     label: "Today",      count: buckets.today.length },
-    { key: "tomorrow",  label: "Tomorrow",   count: buckets.tomorrow.length },
-    { key: "week",      label: "This Week",  count: buckets.week.length },
-    { key: "overdue",   label: "Overdue",    count: buckets.overdue.length },
-    { key: "completed", label: "Completed",  count: buckets.completed.length },
-    { key: "pending",   label: "Pending",    count: buckets.pending.length },
+    { key: "today", label: "Today", count: buckets.today.length },
+    { key: "tomorrow", label: "Tomorrow", count: buckets.tomorrow.length },
+    { key: "week", label: "This Week", count: buckets.week.length },
+    { key: "overdue", label: "Overdue", count: buckets.overdue.length },
+    { key: "completed", label: "Completed", count: buckets.completed.length },
+    { key: "pending", label: "Pending", count: buckets.pending.length },
   ];
 
   return (
@@ -1137,7 +1138,7 @@ function ApprovalsTab({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <span className="rpt-search-icon">🔍</span>
+              <span className="rpt-search-icon"><VscSearch /></span>
             </div>
           </div>
         </div>
@@ -1262,12 +1263,12 @@ export default function PlanView({
   const tabs = isManager
     ? [{ key: "approvals", label: "Approvals" }]
     : [
-        { key: "overview",  label: "Overview" },
-        { key: "doctors",   label: "Assigned Doctors" },
-        { key: "calendar",  label: "Calendar" },
-        { key: "tasks",     label: "Daily Tasks" },
-        { key: "table",     label: "Plan Table" },
-      ];
+      { key: "overview", label: "Overview" },
+      { key: "doctors", label: "Assigned Doctors" },
+      { key: "calendar", label: "Calendar" },
+      { key: "tasks", label: "Daily Tasks" },
+      { key: "table", label: "Plan Table" },
+    ];
 
   function openTaskReport(task, doctor) {
     setReportTarget({ task, doctor });
