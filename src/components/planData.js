@@ -72,24 +72,24 @@ export function getAvailableMonthOptions(centerMonthKey) {
 }
 
 /* ────────────────────────────── constants & compatibility ───────────────────── */
-export const PLAN_YEAR        = new Date().getFullYear();
+export const PLAN_YEAR = new Date().getFullYear();
 export const PLAN_MONTH_INDEX = new Date().getMonth();
-export const PLAN_MONTH_KEY   = getCurrentMonthKey();
+export const PLAN_MONTH_KEY = getCurrentMonthKey();
 export const PLAN_MONTH_LABEL = getCurrentMonthLabel();
-export const MANAGER_NAME     = "Emily";
+export const MANAGER_NAME = "Emily";
 
 export const TASK_STATUSES = [
-  "Planned","Scheduled","In Progress","Completed","Rescheduled","Cancelled","Missed",
+  "Planned", "Scheduled", "In Progress", "Completed", "Rescheduled", "Cancelled", "Missed",
 ];
 export const PLAN_STATUSES = [
-  "Draft","Submitted","Under Review","Approved","Rejected","In Progress","Completed",
+  "Draft", "Submitted", "Under Review", "Approved", "Rejected", "In Progress", "Completed",
 ];
 export const RESCHEDULE_REASONS = [
-  "Doctor unavailable","Emergency","Travel issue","Clinic closed","Other",
+  "Doctor unavailable", "Emergency", "Travel issue", "Clinic closed", "Other",
 ];
 
 const VISIT_TIMES = [
-  "9:00 AM","10:00 AM","11:00 AM","12:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM",
+  "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
 ];
 export const VISIT_TIME_OPTIONS = VISIT_TIMES;
 
@@ -186,23 +186,23 @@ export function getWorkingDays(monthKeyOrYear = getCurrentMonthKey(), maybeMonth
 
 /* ────────────────────────────── derived stats ───────────────────────── */
 export function computeStats(assignedDoctors, planDoctors, monthKey = getCurrentMonthKey()) {
-  const totalAssigned  = assignedDoctors.length;
-  const planned        = planDoctors.length;
-  const completed      = planDoctors.filter((p) => p.status === "Completed").length;
-  const cancelled      = planDoctors.filter((p) => p.status === "Cancelled").length;
-  const missed         = planDoctors.filter((p) => p.status === "Missed").length;
-  const pending        = Math.max(0, planned - completed - cancelled);
-  const completionPct  = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
-  const unplanned      = totalAssigned - planned;
+  const totalAssigned = assignedDoctors.length;
+  const planned = planDoctors.length;
+  const completed = planDoctors.filter((p) => p.status === "Completed").length;
+  const cancelled = planDoctors.filter((p) => p.status === "Cancelled").length;
+  const missed = planDoctors.filter((p) => p.status === "Missed").length;
+  const pending = Math.max(0, planned - completed - cancelled);
+  const completionPct = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
+  const unplanned = totalAssigned - planned;
 
-  const workingDays    = getWorkingDays(monthKey);
-  const today          = getPlanToday(monthKey);
-  const daysPassed     = workingDays.filter((d) => d <= today).length;
-  const expectedPct    = workingDays.length > 0 ? Math.round((daysPassed / workingDays.length) * 100) : 0;
+  const workingDays = getWorkingDays(monthKey);
+  const today = getPlanToday(monthKey);
+  const daysPassed = workingDays.filter((d) => d <= today).length;
+  const expectedPct = workingDays.length > 0 ? Math.round((daysPassed / workingDays.length) * 100) : 0;
 
   let planHealth = "On Track";
   if (completionPct < expectedPct - 20) planHealth = "Behind Plan";
-  else if (completionPct < expectedPct - 5)  planHealth = "Needs Attention";
+  else if (completionPct < expectedPct - 5) planHealth = "Needs Attention";
 
   return {
     totalAssigned, planned, completed, pending,
@@ -271,110 +271,60 @@ function cacheSave(key, data) {
   try { localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(data)); } catch { /**/ }
 }
 
-/* ────────────────────────────── demo seed helpers ───────────────────── */
-function mulberry32(seed) {
-  let a = seed;
-  return function () {
-    a |= 0; a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const rng = mulberry32(20260901);
-function pick(arr) { return arr[Math.floor(rng() * arr.length)]; }
-function pickN(arr, n) {
-  const copy = [...arr]; const out = [];
-  for (let i = 0; i < n && copy.length; i++) out.push(copy.splice(Math.floor(rng() * copy.length), 1)[0]);
-  return out;
-}
-
-const PURPOSES   = ["Product Detailing","Follow-up Visit","New Product Launch","Relationship Building","Sample Distribution"];
-const PRODUCTS   = ["Nebicard 5mg","Losar-H","Metfor 500","Pantocid DSR","Rosuvas 10mg","Glycomet GP","Azithral 500","Shelcal 500","Ecosprin 75","Telma 40"];
-const FEEDBACKS  = [
-  "Positive response, willing to prescribe going forward.",
-  "Requested more clinical data before prescribing.",
-  "Satisfied with product efficacy in recent cases.",
-  "Asked for sample kits to trial with patients.",
-  "Neutral response, will consider for future patients.",
-];
-const NEXT_ACTS  = ["Schedule follow-up in 30 days","Send additional literature","Arrange CME session","Provide sample kit","No further action needed"];
-
-function genReport(doctorId, planVisitId, execId, date, time) {
-  const products = pickN(PRODUCTS, 2);
-  return {
-    plan_visit_id: planVisitId,
-    executive_id: execId,
-    doctor_id: doctorId,
-    visit_date: date,
-    visit_time: time,
-    location: "—",
-    purpose: pick(PURPOSES),
-    products_discussed: products.join(", "),
-    notes: `Discussed ${products[0]}. Doctor showed interest in patient outcome data.`,
-    doctor_feedback: pick(FEEDBACKS),
-    next_followup_date: addDaysStr(date, 30),
-    next_action: pick(NEXT_ACTS),
-    remarks: "",
-    follow_up_required: true,
-    status: "Submitted",
-  };
-}
-
 /* ─── normalise a raw API visit row into the camelCase shape planView expects ─── */
 function normVisit(v) {
   return {
-    id:              v.id,
-    planId:          v.plan_id,
-    doctorId:        v.doctor_id,
-    executiveId:     v.executive_id,
-    scheduledDate:   v.scheduled_date,
-    visitTime:       v.visit_time   ?? "10:00 AM",
-    status:          v.status       ?? "Planned",
+    id: v.id,
+    planId: v.plan_id,
+    doctorId: v.doctor_id,
+    executiveId: v.executive_id,
+    scheduledDate: v.scheduled_date,
+    visitTime: v.visit_time ?? "10:00 AM",
+    status: v.status ?? "Planned",
     rescheduleReason: v.reschedule_reason ?? null,
-    rescheduledFrom: v.rescheduled_from  ?? null,
+    rescheduledFrom: v.rescheduled_from ?? null,
   };
 }
 
 /* ─── normalise a raw API report row ─── */
 function normReport(r) {
   return {
-    id:               r.id,
-    planVisitId:      r.plan_visit_id,
-    executiveId:      r.executive_id,
-    doctorId:         r.doctor_id,
-    visitDate:        r.visit_date,
-    visitTime:        r.visit_time,
-    location:         r.location,
-    purpose:          r.purpose,
+    id: r.id,
+    planVisitId: r.plan_visit_id,
+    executiveId: r.executive_id,
+    doctorId: r.doctor_id,
+    visitDate: r.visit_date,
+    visitTime: r.visit_time,
+    location: r.location,
+    purpose: r.purpose,
     productsDiscussed: r.products_discussed,
-    notes:            r.notes,
-    doctorFeedback:   r.doctor_feedback,
+    notes: r.notes,
+    doctorFeedback: r.doctor_feedback,
     nextFollowupDate: r.next_followup_date,
-    nextAction:       r.next_action,
-    remarks:          r.remarks,
+    nextAction: r.next_action,
+    remarks: r.remarks,
     followUpRequired: r.follow_up_required,
-    status:           r.status,
-    submittedAt:      r.submitted_at,
+    status: r.status,
+    submittedAt: r.submitted_at,
   };
 }
 
 /* ─── normalise a plan row ─── */
 function normPlan(p) {
   return {
-    id:             p.id,
-    executiveId:    p.executive_id,
-    monthKey:       p.month_key,
-    monthLabel:     p.month_label,
-    workingDays:    p.working_days,
-    dailyTarget:    p.daily_target,
-    totalDoctors:   p.total_doctors,
+    id: p.id,
+    executiveId: p.executive_id,
+    monthKey: p.month_key,
+    monthLabel: p.month_label,
+    workingDays: p.working_days,
+    dailyTarget: p.daily_target,
+    totalDoctors: p.total_doctors,
     planningMethod: p.planning_method,
-    status:         p.status,
-    createdAt:      p.created_at,
-    submittedAt:    p.submitted_at,
-    approvedAt:     p.approved_at,
-    approvedBy:     p.approved_by,
+    status: p.status,
+    createdAt: p.created_at,
+    submittedAt: p.submitted_at,
+    approvedAt: p.approved_at,
+    approvedBy: p.approved_by,
     rejectionReason: p.rejection_reason,
   };
 }
@@ -387,7 +337,7 @@ function buildAutoSchedule(doctorIds, workingDays) {
   const d = workingDays.length;
   if (d === 0) return [];
   const base = Math.floor(n / d);
-  const rem  = n % d;
+  const rem = n % d;
   let idx = 0;
   const result = [];
   workingDays.forEach((date, i) => {
@@ -406,11 +356,11 @@ function buildAutoSchedule(doctorIds, workingDays) {
    with existing planView.jsx / PlanBits / PlanModals code
 ──────────────────────────────────────────────────────────────────────── */
 const EMPTY_STORE = {
-  loading:         true,
-  error:           null,
-  monthlyPlan:     null,   // normalised plan object | null
-  planDoctors:     [],     // normalised visit rows
-  visitReports:    {},     // { [doctorId]: normReport }
+  loading: true,
+  error: null,
+  monthlyPlan: null,   // normalised plan object | null
+  planDoctors: [],     // normalised visit rows
+  visitReports: {},     // { [doctorId]: normReport }
   assignedDoctors: [],     // doctor objects injected from useSalesData
 };
 
@@ -457,7 +407,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
           apiFetch(`/plan-visits?plan_id=${planId}`),
           apiFetch(`/visit-reports?executive_id=${execId}`),
         ]);
-        planDoctors  = visitsRaw.map(normVisit);
+        planDoctors = visitsRaw.map(normVisit);
         // key visit reports by doctorId for fast lookup
         reportsRaw.forEach((r) => {
           visitReports[r.doctor_id] = normReport(r);
@@ -491,8 +441,8 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
     setStore((s) => {
       const next = { ...s, ...patch };
       cacheSave(cacheKey, {
-        monthlyPlan:  next.monthlyPlan,
-        planDoctors:  next.planDoctors,
+        monthlyPlan: next.monthlyPlan,
+        planDoctors: next.planDoctors,
         visitReports: next.visitReports,
       });
       return next;
@@ -520,7 +470,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
   const createPlan = useCallback(async (method) => {
     const workingDays = getWorkingDays(monthKey);
     const totalDoctors = store.assignedDoctors.length;
-    const dailyTarget  = Math.ceil(totalDoctors / Math.max(1, workingDays.length));
+    const dailyTarget = Math.ceil(totalDoctors / Math.max(1, workingDays.length));
 
     // 1. Create the plan record
     let newPlan;
@@ -528,14 +478,14 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
       newPlan = normPlan(await apiFetch("/monthly-plans", {
         method: "POST",
         body: JSON.stringify({
-          executive_id:    execId,
-          month_key:       monthKey,
-          month_label:     formatMonthLabel(monthKey),
-          working_days:    workingDays.length,
-          daily_target:    dailyTarget,
-          total_doctors:   totalDoctors,
+          executive_id: execId,
+          month_key: monthKey,
+          month_label: formatMonthLabel(monthKey),
+          working_days: workingDays.length,
+          daily_target: dailyTarget,
+          total_doctors: totalDoctors,
           planning_method: method,
-          status:          "Draft",
+          status: "Draft",
         }),
       }));
     } catch (err) {
@@ -556,12 +506,12 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
         .map((d) => d.id);
       const schedule = buildAutoSchedule(unplanned, workingDays);
       const payload = schedule.map((s, i) => ({
-        plan_id:        newPlan.id,
-        executive_id:   execId,
-        doctor_id:      s.doctorId,
+        plan_id: newPlan.id,
+        executive_id: execId,
+        doctor_id: s.doctorId,
         scheduled_date: s.scheduledDate,
-        visit_time:     VISIT_TIMES[i % VISIT_TIMES.length],
-        status:         "Planned",
+        visit_time: VISIT_TIMES[i % VISIT_TIMES.length],
+        status: "Planned",
       }));
       try {
         const rows = await apiFetch("/plan-visits/bulk", {
@@ -611,12 +561,12 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
       const saved = normVisit(await apiFetch("/plan-visits", {
         method: "POST",
         body: JSON.stringify({
-          plan_id:        planId,
-          executive_id:   execId,
-          doctor_id:      doctorId,
+          plan_id: planId,
+          executive_id: execId,
+          doctor_id: doctorId,
           scheduled_date: date,
-          visit_time:     time || "10:00 AM",
-          status:         "Planned",
+          visit_time: time || "10:00 AM",
+          status: "Planned",
         }),
       }));
       // Replace optimistic row with the real one
@@ -636,7 +586,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
       apiFetch(`/plan-visits/${visit.id}`, {
         method: "PUT",
         body: JSON.stringify({ status }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [store.planDoctors]); // eslint-disable-line
 
@@ -654,12 +604,12 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
       apiFetch(`/plan-visits/${visit.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          rescheduled_from:  visit.scheduledDate,
-          scheduled_date:    newDate,
-          status:            "Rescheduled",
+          rescheduled_from: visit.scheduledDate,
+          scheduled_date: newDate,
+          status: "Rescheduled",
           reschedule_reason: reason,
         }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [store.planDoctors]); // eslint-disable-line
 
@@ -671,7 +621,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
       apiFetch(`/plan-visits/${visit.id}`, {
         method: "PUT",
         body: JSON.stringify({ scheduled_date: newDate }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [store.planDoctors]); // eslint-disable-line
 
@@ -683,15 +633,15 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
       apiFetch(`/plan-visits/${visit.id}`, {
         method: "PUT",
         body: JSON.stringify({ status: "Cancelled" }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [store.planDoctors]); // eslint-disable-line
 
   const submitVisitReport = useCallback(async (doctorId, report, asDraft) => {
-    const status    = asDraft ? "Draft" : "Submitted";
-    const visit     = store.planDoctors.find((v) => v.doctorId === doctorId);
+    const status = asDraft ? "Draft" : "Submitted";
+    const visit = store.planDoctors.find((v) => v.doctorId === doctorId);
     const planVisitId = typeof visit?.id === "number" ? visit.id : null;
-    const existing  = store.visitReports[doctorId];
+    const existing = store.visitReports[doctorId];
 
     // Optimistic local update
     const normLocal = {
@@ -704,7 +654,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
     };
     setStore((s) => {
       const visitReports = { ...s.visitReports, [doctorId]: normLocal };
-      const planDoctors  = asDraft
+      const planDoctors = asDraft
         ? s.planDoctors
         : s.planDoctors.map((v) => v.doctorId === doctorId ? { ...v, status: "Completed" } : v);
       cacheSave(cacheKey, { monthlyPlan: s.monthlyPlan, planDoctors, visitReports });
@@ -714,20 +664,20 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
     // Persist to API
     try {
       const payload = {
-        plan_visit_id:       planVisitId,
-        executive_id:        execId,
-        doctor_id:           doctorId,
-        visit_date:          report.visitDate,
-        visit_time:          report.visitTime,
-        location:            report.location,
-        purpose:             report.purpose,
-        products_discussed:  report.productsDiscussed,
-        notes:               report.notes,
-        doctor_feedback:     report.doctorFeedback,
-        next_followup_date:  report.nextFollowupDate || null,
-        next_action:         report.nextAction,
-        remarks:             report.remarks,
-        follow_up_required:  report.followUpRequired ?? true,
+        plan_visit_id: planVisitId,
+        executive_id: execId,
+        doctor_id: doctorId,
+        visit_date: report.visitDate,
+        visit_time: report.visitTime,
+        location: report.location,
+        purpose: report.purpose,
+        products_discussed: report.productsDiscussed,
+        notes: report.notes,
+        doctor_feedback: report.doctorFeedback,
+        next_followup_date: report.nextFollowupDate || null,
+        next_action: report.nextAction,
+        remarks: report.remarks,
+        follow_up_required: report.followUpRequired ?? true,
         status,
         submitted_at: status === "Submitted" ? new Date().toISOString() : null,
       };
@@ -747,7 +697,7 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
         return { ...s, visitReports };
       });
     } catch { /* keep optimistic */ }
-  }, [store.planDoctors, store.visitReports, execId, cacheKey]); // eslint-disable-line
+  }, [store.planDoctors, store.visitReports, execId, cacheKey]);
 
   const submitMonthlyPlan = useCallback(async () => {
     if (!store.monthlyPlan) return;
@@ -814,14 +764,14 @@ export function usePlanStore(execId, monthKey, assignedDoctors = []) {
 
   return {
     /* state */
-    loading:          store.loading,
-    error:            store.error,
-    monthlyPlan:      store.monthlyPlan,
-    planDoctors:      store.planDoctors,
-    visitReports:     store.visitReports,
-    assignedDoctors:  store.assignedDoctors,
+    loading: store.loading,
+    error: store.error,
+    monthlyPlan: store.monthlyPlan,
+    planDoctors: store.planDoctors,
+    visitReports: store.visitReports,
+    assignedDoctors: store.assignedDoctors,
     /* actions */
-    reload:           fetchAll,
+    reload: fetchAll,
     resetToEmpty,
     createPlan,
     scheduleDoctor,
@@ -849,7 +799,7 @@ export function usePlanStats(execId, monthKey) {
   useEffect(() => {
     if (!execId) return;
     let cancelled = false;
-    setLoading(true);
+    setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
     apiFetch(`/plan-stats/${execId}?month_key=${monthKey || PLAN_MONTH_KEY}`)
       .then((data) => { if (!cancelled) { setStats(data); setLoading(false); } })
       .catch(() => {
@@ -857,16 +807,16 @@ export function usePlanStats(execId, monthKey) {
         const cacheKey = `exec_${execId}_${monthKey || PLAN_MONTH_KEY}`;
         const cached = cacheLoad(cacheKey);
         if (!cancelled && cached?.planDoctors) {
-          const total     = cached.planDoctors.length;
+          const total = cached.planDoctors.length;
           const completed = cached.planDoctors.filter((v) => v.status === "Completed").length;
-          const pending   = total - completed;
-          const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
+          const pending = total - completed;
+          const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
           setStats({
-            has_plan:       !!cached.monthlyPlan,
-            plan_status:    cached.monthlyPlan?.status ?? null,
-            total_doctors:  cached.monthlyPlan?.totalDoctors ?? 0,
-            working_days:   cached.monthlyPlan?.workingDays  ?? 0,
-            daily_target:   cached.monthlyPlan?.dailyTarget  ?? 0,
+            has_plan: !!cached.monthlyPlan,
+            plan_status: cached.monthlyPlan?.status ?? null,
+            total_doctors: cached.monthlyPlan?.totalDoctors ?? 0,
+            working_days: cached.monthlyPlan?.workingDays ?? 0,
+            daily_target: cached.monthlyPlan?.dailyTarget ?? 0,
             planned_visits: total,
             completed,
             pending,

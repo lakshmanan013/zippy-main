@@ -10,7 +10,6 @@ import {
   formatDateShort,
   addDaysStr,
   dayName,
-  PLAN_MONTH_KEY,
   PLAN_MONTH_LABEL,
   parseApprovers,
   getCurrentMonthKey,
@@ -382,7 +381,6 @@ function AssignedDoctorsTab({ store, planDoctorMap, monthKey }) {
             ) : (
               rows.map((d, i) => {
                 const task = planDoctorMap.get(d.id);
-                const isActive = d.isActive !== false;
                 return (
                   <tr key={d.id}>
                     <td className="doc-row-num">{i + 1}</td>
@@ -485,7 +483,6 @@ function CalendarTab({ store, doctorMap, monthKey, monthLabel, openTaskReport, o
   const activeMonthKey = monthKey || getCurrentMonthKey();
   const label = monthLabel || formatMonthLabel(activeMonthKey);
   const [selectedDate, setSelectedDate] = useState(null);
-  const workingDays = getWorkingDays(activeMonthKey);
   const today = getPlanToday(activeMonthKey);
 
   const byDate = useMemo(() => {
@@ -1213,21 +1210,21 @@ export default function PlanView({
 
   // ── Derive the "assigned doctors" for this exec from the live API data
   const myPincodes = useMemo(() => {
-    if (!execId || !data?.coverage?.length) return new Set();
+    if (!execId || !data.coverage?.length) return new Set();
     return new Set(
       data.coverage
         .filter((c) => c.executive_id === execId)
         .map((c) => c.pincode)
     );
-  }, [data?.coverage, execId]);
+  }, [data.coverage, execId]);
 
   // Adapt live API doctors to the shape planView components expect
   const assignedDoctors = useMemo(() => {
-    if (!data?.doctors?.length) return [];
+    if (!data.doctors?.length) return [];
     return data.doctors
       .filter((d) => myPincodes.has(d.pincode))
       .map((d, i) => adaptDoctor(d, i, monthKey));
-  }, [data?.doctors, myPincodes, monthKey]);
+  }, [data, myPincodes, monthKey]);
 
   // ── Store (API-backed, falls back to cache / demo)
   const store = usePlanStore(execId, monthKey, assignedDoctors);
@@ -1235,7 +1232,7 @@ export default function PlanView({
   // ── Derived
   const [selectedTab, setSelectedTab] = useState(initialTab || "overview");
   const tab = isManager ? "approvals" : selectedTab;
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey] = useState(0);
   const [creating, setCreating] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [rescheduleTarget, setRescheduleTarget] = useState(null);

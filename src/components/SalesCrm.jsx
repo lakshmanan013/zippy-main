@@ -221,7 +221,10 @@ function useSalesData() {
       });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const t = setTimeout(() => load(), 0);
+    return () => clearTimeout(t);
+  }, [load]);
 
   return { ...state, executives, salesManagers, regionalManagers, coverage, tasks, alerts, doctors, products, reload: load };
 }
@@ -774,7 +777,7 @@ function SubmitReportModal({
 /* ─────────────────────────────────────────────────────────
    REPORT DETAILS MODAL (FULL VIEW FOR MANAGERS & EXECUTIVES)
 ───────────────────────────────────────────────────────── */
-function ReportDetailsModal({ report, role, currentRecord, onClose, onFeedbackSaved, onDelete }) {
+function ReportDetailsModal({ report, role, onClose, onFeedbackSaved, onDelete }) {
   const isManager = role === "manager";
   const isRegional = role === "regional";
   const [managerRemarks, setManagerRemarks] = useState(report.manager_remarks || "");
@@ -1089,7 +1092,8 @@ function ReceivedReportsSection({ data, role, currentRecord }) {
   }, [role]);
 
   useEffect(() => {
-    loadReports();
+    const t = setTimeout(() => loadReports(), 0);
+    return () => clearTimeout(t);
   }, [loadReports]);
 
   function handleFeedbackSaved(reportId, updates) {
@@ -2383,11 +2387,15 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
   useEffect(() => {
     let cancelled = false;
     if (!execsInScope || execsInScope.length === 0) {
-      setTeamPlans([]);
-      setLoading(false);
+      setTimeout(() => {
+        if (!cancelled) {
+          setTeamPlans([]);
+          setLoading(false);
+        }
+      }, 0);
       return;
     }
-    setLoading(true);
+    setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
     Promise.all(
       execsInScope.map(async (exec) => {
         try {
@@ -2727,23 +2735,34 @@ export default function SalesCrm({ role, onSwitchRole, onExit }) {
   const [activeSection, setActiveSection] = useState("dashboard");
 
   useEffect(() => {
-    if (!execId && data.executives.length) setExecId(data.executives[0].id);
+    if (!execId && data.executives.length) {
+      const t = setTimeout(() => setExecId(data.executives[0].id), 0);
+      return () => clearTimeout(t);
+    }
   }, [data.executives, execId]);
 
   useEffect(() => {
-    if (!managerId && data.salesManagers.length) setManagerId(data.salesManagers[0].id);
+    if (!managerId && data.salesManagers.length) {
+      const t = setTimeout(() => setManagerId(data.salesManagers[0].id), 0);
+      return () => clearTimeout(t);
+    }
   }, [data.salesManagers, managerId]);
 
   useEffect(() => {
-    if (!regionalId && data.regionalManagers.length) setRegionalId(data.regionalManagers[0].id);
+    if (!regionalId && data.regionalManagers.length) {
+      const t = setTimeout(() => setRegionalId(data.regionalManagers[0].id), 0);
+      return () => clearTimeout(t);
+    }
   }, [data.regionalManagers, regionalId]);
 
   useEffect(() => {
+    let t;
     if (role !== ROLES.EXECUTIVE && activeSection === "plan") {
-      setActiveSection("approvals");
+      t = setTimeout(() => setActiveSection("approvals"), 0);
     } else if (role === ROLES.EXECUTIVE && activeSection === "approvals") {
-      setActiveSection("plan");
+      t = setTimeout(() => setActiveSection("plan"), 0);
     }
+    return () => clearTimeout(t);
   }, [role, activeSection]);
 
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey);
