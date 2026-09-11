@@ -1752,8 +1752,8 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
               {addableDoctors.length === 0 && territoryDoctors.length > 0
                 ? `— All region doctors added (${territoryDoctors.length}) —`
                 : addableDoctors.length === 0
-                ? "— No doctors found in region —"
-                : `— Choose Doctor from Region (${addableDoctors.length}) —`}
+                  ? "— No doctors found in region —"
+                  : `— Choose Doctor from Region (${addableDoctors.length}) —`}
             </option>
             {addableDoctors.map((d) => (
               <option key={d.id} value={d.id}>
@@ -1886,18 +1886,8 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
                     <td className="rpt-advait-no">{v.advaitNo}</td>
                     <td>
                       <div className="rpt-doc-cell">
-                        <div className="rpt-doc-avatar">{v.doctorName.charAt(0)}</div>
                         <div>
-                          <strong>{v.doctorName}</strong>
-                          <div style={{ marginTop: 2 }}>
-                            <span className="rpt-doc-tag">{v.tag}</span>
-                            {v.pincode && (
-                              <span className="rpt-doc-pin"> {v.pincode}</span>
-                            )}
-                          </div>
-                          <div className="rpt-doc-pin" style={{ marginTop: 2 }}>
-                            {v.phone || "—"} · {v.city || "—"}
-                          </div>
+                          {v.doctorName}
                         </div>
                       </div>
                     </td>
@@ -2202,18 +2192,8 @@ function DoctorsView({ data, execId }) {
                   <tr key={doc.id}>
                     <td className="doc-row-num">{i + 1}</td>
                     <td>
-                      <div className="doc-name-cell">
-                        <div className="doc-avatar">{doc.name?.charAt(0).toUpperCase() ?? "?"}</div>
-                        <div>
-                          <span className="doc-name-text">{doc.name || "—"}</span>
-                          {doc.verification_status && (
-                            <div>
-                              <span className={"doc-verify-badge doc-verify-" + doc.verification_status}>
-                                {doc.verification_status}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                      <div>
+                        <span className="doc-name-text">{doc.name || "—"}</span>
                       </div>
                     </td>
                     <td className="doc-muted">{doc.qualification || "—"}</td>
@@ -2243,10 +2223,6 @@ function DoctorsView({ data, execId }) {
               })}
             </tbody>
           </table>
-          <div className="doc-table-footer">
-            Showing <strong>{filtered.length}</strong> of <strong>{myDoctors.length}</strong> doctors
-            across <strong>{myPincodes.size}</strong> pin code{myPincodes.size !== 1 ? "s" : ""}
-          </div>
         </div>
       )}
     </div>
@@ -2660,7 +2636,6 @@ function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToP
   const totalOpen = scopeTasks.length - totalDone;
   const overallPct = scopeTasks.length > 0 ? Math.round((totalDone / scopeTasks.length) * 100) : 0;
   const scopeDoctors = doctors.filter((d) => scopePincodes.includes(d.pincode)).length;
-  const topExecutives = [...execStats].sort((a, b) => b.pct - a.pct).slice(0, 3).map((r) => [r.exec.name, r.exec.region || r.exec.city || "—", `${r.pct}%`]);
   const tableRows = execStats.slice(0, 6).map((r) => [r.exec.name, r.taskCount, r.done, `${r.pct}%`]);
   const categories = execStats.slice(0, 6).map((r) => r.exec.name);
   const targets = execStats.slice(0, 6).map((r) => r.taskCount);
@@ -2693,9 +2668,6 @@ function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToP
 
       <div className="two-columns">
         <Achievement percentage={`${overallPct}%`} achieved={totalDone} progress={0} pending={totalOpen} />
-        <Performers title="Top Performing Executives" people={topExecutives} />
-      </div>
-      <div className="two-columns">
         <DashTable title="Executive Performance" headers={["Executive", "Tasks", "Done", "%"]} rows={tableRows} />
       </div>
     </>
