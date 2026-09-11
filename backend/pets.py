@@ -3931,3 +3931,10 @@ def delete_submission_report(report_id: int, db: sqlalchemy.orm.Session = fastap
     db.delete(r)
     db.commit()
     return {"message": "Submission report deleted", "id": report_id}
+
+
+if __name__ == "__main__":
+    import uvicorn  # pyright: ignore[reportMissingImports]
+    uvicorn.run("pets:app", host="127.0.0.1", port=8000, reload=True)
+
+
