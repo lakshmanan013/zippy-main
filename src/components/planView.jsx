@@ -314,7 +314,7 @@ function AssignedDoctorsTab({ store, planDoctorMap, monthKey }) {
           <div className="rpt-search-input-wrap">
             <input
               type="text"
-              placeholder="Doctor name, specialization, pin code, ID…"
+              placeholder="Doctor name, specialization, pin code…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -359,12 +359,11 @@ function AssignedDoctorsTab({ store, planDoctorMap, monthKey }) {
             <tr>
               <th>#</th>
               <th>Doctor Name</th>
-              <th>ID</th>
               <th>Specialization</th>
               <th>Qualification</th>
+              <th>City</th>
               <th>Pin Code</th>
               <th>Phone</th>
-              <th>Rating</th>
               <th>Priority</th>
               <th>Scheduled Date</th>
               <th>Visit Status</th>
@@ -374,7 +373,7 @@ function AssignedDoctorsTab({ store, planDoctorMap, monthKey }) {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={12} className="rpt-empty-td">
+                <td colSpan={11} className="rpt-empty-td">
                   No doctors match your filter.
                 </td>
               </tr>
@@ -391,38 +390,16 @@ function AssignedDoctorsTab({ store, planDoctorMap, monthKey }) {
                         </div>
                         <div>
                           <span className="doc-name-text">{d.name}</span>
-                          {d.verificationStatus && (
-                            <div>
-                              <span
-                                className={
-                                  "doc-verify-badge doc-verify-" +
-                                  d.verificationStatus
-                                }
-                              >
-                                {d.verificationStatus}
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
-                    <td className="doc-muted">{d.doctorCode}</td>
                     <td>{d.specialization}</td>
                     <td className="doc-muted">{d.qualification || "—"}</td>
+                    <td>{d.city || "—"}</td>
                     <td>
                       <span className="doc-pincode-badge">{d.location}</span>
                     </td>
                     <td className="doc-muted">{d.phone}</td>
-                    <td>
-                      {d.rating != null ? (
-                        <span className="doc-stars">
-                          {"★".repeat(Math.round(d.rating))}
-                          {"☆".repeat(5 - Math.round(d.rating))}
-                        </span>
-                      ) : (
-                        <span className="doc-muted">—</span>
-                      )}
-                    </td>
                     <td>
                       <PriorityBadge priority={d.priority} />
                     </td>

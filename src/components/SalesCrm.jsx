@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { VscSearch } from "react-icons/vsc";
+import { VscSearch, VscEye } from "react-icons/vsc";
 import {
   fetchList,
   TABLE_CONFIG,
@@ -1283,6 +1283,69 @@ function ReceivedReportsSection({ data, role, currentRecord }) {
    - Executive: submit reports to Manager, Regional Manager, or Both
    - Manager & Regional Manager: review received reports & give coaching feedback
 ───────────────────────────────────────────────────────── */
+function ViewDoctorModal({ doctor, onClose }) {
+  if (!doctor) return null;
+  
+  const docName = doctor.doctorName || doctor.name || "—";
+  const spec = doctor.specializations || doctor.specialization || doctor.tag || "—";
+  const cleanName = docName.replace(/^dr\.?\s*/i, '').trim();
+  const avatarChar = cleanName.length > 0 ? cleanName.charAt(0).toUpperCase() : "D";
+
+  return (
+    <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="zzc-modal" style={{ maxWidth: 450, borderRadius: 12, overflow: "hidden", padding: 0 }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }}>
+          
+          <div style={{ 
+            width: 44, height: 44, borderRadius: '50%', backgroundColor: '#e0f7fa', color: 'var(--primary, #00796b)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.15rem' 
+          }}>
+            {avatarChar}
+          </div>
+          
+          <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1e293b' }}>{docName}</span>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2 }}>{spec}</span>
+          </div>
+          
+          <button onClick={onClose} style={{ 
+            background: 'none', border: 'none', fontSize: '1rem', cursor: 'pointer', color: '#94a3b8', 
+            padding: 0, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            &#x2715;
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '0.5rem 1.5rem 1.5rem 1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {[
+              { label: 'Specialization', value: spec },
+              { label: 'Qualification', value: doctor.qualification || "—" },
+              { label: 'Phone Number', value: doctor.phone || "—" },
+              { label: 'City', value: doctor.city || "—" },
+              { label: 'Pin Code', value: doctor.pincode || doctor.location || "—" },
+              { label: 'Experience', value: doctor.experience_years != null ? `${doctor.experience_years} yrs` : "—" },
+            ].map((item, idx, arr) => (
+              <div key={idx} style={{ 
+                display: 'flex', justifyContent: 'space-between', padding: '0.9rem 0', 
+                borderBottom: idx === arr.length - 1 ? 'none' : '1px dashed #cbd5e1', 
+                fontSize: '0.85rem' 
+              }}>
+                <span style={{ color: '#64748b' }}>{item.label}</span>
+                <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 function ReportsView({ data, execId, role, managerId, regionalId, currentRecord }) {
   const isManager = role === ROLES.MANAGER || role === ROLES.REGIONAL;
   const [managerViewMode, setManagerViewMode] = useState("received"); // "received" | "create"
@@ -1306,6 +1369,7 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
   const [viewingReport, setViewingReport] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [lastSubmissionReceipt, setLastSubmissionReceipt] = useState(null);
+  const [viewingDoctor, setViewingDoctor] = useState(null);
 
   // The visits list — seeded from real API doctors in the exec's territory
   const exec = data.executives.find((e) => e.id === execId) || data.executives[0];
@@ -1865,13 +1929,14 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
                 <th>Product</th>
                 <th>Discussed</th>
                 <th>Status</th>
+                <th style={{ textAlign: "center" }}>View</th>
                 <th>Option</th>
               </tr>
             </thead>
             <tbody>
               {filteredVisits.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="rpt-empty-td">No visits match your filter.</td>
+                  <td colSpan={8} className="rpt-empty-td">No visits match your filter.</td>
                 </tr>
               ) : (
                 filteredVisits.map((v) => (
@@ -1885,7 +1950,13 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
                     </td>
                     <td className="rpt-advait-no">{v.advaitNo}</td>
                     <td>
-                      <div className="rpt-doc-cell">
+                      <div className="rpt-doc-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: '50%', backgroundColor: '#e0f7fa', color: 'var(--primary, #00796b)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem', flexShrink: 0
+                        }}>
+                          {(v.doctorName || "").replace(/^dr\.?\s*/i, '').trim().charAt(0).toUpperCase() || "D"}
+                        </div>
                         <div>
                           {v.doctorName}
                         </div>
@@ -1907,6 +1978,31 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
                       <span className={"rpt-status-badge" + (v.status === "Reported" ? " reported" : " not-reported")}>
                         {v.status}
                       </span>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <button
+                        type="button"
+                        className="rpt-btn-outline"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          padding: 0,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderWidth: 1,
+                          borderColor: "var(--primary)",
+                          color: "var(--primary)"
+                        }}
+                        title="View Doctor Details"
+                        onClick={() => {
+                          const fullDoc = territoryDoctors.find(d => d.id === v.id) || data.doctors?.find(d => d.id === v.id) || {};
+                          setViewingDoctor({ ...fullDoc, ...v });
+                        }}
+                      >
+                        <VscEye size={18} />
+                      </button>
                     </td>
                     <td>
                       <div className="rpt-options">
@@ -1986,6 +2082,13 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
           role={role}
           currentRecord={currentRecord}
           onClose={() => setViewingReport(null)}
+        />
+      )}
+
+      {viewingDoctor && (
+        <ViewDoctorModal
+          doctor={viewingDoctor}
+          onClose={() => setViewingDoctor(null)}
         />
       )}
 

@@ -124,7 +124,7 @@ export function VisitReportModal({ doctor, task, existingReport, onClose, onSubm
           </div>
           <div className="rpt-call-row">
             <div className="rpt-call-field">
-              <label>Visit Purpose *</label>
+              <label>Visit Purpose</label>
               <select value={form.purpose} onChange={(e) => set("purpose", e.target.value)} required>
                 <option>Product Detailing</option>
                 <option>Follow-up Visit</option>
