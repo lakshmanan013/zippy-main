@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base,sessionmaker,Session
 from typing import Optional
 from datetime import datetime,date,time
 from zoneinfo import ZoneInfo
-DATABASE_URL = "mysql+pymysql://root:NewPassword%40123@127.0.0.1:3306/pet_management"
+DATABASE_URL = "mysql+pymysql://zippy_crm_app:zippy-123@127.0.0.1:3306/zippy_crm"
 engine = create_engine( DATABASE_URL,echo=True,pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
 Base = declarative_base()
