@@ -10,7 +10,7 @@ import {
   createRecord,
   API_BASE,
 } from "../api.js";
-import logo from "../assets/zenve-zippy-logo.png";
+import logo from "../assets/zenve-zippy-logo.jpeg";
 import "./SalesCRM.css";
 import PlanView from "./planView.jsx";
 import {
