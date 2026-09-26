@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { NAV_GROUPS } from "../data.js";
-import logo from "../assets/zenve-zippy-logo.png";
+import logo from "../assets/zenve-zippy-logo.jpeg";
 
 export default function Sidebar({ currentKey, onSelect }) {
   const navRef = useRef(null);
