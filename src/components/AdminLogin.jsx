@@ -48,13 +48,12 @@ export default function AdminLogin({ onLoginSuccess }) {
         const validLocalAdmins = [
           "admin@zenvezippy.com",
           "admin@zippy.com",
-          "admin",
           "admin@zenve.com",
         ];
 
         const isValidLocal =
           (validLocalAdmins.includes(cleanEmail) &&
-            (cleanPassword === "admin123" || cleanPassword === "zippy123" || cleanPassword === "admin" || cleanPassword === "zenve@123")) ||
+            (cleanPassword === "admin123" || cleanPassword === "admin" || cleanPassword === "zenve@123")) ||
           (cleanEmail === "admin@zenvezippy.com");
 
         if (isValidLocal) {
