@@ -20,13 +20,28 @@ import Dashboard from "./components/Dashboard.jsx";
 import BulkTools from "./components/BulkTools.jsx";
 import SalesCrmClone from "./components/SalesCrm.jsx";
 import SalesLogin from "./components/SalesLogin.jsx";
+import AdminLogin from "./components/AdminLogin.jsx";
 
 const PAGE_SIZE = 10;
 
 export default function App() {
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("zippy_admin_user") || sessionStorage.getItem("zippy_admin_user");
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.name === "Zenve Admin") {
+        parsed.name = "Admin";
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  });
   const [salesCrmView, setSalesCrmView] = useState(null); // null | "executive" | "manager" | "regional"
   const [loggedInSalesUser, setLoggedInSalesUser] = useState(null);
   const [currentKey, setCurrentKey] = useState("pet_parents");
+
   const [records, setRecords] = useState([]); // raw objects from the API, in list order
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -160,6 +175,12 @@ export default function App() {
     }
   }
 
+  function handleLogout() {
+    localStorage.removeItem("zippy_admin_user");
+    sessionStorage.removeItem("zippy_admin_user");
+    setAdminUser(null);
+  }
+
   const columnLabels = columns.map((f) => f.label || f.key);
 
   if (salesCrmView) {
@@ -178,7 +199,6 @@ export default function App() {
       <SalesCrmClone
         role={salesCrmView}
         user={loggedInSalesUser}
-        onSwitchRole={(view) => setSalesCrmView(view)}
         onExit={() => {
           setSalesCrmView(null);
           setLoggedInSalesUser(null);
@@ -187,9 +207,22 @@ export default function App() {
     );
   }
 
+  if (!adminUser) {
+    return (
+      <AdminLogin
+        onLoginSuccess={(user) => setAdminUser(user)}
+      />
+    );
+  }
+
   return (
     <div className="zzc-app">
-      <Sidebar currentKey={currentKey} onSelect={selectTable}/>
+      <Sidebar
+        currentKey={currentKey}
+        onSelect={selectTable}
+        adminUser={adminUser}
+        onLogout={handleLogout}
+      />
 
       <main className="zzc-main">
         <TopBar
@@ -207,7 +240,10 @@ export default function App() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onOpenSalesCRM={(view) => setSalesCrmView(view)}
+          adminUser={adminUser}
+          onLogout={handleLogout}
         />
+
 
         {error && (
           <div className="zzc-content" style={{ paddingTop: 0 }}>

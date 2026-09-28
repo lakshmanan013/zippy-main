@@ -1,0 +1,349 @@
+/* ==========================================================================
+   Admin Login & Authentication Styles for Zenve Zippy CRM
+   ========================================================================== */
+
+.zzc-admin-auth-wrapper {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 10% 20%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
+    radial-gradient(at 90% 80%, rgba(20, 184, 166, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(241, 245, 249, 1) 0px, transparent 100%);
+  overflow-x: hidden;
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+/* Background Ambient Glows */
+.zzc-auth-bg-glow {
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  opacity: 0.6;
+  z-index: 0;
+}
+
+.zzc-glow-top-left {
+  top: -100px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.25), transparent 70%);
+}
+
+.zzc-glow-bottom-right {
+  bottom: -100px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.22), transparent 70%);
+}
+
+/* Main Login Card */
+.zzc-admin-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 38px 32px;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.04),
+    0 20px 35px -10px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(226, 232, 240, 0.8);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: zzcFadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes zzcFadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Brand Header */
+.zzc-admin-login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.zzc-admin-logo-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.zzc-admin-logo-img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  object-position: center 27%;
+  transform: scale(1.38);
+}
+
+
+.zzc-admin-title {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  margin: 0 0 6px 0;
+}
+
+.zzc-admin-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: #0d9488;
+  background: #f0fdfa;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  border: 1px solid #ccfbf1;
+}
+
+.zzc-shield-icon {
+  color: #0d9488;
+}
+
+/* Alert Notification */
+.zzc-auth-alert-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  margin-bottom: 20px;
+  animation: zzcShake 0.3s ease-in-out;
+}
+
+@keyframes zzcShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.zzc-alert-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: #ef4444;
+  color: #ffffff;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Form Styles */
+.zzc-admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.zzc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zzc-form-group label,
+.zzc-label-row label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.zzc-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.zzc-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.zzc-input-wrapper input {
+  width: 100%;
+  height: 44px;
+  padding: 0 42px 0 42px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 11px;
+  font-size: 0.92rem;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.zzc-input-wrapper input:focus {
+  background: #ffffff;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3.5px rgba(14, 165, 233, 0.15);
+}
+
+.zzc-input-wrapper input:focus + .zzc-input-icon,
+.zzc-input-wrapper:focus-within .zzc-input-icon {
+  color: #0ea5e9;
+}
+
+.zzc-password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.zzc-password-toggle-btn:hover {
+  color: #475569;
+  background-color: #f1f5f9;
+}
+
+/* Options (Remember me) */
+.zzc-form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -4px;
+}
+
+.zzc-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+.zzc-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0ea5e9;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Submit Button */
+.zzc-admin-submit-btn {
+  height: 46px;
+  width: 100%;
+  margin-top: 6px;
+  background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 11px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -2px rgba(14, 165, 233, 0.35);
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zzc-admin-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0369a1 0%, #0f766e 100%);
+  box-shadow: 0 6px 20px -2px rgba(14, 165, 233, 0.45);
+  transform: translateY(-1px);
+}
+
+.zzc-admin-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.zzc-admin-submit-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.zzc-btn-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zzc-btn-arrow {
+  transition: transform 0.2s ease;
+}
+
+.zzc-admin-submit-btn:hover .zzc-btn-arrow {
+  transform: translateX(3px);
+}
+
+.zzc-btn-loading-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zzc-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: zzcSpin 0.75s linear infinite;
+}
+
+@keyframes zzcSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Outer Footer Tag */
+.zzc-auth-footer-tag {
+  position: relative;
+  z-index: 1;
+  margin-top: 24px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  text-align: center;
+}

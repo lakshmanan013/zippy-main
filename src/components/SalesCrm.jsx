@@ -1303,7 +1303,7 @@ function ReceivedReportsSection({ data, role, currentRecord }) {
 ───────────────────────────────────────────────────────── */
 function ViewDoctorModal({ doctor, onClose }) {
   if (!doctor) return null;
-  
+
   const docName = doctor.doctorName || doctor.name || "—";
   const spec = doctor.specializations || doctor.specialization || doctor.tag || "—";
   const cleanName = docName.replace(/^dr\.?\s*/i, '').trim();
@@ -1312,24 +1312,24 @@ function ViewDoctorModal({ doctor, onClose }) {
   return (
     <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="zzc-modal" style={{ maxWidth: 450, borderRadius: 12, overflow: "hidden", padding: 0 }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }}>
-          
-          <div style={{ 
-            width: 44, height: 44, borderRadius: '50%', backgroundColor: '#e0f7fa', color: 'var(--primary, #00796b)', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.15rem' 
+
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%', backgroundColor: '#e0f7fa', color: 'var(--primary, #00796b)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.15rem'
           }}>
             {avatarChar}
           </div>
-          
+
           <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1e293b' }}>{docName}</span>
             <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2 }}>{spec}</span>
           </div>
-          
-          <button onClick={onClose} style={{ 
-            background: 'none', border: 'none', fontSize: '1rem', cursor: 'pointer', color: '#94a3b8', 
+
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', fontSize: '1rem', cursor: 'pointer', color: '#94a3b8',
             padding: 0, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
             &#x2715;
@@ -1347,10 +1347,10 @@ function ViewDoctorModal({ doctor, onClose }) {
               { label: 'Pin Code', value: doctor.pincode || doctor.location || "—" },
               { label: 'Experience', value: doctor.experience_years != null ? `${doctor.experience_years} yrs` : "—" },
             ].map((item, idx, arr) => (
-              <div key={idx} style={{ 
-                display: 'flex', justifyContent: 'space-between', padding: '0.9rem 0', 
-                borderBottom: idx === arr.length - 1 ? 'none' : '1px dashed #cbd5e1', 
-                fontSize: '0.85rem' 
+              <div key={idx} style={{
+                display: 'flex', justifyContent: 'space-between', padding: '0.9rem 0',
+                borderBottom: idx === arr.length - 1 ? 'none' : '1px dashed #cbd5e1',
+                fontSize: '0.85rem'
               }}>
                 <span style={{ color: '#64748b' }}>{item.label}</span>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.value}</span>
@@ -2141,7 +2141,7 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
 /* ─────────────────────────────────────────────────────────
    ADD DOCTOR MODAL
 ───────────────────────────────────────────────────────── */
-function AddDoctorModal({ exec, onClose, onSave }) {
+function AddDoctorModal({ onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -2203,19 +2203,73 @@ function AddDoctorModal({ exec, onClose, onSave }) {
     );
   };
 
+  const fileToDataUrl = (file) => {
+    if (!file) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      if (!file.type || !file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1200;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.85);
+          resolve(compressed);
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError("");
     try {
+      const [insideUrl, outsideUrl, profUrl, sigUrl] = await Promise.all([
+        fileToDataUrl(clinicInside),
+        fileToDataUrl(clinicOutside),
+        fileToDataUrl(profileImage),
+        fileToDataUrl(signatureImage)
+      ]);
+
       const payload = { ...formData };
       if (payload.experience_years) payload.experience_years = Number(payload.experience_years);
       else payload.experience_years = null;
       if (payload.consultation_fee) payload.consultation_fee = Number(payload.consultation_fee);
       else payload.consultation_fee = null;
-      
+
+      if (profUrl) payload.profile_image = profUrl;
+      if (sigUrl) payload.signature_image = sigUrl;
+      if (insideUrl) payload.clinic_inside_image = insideUrl;
+      if (outsideUrl) payload.clinic_outside_image = outsideUrl;
+
       const newDoc = await createRecord("doctors", payload);
-      
+
       const uploadImage = async (file, type) => {
         const formDataUpload = new FormData();
         formDataUpload.append("file", file);
@@ -2230,7 +2284,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
       if (clinicOutside) await uploadImage(clinicOutside, "clinic_outside");
       if (profileImage) await uploadImage(profileImage, "profile_image");
       if (signatureImage) await uploadImage(signatureImage, "signature_image");
-      
+
       onSave();
     } catch (err) {
       setError(err.message || "Failed to add doctor");
@@ -2248,7 +2302,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
         </div>
         <form className="rpt-call-form" style={{ padding: "1rem" }} onSubmit={handleSubmit}>
           {error && <div className="rpt-call-error" style={{ color: "red", marginBottom: "1rem" }}>{error}</div>}
-          
+
           <div className="rpt-call-row">
             <div className="rpt-call-field">
               <label>Name *</label>
@@ -2259,7 +2313,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               <input name="phone" value={formData.phone} onChange={handleChange} required />
             </div>
           </div>
-          
+
           <div className="rpt-call-row">
             <div className="rpt-call-field">
               <label>Email *</label>
@@ -2270,7 +2324,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               <input type="text" name="password" value={formData.password} onChange={handleChange} required />
             </div>
           </div>
-          
+
           <div className="rpt-call-row">
             <div className="rpt-call-field">
               <label>Qualification</label>
@@ -2281,7 +2335,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               <input name="specializations" value={formData.specializations} onChange={handleChange} />
             </div>
           </div>
-          
+
           <div className="rpt-call-row">
             <div className="rpt-call-field">
               <label>Experience (Years)</label>
@@ -2292,7 +2346,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               <input type="number" name="consultation_fee" value={formData.consultation_fee} onChange={handleChange} />
             </div>
           </div>
-          
+
           <div className="rpt-call-row" style={{ alignItems: "flex-end" }}>
             <div className="rpt-call-field">
               <label>Pin Code</label>
@@ -2306,7 +2360,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               {locationLoading ? "Detecting..." : "Detect Location"}
             </button>
           </div>
-          
+
           <div className="rpt-call-row">
             <div className="rpt-call-field">
               <label>Clinic Inside Image</label>
@@ -2317,7 +2371,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               <input type="file" accept="image/*" onChange={(e) => setClinicOutside(e.target.files[0])} />
             </div>
           </div>
-          
+
           <div className="rpt-call-row">
             <div className="rpt-call-field">
               <label>Doctor Profile Image</label>
@@ -2328,7 +2382,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               <input type="file" accept="image/*" onChange={(e) => setSignatureImage(e.target.files[0])} />
             </div>
           </div>
-          
+
           <div className="rpt-call-row">
             <div className="rpt-call-field">
               <label>Verification Status</label>
@@ -2345,7 +2399,7 @@ function AddDoctorModal({ exec, onClose, onSave }) {
               </select>
             </div>
           </div>
-          
+
           <div className="rpt-call-modal-footer" style={{ marginTop: "1rem" }}>
             <button type="button" className="rpt-btn-outline" onClick={onClose} disabled={saving}>Cancel</button>
             <button type="submit" className="rpt-btn-primary" disabled={saving}>
@@ -2575,7 +2629,6 @@ function DoctorsView({ data, execId, role }) {
 
       {isAddOpen && (
         <AddDoctorModal
-          exec={exec}
           onClose={() => setIsAddOpen(false)}
           onSave={() => {
             setIsAddOpen(false);
@@ -2978,9 +3031,9 @@ function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan })
 ───────────────────────────────────────────────────────── */
 function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToPlan }) {
   const { executives, coverage, tasks, doctors } = data;
-  const execsInScope = useMemo(() => 
+  const execsInScope = useMemo(() =>
     region ? executives.filter((e) => e.region === region) : executives,
-  [region, executives]);
+    [region, executives]);
   const [teamStatsSummary, setTeamStatsSummary] = useState(null);
 
   const execStats = useMemo(() => execsInScope.map((exec) => {
@@ -3057,26 +3110,14 @@ const SECTION_TITLES = {
   reports: "Reports",
 };
 
-export default function SalesCrm({ role, user, onSwitchRole, onExit }) {
+export default function SalesCrm({ role, user, onExit }) {
   const data = useSalesData();
-  const [execId, setExecId] = useState(null);
-  const [managerId, setManagerId] = useState(null);
-  const [regionalId, setRegionalId] = useState(null);
+  const execId = role === ROLES.EXECUTIVE ? user?.id : null;
+  const managerId = role === ROLES.MANAGER ? user?.id : null;
+  const regionalId = role === ROLES.REGIONAL ? user?.id : null;
   const [region, setRegion] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
-
-  useEffect(() => {
-    if (role === ROLES.EXECUTIVE && user?.id) setExecId(user.id);
-  }, [role, user]);
-
-  useEffect(() => {
-    if (role === ROLES.MANAGER && user?.id) setManagerId(user.id);
-  }, [role, user]);
-
-  useEffect(() => {
-    if (role === ROLES.REGIONAL && user?.id) setRegionalId(user.id);
-  }, [role, user]);
 
   useEffect(() => {
     let t;

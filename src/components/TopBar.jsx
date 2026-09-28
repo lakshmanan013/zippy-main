@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { LogOut, User } from "lucide-react";
 
 export default function TopBar({
   title,
@@ -12,6 +13,8 @@ export default function TopBar({
   activeTab,
   onTabChange,
   onOpenSalesCRM,
+  adminUser,
+  onLogout,
 }) {
   // State to handle opening and closing the dropdown list panel
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
@@ -64,7 +67,7 @@ export default function TopBar({
           </button>
         ))}
 
-                {/* Sales CRM Dropdown Container Layout */}
+        {/* Sales CRM Dropdown Container Layout */}
         <div className="zzc-sales-menu-wrap" ref={dropdownRef}>
           {/* Swapped <a> for <button> to match sizes, and forced non-bold text */}
           <button
@@ -93,9 +96,41 @@ export default function TopBar({
             </div>
           )}
         </div>
-        
-        <a href="#" className="zzc-btn-link">Console</a>
+
+        {/* Admin User Chip & Logout (aligned with standard zzc-btn pattern) */}
+        {adminUser && (
+          <span
+            className="zzc-btn zzc-btn-outline"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "default",
+            }}
+          >
+            <User size={14} />
+            <span>{adminUser.name || "Admin"}</span>
+          </span>
+        )}
+
+        {onLogout && (
+          <button
+            type="button"
+            className="zzc-btn zzc-btn-outline"
+            onClick={onLogout}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+            title="Log out of Admin CRM"
+          >
+            <LogOut size={14} />
+            <span>Logout</span>
+          </button>
+        )}
       </div>
     </header>
   );
 }
+
