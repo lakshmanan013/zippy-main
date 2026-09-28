@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { NAV_GROUPS } from "../data.js";
 import logo from "../assets/zenve-zippy-logo.jpeg";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 export default function Sidebar({ currentKey, onSelect, adminUser, onLogout }) {
   const navRef = useRef(null);
