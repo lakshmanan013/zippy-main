@@ -45,21 +45,13 @@ export default function AdminLogin({ onLoginSuccess }) {
 
       // If backend accepted or local admin validation matches
       if (!loggedInUser) {
-        const validLocalAdmins = [
-          "admin@zenvezippy.com",
-          "admin@zippy.com",
-          "admin@zenve.com",
-        ];
+        const ADMIN_EMAIL = "admin@zenvezippy.com";
+        const ADMIN_PASSWORD = "admin123";
 
-        const isValidLocal =
-          (validLocalAdmins.includes(cleanEmail) &&
-            (cleanPassword === "admin123" || cleanPassword === "admin" || cleanPassword === "zenve@123")) ||
-          (cleanEmail === "admin@zenvezippy.com");
-
-        if (isValidLocal) {
+        if (cleanEmail === ADMIN_EMAIL && cleanPassword === ADMIN_PASSWORD) {
           loggedInUser = {
             id: 1,
-            email: cleanEmail || "admin@zenvezippy.com",
+            email: ADMIN_EMAIL,
             name: "Admin",
             role: "Administrator",
           };

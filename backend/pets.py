@@ -4371,45 +4371,17 @@ def admin_login(data: AdminLoginRequest, db: Session = Depends(get_db)):
     clean_email = data.email.strip().lower()
     clean_pass = data.password.strip()
 
-    # 1. Standard Admin Credentials
-    valid_admin_emails = ["admin@zenvezippy.com", "admin@zippy.com", "admin", "admin@zenve.com"]
-    valid_passwords = ["admin123", "zippy123", "admin", "zenve@123", "Vasanth@zenve"]
+    ADMIN_EMAIL = "admin@zenvezippy.com"
+    ADMIN_PASSWORD = "admin123"
 
-    if (clean_email in valid_admin_emails and (clean_pass in valid_passwords or clean_pass == "admin123")) or clean_email == "admin@zenvezippy.com":
+    if clean_email == ADMIN_EMAIL and clean_pass == ADMIN_PASSWORD:
         return {
             "role": "admin",
             "user": {
                 "id": 1,
-                "email": clean_email,
+                "email": ADMIN_EMAIL,
                 "name": "Admin",
                 "role": "Administrator"
-            },
-            "token": "zippy-admin-session-token"
-        }
-
-    # 2. Check if a Regional Manager or Sales Manager is authenticating
-    reg = db.query(RegionalManager).filter(RegionalManager.email == data.email, RegionalManager.password == data.password).first()
-    if reg:
-        return {
-            "role": "admin",
-            "user": {
-                "id": reg.id,
-                "email": reg.email,
-                "name": reg.name,
-                "role": "Regional Admin"
-            },
-            "token": "zippy-admin-session-token"
-        }
-
-    mgr = db.query(SalesManager).filter(SalesManager.email == data.email, SalesManager.password == data.password).first()
-    if mgr:
-        return {
-            "role": "admin",
-            "user": {
-                "id": mgr.id,
-                "email": mgr.email,
-                "name": mgr.name,
-                "role": "Manager Admin"
             },
             "token": "zippy-admin-session-token"
         }
