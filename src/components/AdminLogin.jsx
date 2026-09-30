@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { API_BASE } from "../api";
 import doctorBanner from "../assets/zippy-doctor-banner.png";
+import zenveBrandIcon from "../assets/zenve-brand-icon.png";
 import {
   Lock,
   Mail,
@@ -114,23 +115,12 @@ export default function AdminLogin({ onLoginSuccess }) {
         <div className="zzc-hero-content-wrapper">
           {/* Brand Header */}
           <div className="zzc-hero-brand-header">
-            <div className="zzc-paw-brand-icon">
-              <svg viewBox="0 0 48 48" fill="none" className="zzc-svg-paw">
-                {/* Main Pad with Heart */}
-                <path
-                  d="M24 20C17.5 20 13 25.5 13 32C13 38.5 18 43 24 43C30 43 35 38.5 35 32C35 25.5 30.5 20 24 20Z"
-                  fill="#00c49f"
-                />
-                <path
-                  d="M24 28C22.2 25.5 18.5 26.5 18.5 29.5C18.5 33 24 37 24 37C24 37 29.5 33 29.5 29.5C29.5 26.5 25.8 25.5 24 28Z"
-                  fill="#072e27"
-                />
-                {/* Toe pads */}
-                <ellipse cx="12" cy="19" rx="4.5" ry="6" transform="rotate(-20 12 19)" fill="#00c49f" />
-                <ellipse cx="20" cy="12" rx="4.5" ry="6" transform="rotate(-6 20 12)" fill="#00c49f" />
-                <ellipse cx="28" cy="12" rx="4.5" ry="6" transform="rotate(6 28 12)" fill="#00c49f" />
-                <ellipse cx="36" cy="19" rx="4.5" ry="6" transform="rotate(20 36 19)" fill="#00c49f" />
-              </svg>
+            <div className="zzc-brand-logo-container">
+              <img
+                src={zenveBrandIcon}
+                alt="Zenve Zippy"
+                className="zzc-brand-logo-img"
+              />
             </div>
             <div className="zzc-hero-brand-text">
               <h2>Zenve Zippy</h2>
