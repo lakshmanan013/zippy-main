@@ -91,7 +91,7 @@ export const TABLE_CONFIG = {
       { key: "specializations", type: "text" },
       { key: "pincode", type: "text" },
       { key: "city", type: "text" },
-      { key: "phone", type: "text"},
+      { key: "phone", type: "text" },
       { key: "experience_years", type: "number" },
       { key: "consultation_fee", type: "number" },
       { key: "verification_status", type: "text", default: "pending" },
@@ -127,14 +127,14 @@ export const TABLE_CONFIG = {
       { key: "doctor_id", type: "number", required: true },
       { key: "document_type", type: "text", required: true },
       { key: "status", type: "text", default: "pending" },
-      { key: "created_at", type: "datetime", readOnly: true},
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
   appointments: {
     path: "/appointments",
     fields: [
-    
+
       { key: "pet_id", type: "number", required: true },
       { key: "doctor_id", type: "number", required: true },
       { key: "appointment_date", type: "date", required: true },
@@ -148,7 +148,7 @@ export const TABLE_CONFIG = {
   consultations: {
     path: "/consultations",
     fields: [
-      
+
       { key: "appointment_id", type: "number", required: true },
       { key: "consultation_mode", type: "text" },
       { key: "diagnosis", type: "text" },
@@ -195,7 +195,7 @@ export const TABLE_CONFIG = {
   service_bookings: {
     path: "/service-bookings",
     fields: [
-    
+
       { key: "service_id", type: "number", required: true },
       { key: "provider_id", type: "number", required: true },
       { key: "pet_id", type: "number", required: true },
@@ -302,7 +302,7 @@ export const TABLE_CONFIG = {
   order_items: {
     path: "/order-items",
     fields: [
-      { key: "order_id", type: "number", required: true },        
+      { key: "order_id", type: "number", required: true },
       { key: "product_name", type: "text", required: true },
       { key: "quantity", type: "number", default: 1 },
       { key: "unit_price", type: "number" },
@@ -323,12 +323,12 @@ export const TABLE_CONFIG = {
   payments: {
     path: "/payments",
     fields: [
-      { key: "order_id", type: "number", required: true },  
+      { key: "order_id", type: "number", required: true },
       { key: "amount", type: "number" },
       { key: "gateway", type: "text" },
       { key: "status", type: "text", default: "pending" },
       { key: "webhook_verified", type: "bool", default: false },
-      {key: "created_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
@@ -339,7 +339,7 @@ export const TABLE_CONFIG = {
       { key: "amount", type: "number" },
       { key: "reason", type: "text" },
       { key: "status", type: "text", default: "pending" },
-      {key: "created_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
@@ -382,7 +382,7 @@ export const TABLE_CONFIG = {
       { key: "rating", type: "number" },
       { key: "review_text", type: "text" },
       { key: "status", type: "text", default: "pending" },
-      {key: "created_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
@@ -393,7 +393,7 @@ export const TABLE_CONFIG = {
       { key: "title", type: "text", required: true },
       { key: "channel", type: "text" },
       { key: "is_read", type: "bool", default: false },
-      {key: "created_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
@@ -432,7 +432,7 @@ export const TABLE_CONFIG = {
       { key: "subject", type: "text", required: true },
       { key: "category", type: "text" },
       { key: "status", type: "text", default: "open" },
-      {key: "created_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
@@ -451,7 +451,7 @@ export const TABLE_CONFIG = {
       { key: "action", type: "text", required: true },
       { key: "entity_type", type: "text" },
       { key: "entity_id", type: "number" },
-      {key: "created_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
@@ -507,8 +507,8 @@ export const TABLE_CONFIG = {
       { key: "pincode", type: "text", required: true },
       { key: "city", type: "text" },
       { key: "state", type: "text" },
-      {key: "created_at", type: "datetime", readOnly: true },
-     
+      { key: "created_at", type: "datetime", readOnly: true },
+
     ],
   },
   executive_tasks: {
@@ -531,7 +531,7 @@ export const TABLE_CONFIG = {
       { key: "entity_type", type: "text" },
       { key: "pincode", type: "text" },
       { key: "is_read", type: "bool", default: false },
-      {key: "created_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
 
     ],
   },
@@ -543,7 +543,7 @@ async function handleResponse(res) {
     try {
       const body = await res.json();
       detail = body.detail || JSON.stringify(body);
-    } catch (e) {
+    } catch {
       /* ignore parse errors */
     }
     throw new Error(detail);
@@ -578,7 +578,7 @@ export async function fetchStatCounts(statConfig) {
       try {
         const count = await fetchCount(stat.tableKey);
         return [stat.key, count];
-      } catch (e) {
+      } catch {
         return [stat.key, null]; // null = failed to load, shown as "—"
       }
     })
