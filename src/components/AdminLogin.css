@@ -488,6 +488,77 @@
   margin: 4px 0 0 0;
 }
 
+/* Login Mode Switcher Tabs */
+.zzc-login-mode-tabs {
+  display: flex;
+  background: #edf5f1;
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  border: 1px solid #d9ebe2;
+  gap: 4px;
+}
+
+.zzc-mode-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #55756d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.zzc-mode-tab-btn:hover {
+  color: #0b2e26;
+}
+
+.zzc-mode-tab-btn.active {
+  background: #ffffff;
+  color: #00876c;
+  box-shadow: 0 2px 8px rgba(0, 135, 108, 0.12);
+  font-weight: 700;
+}
+
+/* Info Alert */
+.zzc-auth-alert-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  padding: 10px 14px;
+  border-radius: 11px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  animation: zzcAlertSlide 0.25s ease-out;
+}
+
+.zzc-info-icon {
+  flex-shrink: 0;
+  color: #059669;
+}
+
+@keyframes zzcAlertSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Error Alert */
 .zzc-auth-alert-error {
   display: flex;
@@ -503,6 +574,7 @@
   margin-bottom: 16px;
   animation: zzcShake 0.3s ease-in-out;
 }
+
 
 @keyframes zzcShake {
 
@@ -756,6 +828,202 @@
   border-color: #00967a;
   transform: translateY(-1px);
 }
+
+/* --------------------------------------------------------------------------
+   MOBILE LOGIN & OTP VERIFICATION STYLES
+   -------------------------------------------------------------------------- */
+.zzc-mobile-step-form,
+.zzc-otp-verify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.zzc-phone-input-container {
+  padding-left: 0 !important;
+}
+
+.zzc-phone-prefix {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 14px;
+  height: 100%;
+  border-right: 1.5px solid #d4e3dc;
+  background: #f7faf9;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.zzc-flag-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.zzc-code-text {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #17362f;
+  letter-spacing: -0.01em;
+}
+
+.zzc-phone-input-container input {
+  padding-left: 14px !important;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.zzc-field-hint {
+  font-size: 0.77rem;
+  color: #64817a;
+  margin-top: 3px;
+  line-height: 1.35;
+}
+
+/* Phone Target Badge in OTP Step */
+.zzc-phone-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0fdf9;
+  border: 1px solid #cceee4;
+  padding: 9px 13px;
+  border-radius: 10px;
+}
+
+.zzc-phone-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+  color: #164e43;
+}
+
+.zzc-phone-target strong {
+  color: #064e3b;
+  font-weight: 700;
+}
+
+.zzc-change-phone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #00876c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.zzc-change-phone-btn:hover {
+  background: #def7ee;
+  color: #006853;
+}
+
+/* 6-Digit OTP Boxes */
+.zzc-otp-boxes-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.zzc-otp-box {
+  width: 100%;
+  height: 52px;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0e2a24;
+  background: #ffffff;
+  border: 1.5px solid #d4e3dc;
+  border-radius: 11px;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zzc-otp-box:hover:not(:disabled) {
+  border-color: #00967a;
+}
+
+.zzc-otp-box:focus {
+  border-color: #00967a;
+  box-shadow: 0 0 0 3.5px rgba(0, 150, 122, 0.18);
+  transform: translateY(-2px);
+}
+
+.zzc-otp-box.filled {
+  border-color: #00967a;
+  background: #f8fdfb;
+  color: #007a63;
+}
+
+/* Resend Row */
+.zzc-otp-resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  margin: 2px 0;
+}
+
+.zzc-otp-timer-text {
+  font-size: 0.82rem;
+  color: #64817a;
+}
+
+.zzc-otp-timer-text strong {
+  color: #00876c;
+  font-weight: 700;
+}
+
+.zzc-resend-otp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #00876c;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.zzc-resend-otp-btn:hover {
+  background: #e6f6f1;
+  color: #006853;
+}
+
+/* Demo Helper Banner */
+.zzc-demo-otp-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fefce8;
+  border: 1px dashed #eab308;
+  color: #854d0e;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 0.79rem;
+  text-align: center;
+}
+
+.zzc-demo-otp-banner strong {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #713f12;
+  margin-left: 4px;
+}
+
 
 
 
