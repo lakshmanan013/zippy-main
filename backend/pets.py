@@ -1714,6 +1714,15 @@ def delete_doctor(doctor_id: int,db: Session = Depends(get_db)):
         raise HTTPException(status_code=400,detail=str(e))
 @app.post("/clinics-hospitals")
 def create_clinic_hospital(data: ClinicHospitalCreate,db: Session = Depends(get_db)):
+    # Check for existing facility to prevent duplicates
+    if data.name and data.phone:
+        existing = db.query(ClinicHospital).filter(
+            ClinicHospital.name == data.name,
+            ClinicHospital.phone == data.phone
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Clinic or hospital with this name and phone already exists")
+
     facility = ClinicHospital(
         name=data.name,
         facility_type=data.facility_type,
