@@ -16,9 +16,7 @@ import {
   Smartphone,
   RotateCcw,
   Edit3,
-  ShieldCheck,
-  Send,
-  Sparkles
+  ShieldCheck
 } from "lucide-react";
 import "./AdminLogin.css";
 

@@ -4903,9 +4903,9 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
             Reports
           </button>
 
-          <button className="nav-item" onClick={onExit} style={{ marginTop: "0.5rem" }}>
+          <button className="nav-item" onClick={() => onExit?.(role)} style={{ marginTop: "0.5rem" }}>
             <LogOut size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
-            Admin CRM
+            Log Out
           </button>
         </nav>
       </aside>
@@ -4982,7 +4982,7 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
             <button
               type="button"
               className="header-logout-btn"
-              onClick={onExit}
+              onClick={() => onExit?.(role)}
               title="Log Out of Sales CRM"
             >
               <LogOut size={13} />

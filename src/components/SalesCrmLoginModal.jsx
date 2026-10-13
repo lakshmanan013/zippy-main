@@ -8,70 +8,113 @@ import {
   loginWithMobileOtp,
 } from "../api.js";
 import { getFreshExecutiveLocation } from "../geoUtils.js";
-import logo from "../assets/zenve-zippy-logo.png";
+import heroImg from "../assets/sales-exec-hero.jpg";
 import {
-  Briefcase,
-  UserCheck,
-  Globe,
-  User,
+  Users,
+  TrendingUp,
+  Target,
+  Smartphone,
+  Mail,
   Lock,
   Eye,
   EyeOff,
-  ArrowRight,
-  X,
   ShieldCheck,
+  ChevronDown,
   Check,
-  Smartphone,
   KeyRound,
-  Phone,
+  Briefcase,
+  UserCheck,
+  Globe,
+  ArrowLeft,
+  AlertCircle,
 } from "lucide-react";
 import "./SalesCrmLoginModal.css";
+
+function PawIcon({ size = 26, color = "#0284c7", className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 11c-2.2 0-4.3 1.6-4.3 4.1 0 2.1 1.7 3.5 4.3 3.5s4.3-1.4 4.3-3.5c0-2.5-2.1-4.1-4.3-4.1z" />
+      <circle cx="5.6" cy="10.2" r="1.9" />
+      <circle cx="9.3" cy="6.2" r="1.9" />
+      <circle cx="14.7" cy="6.2" r="1.9" />
+      <circle cx="18.4" cy="10.2" r="1.9" />
+    </svg>
+  );
+}
 
 const ROLES_INFO = {
   executive: {
     key: "executive",
     title: "Sales Executive",
-    shortTitle: "Executive",
-    badge: "Field Operations",
-    icon: Briefcase,
+    portalTitle: "Sales Executive Portal",
+    subBadge: "Field Sales & Territory OS",
+    welcomeTitle: "Welcome Sales Executive",
+    subtitle: "Sign in to manage your field leads, doctor visits, and schedule.",
+    headlinePart1: "Drive Sales.",
+    headlinePart2: "Build Relationships.",
+    headlineAccent: "For a Healthier\nTomorrow.",
+    description: "Manage your leads, doctor visits, and sales follow-ups anytime, anywhere with Zenve.",
+    pillars: [
+      { icon: Users, title: "Track Leads", desc: "Manage and convert doctor opportunities" },
+      { icon: TrendingUp, title: "Stay Productive", desc: "Plan daily visits and meet targets" },
+      { icon: Target, title: "Achieve More", desc: "Real-time territory GPS tracking" },
+    ],
+    quote: "“Together for\nHappier, Healthier Pets.”",
+    footerText: "Secure Field Operations Management",
     tableKey: "sales_executives",
-    themeClass: "role-executive",
     accentColor: "#0284c7",
-    accentBg: "rgba(2, 132, 199, 0.08)",
-    accentBorder: "rgba(2, 132, 199, 0.22)",
-    accentRing: "rgba(2, 132, 199, 0.18)",
-    accentGradient: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-    desc: "Manage doctor visits, pre/post call reports & monthly targets.",
+    icon: Briefcase,
   },
   manager: {
     key: "manager",
     title: "Sales Manager",
-    shortTitle: "Manager",
-    badge: "Team Management",
-    icon: UserCheck,
+    portalTitle: "Sales Manager Portal",
+    subBadge: "Team Leadership & Approvals OS",
+    welcomeTitle: "Welcome Sales Manager",
+    subtitle: "Sign in to manage your sales team, approvals, and performance.",
+    headlinePart1: "Empower Teams.",
+    headlinePart2: "Drive Performance.",
+    headlineAccent: "For a Healthier\nTomorrow.",
+    description: "Oversee sales executives, approve visit plans, and track regional performance with Zenve.",
+    pillars: [
+      { icon: UserCheck, title: "Team Approvals", desc: "Review daily logs and visit schedules" },
+      { icon: TrendingUp, title: "Target Tracking", desc: "Monitor team quotas and conversions" },
+      { icon: Target, title: "Doctor Reach", desc: "Optimize territory doctor coverage" },
+    ],
+    quote: "“Guiding Teams Towards\nHealthier Pets.”",
+    footerText: "Secure Sales Team Operations Management",
     tableKey: "sales_managers",
-    themeClass: "role-manager",
     accentColor: "#2563eb",
-    accentBg: "rgba(37, 99, 235, 0.08)",
-    accentBorder: "rgba(37, 99, 235, 0.22)",
-    accentRing: "rgba(37, 99, 235, 0.18)",
-    accentGradient: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
-    desc: "Review executive performance, approve daily reports & monitor teams.",
+    icon: UserCheck,
   },
   regional: {
     key: "regional",
     title: "Regional Manager",
-    shortTitle: "Regional",
-    badge: "Regional Command",
-    icon: Globe,
+    portalTitle: "Regional Manager Portal",
+    subBadge: "Strategic Command & Territory OS",
+    welcomeTitle: "Welcome Regional Manager",
+    subtitle: "Sign in to oversee your territory, regional targets, and branches.",
+    headlinePart1: "Expand Horizons.",
+    headlinePart2: "Lead Regions.",
+    headlineAccent: "For a Healthier\nTomorrow.",
+    description: "Coordinate cross-city branches, analyze regional metrics, and steer executive leadership.",
+    pillars: [
+      { icon: Globe, title: "Regional Command", desc: "Comprehensive city & state overviews" },
+      { icon: TrendingUp, title: "Strategic Growth", desc: "Territory expansion & doctor networks" },
+      { icon: Target, title: "Executive Leadership", desc: "Multi-tier team performance KPIs" },
+    ],
+    quote: "“Leading The Future of\nPet Healthcare.”",
+    footerText: "Secure Regional Territory Command Management",
     tableKey: "regional_managers",
-    themeClass: "role-regional",
     accentColor: "#7c3aed",
-    accentBg: "rgba(124, 58, 237, 0.08)",
-    accentBorder: "rgba(124, 58, 237, 0.22)",
-    accentRing: "rgba(124, 58, 237, 0.18)",
-    accentGradient: "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)",
-    desc: "High-level overview, target setting, regional analytics & plan approvals.",
+    icon: Globe,
   },
 };
 
@@ -81,59 +124,40 @@ export default function SalesCrmLoginModal({
   onClose,
   onLoginSuccess,
 }) {
-  const [currentRole, setCurrentRole] = useState(initialRole || "executive");
-  const [loginMethod, setLoginMethod] = useState("mobile"); // "mobile" | "password"
+  const currentRole = (initialRole && ROLES_INFO[initialRole]) ? initialRole : "executive";
 
-  // Mobile OTP States
+  // Auth Mode: "email" (Email / Password) or "mobile" (Mobile OTP)
+  const [authMode, setAuthMode] = useState("email");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Mobile OTP states
   const [phone, setPhone] = useState("");
+  const countryCode = "+91";
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
 
-  // Password States
+  // Email / Password states
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [loading, setLoading] = useState(false);
+
+  // General feedback & loading
+  const [mobileLoading, setMobileLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [usersList, setUsersList] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
 
-  const [prevInitialRole, setPrevInitialRole] = useState(initialRole);
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-
-  if (initialRole !== prevInitialRole) {
-    setPrevInitialRole(initialRole);
-    if (initialRole && ROLES_INFO[initialRole]) {
-      setCurrentRole(initialRole);
-    }
-  }
-
-  if (isOpen !== prevIsOpen) {
-    setPrevIsOpen(isOpen);
-    if (isOpen) {
-      setUsername("");
-      setPassword("");
-      setPhone("");
-      setOtp("");
-      setOtpSent(false);
-      setOtpCountdown(0);
-      setError("");
-      setSelectedUser(null);
-    }
-  }
-
-  const usernameInputRef = useRef(null);
   const phoneInputRef = useRef(null);
-  const roleConfig = ROLES_INFO[currentRole] || ROLES_INFO.executive;
-  const RoleIcon = roleConfig.icon;
+  const emailInputRef = useRef(null);
 
-  // Load available users for authentication
+  const roleConfig = ROLES_INFO[currentRole] || ROLES_INFO.executive;
+
+  // Load registered users for the active role
   useEffect(() => {
     if (!isOpen) return;
-
     let cancelled = false;
     async function loadRoleUsers() {
       try {
@@ -151,25 +175,12 @@ export default function SalesCrmLoginModal({
     };
   }, [isOpen, roleConfig.tableKey]);
 
-  // Focus input when opened or method changed
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => {
-        if (loginMethod === "mobile" && phoneInputRef.current) {
-          phoneInputRef.current.focus();
-        } else if (loginMethod === "password" && usernameInputRef.current) {
-          usernameInputRef.current.focus();
-        }
-      }, 120);
-    }
-  }, [isOpen, currentRole, loginMethod]);
-
-  // OTP Countdown Timer
+  // Countdown timer for OTP
   useEffect(() => {
     let timer;
     if (otpCountdown > 0) {
       timer = setInterval(() => {
-        setOtpCountdown((prev) => prev - 1);
+        setOtpCountdown((p) => p - 1);
       }, 1000);
     }
     return () => clearInterval(timer);
@@ -177,46 +188,10 @@ export default function SalesCrmLoginModal({
 
   if (!isOpen) return null;
 
-  function handleUsernameChange(val) {
-    setUsername(val);
-    setError("");
-    const clean = val.trim().toLowerCase();
-    if (!clean) {
-      setSelectedUser(null);
-      return;
-    }
-
-    const match = usersList.find((u) => {
-      const emailLower = (u.email || "").trim().toLowerCase();
-      const nameLower = (u.name || "").trim().toLowerCase();
-      const codeLower = (u.code || "").trim().toLowerCase();
-      const phoneStr = String(u.phone || "").trim();
-      return (
-        emailLower === clean ||
-        nameLower === clean ||
-        codeLower === clean ||
-        phoneStr === clean
-      );
-    });
-
-    if (match) {
-      setSelectedUser(match);
-    } else {
-      const partial = usersList.find((u) => {
-        const emailLower = (u.email || "").trim().toLowerCase();
-        const nameLower = (u.name || "").trim().toLowerCase();
-        return (
-          (nameLower && nameLower.startsWith(clean)) ||
-          (emailLower && (emailLower.startsWith(clean) || emailLower.split("@")[0] === clean))
-        );
-      });
-      setSelectedUser(partial || null);
-    }
-  }
-
-  // Send OTP
+  // ── OTP SEND HANDLER ──
   async function handleSendOtp() {
     setError("");
+    setSuccessMsg("");
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length !== 10) {
       setError("Please enter a valid 10-digit mobile number.");
@@ -230,9 +205,9 @@ export default function SalesCrmLoginModal({
         purpose: "login",
         role: currentRole,
       });
-
       setOtpSent(true);
       setOtpCountdown(60);
+      setSuccessMsg("OTP sent to your registered mobile number.");
     } catch (err) {
       setError(err.message || "Failed to send OTP. Please check mobile number.");
     } finally {
@@ -240,21 +215,28 @@ export default function SalesCrmLoginModal({
     }
   }
 
-  // Handle Mobile Login Submit
-  async function handleMobileLoginSubmit(e) {
+  // ── MOBILE OTP LOGIN SUBMIT ──
+  async function handleMobileSubmit(e) {
     if (e) e.preventDefault();
     setError("");
+    setSuccessMsg("");
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length !== 10) {
       setError("Please enter a valid 10-digit mobile number.");
       return;
     }
+
+    if (!otpSent) {
+      handleSendOtp();
+      return;
+    }
+
     if (!otp.trim()) {
       setError("Please enter the 6-digit OTP.");
       return;
     }
 
-    setLoading(true);
+    setMobileLoading(true);
     try {
       const res = await loginWithMobileOtp({
         phone: cleanPhone,
@@ -274,54 +256,32 @@ export default function SalesCrmLoginModal({
             userObj.lastGpsLocation = freshLoc;
           }
         } catch {
-          /* ignore location failure */
+          /* ignore */
         }
       }
 
-      try {
-        const onlineKey = "zippy_crm_online_users";
-        const saved = localStorage.getItem(onlineKey);
-        const map = saved ? JSON.parse(saved) : {};
-        map[`${currentRole}_${userObj.id}`] = true;
-        localStorage.setItem(onlineKey, JSON.stringify(map));
-        localStorage.setItem(
-          "zippy_crm_active_auth",
-          JSON.stringify({
-            role: currentRole,
-            user: userObj,
-            loggedInAt: Date.now(),
-          })
-        );
-        if (currentRole === "executive" && userObj.id) {
-          localStorage.setItem("zippy_crm_preferred_exec_id", String(userObj.id));
-        }
-      } catch {
-        /* ignore localStorage error */
-      }
-
-      setLoading(false);
+      saveAuthSession(userObj);
+      setMobileLoading(false);
       if (onLoginSuccess) {
-        onLoginSuccess({
-          role: currentRole,
-          user: userObj,
-        });
+        onLoginSuccess({ role: currentRole, user: userObj });
       }
     } catch (err) {
-      setLoading(false);
+      setMobileLoading(false);
       setError(err.message || "Invalid OTP or mobile number. Please try again.");
     }
   }
 
-  // Handle Password Submit
+  // ── EMAIL & PASSWORD LOGIN SUBMIT ──
   async function handlePasswordSubmit(e) {
     if (e) e.preventDefault();
     setError("");
+    setSuccessMsg("");
 
     const cleanUser = username.trim();
     const cleanPass = password.trim();
 
     if (!cleanUser) {
-      setError("Please enter your email, username, or employee code.");
+      setError("Please enter your email address or username.");
       return;
     }
     if (!cleanPass) {
@@ -329,7 +289,7 @@ export default function SalesCrmLoginModal({
       return;
     }
 
-    setLoading(true);
+    setPasswordLoading(true);
 
     try {
       let loggedUser = null;
@@ -340,7 +300,6 @@ export default function SalesCrmLoginModal({
         try {
           loggedUser = await loginSalesManager(cleanUser, cleanPass);
         } catch (mErr) {
-          // fallback to client list match if offline/dev
           const matched = usersList.find(
             (u) =>
               (u.email && u.email.toLowerCase() === cleanUser.toLowerCase()) ||
@@ -385,234 +344,351 @@ export default function SalesCrmLoginModal({
             loggedUser.lastGpsLocation = freshLoc;
           }
         } catch {
-          /* ignore location error */
+          /* ignore */
         }
       }
 
-      try {
-        const onlineKey = "zippy_crm_online_users";
-        const saved = localStorage.getItem(onlineKey);
-        const map = saved ? JSON.parse(saved) : {};
-        map[`${currentRole}_${loggedUser.id}`] = true;
-        localStorage.setItem(onlineKey, JSON.stringify(map));
-        localStorage.setItem(
-          "zippy_crm_active_auth",
-          JSON.stringify({ role: currentRole, user: loggedUser, loggedInAt: Date.now() })
-        );
-        if (currentRole === "executive" && loggedUser.id) {
-          localStorage.setItem("zippy_crm_preferred_exec_id", String(loggedUser.id));
-        }
-      } catch {
-        /* ignore storage error */
-      }
-
-      setLoading(false);
+      saveAuthSession(loggedUser);
+      setPasswordLoading(false);
       if (onLoginSuccess) {
         onLoginSuccess({ role: currentRole, user: loggedUser });
       }
     } catch (err) {
-      setError(err.message || "Login failed. Please check your credentials.");
-      setLoading(false);
+      setError(err.message || "Invalid credentials. Please verify your email and password.");
+      setPasswordLoading(false);
     }
   }
 
-  function handleFinalSubmit(e) {
-    if (loginMethod === "mobile") {
-      handleMobileLoginSubmit(e);
-    } else {
-      handlePasswordSubmit(e);
+  function saveAuthSession(user) {
+    try {
+      const onlineKey = "zippy_crm_online_users";
+      const saved = localStorage.getItem(onlineKey);
+      const map = saved ? JSON.parse(saved) : {};
+      map[`${currentRole}_${user.id}`] = true;
+      localStorage.setItem(onlineKey, JSON.stringify(map));
+      localStorage.setItem(
+        "zippy_crm_active_auth",
+        JSON.stringify({ role: currentRole, user, loggedInAt: Date.now() })
+      );
+      if (currentRole === "executive" && user.id) {
+        localStorage.setItem("zippy_crm_preferred_exec_id", String(user.id));
+      }
+    } catch {
+      /* ignore */
     }
   }
+
+
 
   return (
-    <div
-      className="crm-login-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && onClose) onClose();
-      }}
-    >
-      <div
-        className={`crm-login-modal ${roleConfig.themeClass}`}
-        style={{
-          "--role-accent": roleConfig.accentColor,
-          "--role-bg": roleConfig.accentBg,
-          "--role-border": roleConfig.accentBorder,
-          "--role-ring": roleConfig.accentRing,
-          "--role-gradient": roleConfig.accentGradient,
-        }}
-      >
-        {/* Top Gradient Highlight Bar */}
-        <div className="crm-login-top-accent" />
+    <div className="zenve-portal-page">
+      {/* Return to Admin Button */}
+      {onClose && (
+        <button
+          type="button"
+          className="zenve-portal-back-btn"
+          onClick={onClose}
+          title="Return to Admin CRM"
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Admin CRM</span>
+        </button>
+      )}
 
-        {/* Close Button */}
-        {onClose && (
-          <button
-            type="button"
-            className="crm-login-close-btn"
-            onClick={onClose}
-            title="Cancel & Return"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
-        )}
+      {/* ══════════════════════════════════════════════════════
+          LEFT PANEL: BRANDING, VALUE PILLARS & HERO IMAGE
+         ══════════════════════════════════════════════════════ */}
+      <div className="zenve-portal-left">
+        {/* Subtle Ambient Background Waves */}
+        <div className="zenve-ambient-wave wave-1" />
+        <div className="zenve-ambient-wave wave-2" />
+        <div className="zenve-floating-paw paw-1">
+          <PawIcon size={72} color="rgba(255,255,255,0.08)" />
+        </div>
+        <div className="zenve-floating-paw paw-2">
+          <PawIcon size={48} color="rgba(255,255,255,0.06)" />
+        </div>
 
-        {/* Header Section */}
-        <div className="crm-login-header">
-          <div className="crm-login-brand-row">
-            <div className="crm-login-logo-box">
-              <img src={logo} alt="Zenve Zippy" className="crm-login-logo-img" />
+        <div className="zenve-left-content">
+          {/* Top Brand Header */}
+          <div className="zenve-brand-badge-row">
+            <div className="zenve-brand-icon-box">
+              <PawIcon size={26} color="#0284c7" />
             </div>
             <div>
-              <div className="crm-login-brand-title">
-                Zenve Zippy CRM
-                <span className="crm-login-brand-badge">SALES CRM</span>
-              </div>
-              <p className="crm-login-brand-sub">Secure Field & Team Operations Portal</p>
+              <h1 className="zenve-brand-logo-text">Zenve</h1>
+              <span className="zenve-brand-sub-badge">{roleConfig.portalTitle}</span>
             </div>
           </div>
 
-          {/* Segmented Role Tabs */}
-          <div className="crm-login-role-tabs" role="tablist">
-            {Object.values(ROLES_INFO).map((r) => {
-              const TabIcon = r.icon;
-              const isActive = currentRole === r.key;
-              return (
-                <button
-                  key={r.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  className={`crm-role-tab-btn ${isActive ? "active" : ""}`}
-                  onClick={() => {
-                    setCurrentRole(r.key);
-                    setUsername("");
-                    setPassword("");
-                    setPhone("");
-                    setOtp("");
-                    setOtpSent(false);
-                    setError("");
-                    setSelectedUser(null);
-                  }}
-                >
-                  <TabIcon size={14} className="crm-role-tab-icon" />
-                  <span>{r.title}</span>
-                </button>
-              );
-            })}
+          {/* Hero Main Headline */}
+          <div className="zenve-hero-headlines">
+            <h2 className="zenve-hero-title-dark">{roleConfig.headlinePart1}</h2>
+            <h2 className="zenve-hero-title-dark">{roleConfig.headlinePart2}</h2>
+            <h2 className="zenve-hero-title-accent">
+              {roleConfig.headlineAccent.split("\n").map((line, idx) => (
+                <span key={idx}>
+                  {line}
+                  {idx === 0 && <br />}
+                </span>
+              ))}
+            </h2>
+          </div>
+
+          <p className="zenve-hero-description">
+            {roleConfig.description}
+          </p>
+
+          {/* Showcase Row: Value Pillars (Left) + Hero Photo (Right) */}
+          <div className="zenve-hero-showcase-row">
+            <div className="zenve-value-pillars">
+              {roleConfig.pillars.map((pillar, pIdx) => {
+                const PillarIcon = pillar.icon;
+                return (
+                  <div key={pIdx} className="zenve-pillar-item">
+                    <div className="zenve-pillar-icon-wrap">
+                      <PillarIcon size={16} />
+                    </div>
+                    <div>
+                      <h4 className="zenve-pillar-title">{pillar.title}</h4>
+                      <p className="zenve-pillar-sub">{pillar.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Hero Image Showcase */}
+            <div className="zenve-hero-image-card">
+              <img
+                src={heroImg}
+                alt="Zenve Sales Executive with Golden Retriever"
+                className="zenve-hero-photo"
+              />
+            </div>
+          </div>
+
+          {/* Bottom Quote Banner */}
+          <div className="zenve-bottom-quote-banner">
+            <span className="zenve-quote-text">
+              {roleConfig.quote.split("\n").map((line, qIdx) => (
+                <span key={qIdx}>
+                  {line}
+                  {qIdx === 0 && <br />}
+                </span>
+              ))}
+            </span>
+            <div className="zenve-quote-accent-bar" />
           </div>
         </div>
+      </div>
 
-        {/* Active Role Banner */}
-        <div className="crm-role-banner">
-          <div className="crm-role-icon-box">
-            <RoleIcon size={18} />
-          </div>
-          <div className="crm-role-banner-content">
-            <div className="crm-role-banner-title">{roleConfig.title} Login</div>
-            <div className="crm-role-banner-desc">{roleConfig.desc}</div>
-          </div>
-          <span className="crm-role-pill-badge">{roleConfig.badge}</span>
-        </div>
+      {/* ══════════════════════════════════════════════════════
+          RIGHT PANEL: AUTHENTICATION FORM WITH TWO OPTIONS
+         ══════════════════════════════════════════════════════ */}
+      <div className="zenve-portal-right">
+        <div className="zenve-auth-card-box">
 
-        {/* Form Body */}
-        <form className="crm-login-body" onSubmit={handleFinalSubmit}>
-          {/* Method Switcher: Mobile OTP vs Password */}
-          <div className="crm-method-toggle">
+
+
+          {/* Welcome Avatar & Header */}
+          <div className="zenve-welcome-header">
+            <div className="zenve-welcome-avatar">
+              <PawIcon size={30} color="#0284c7" />
+            </div>
+            <h2 className="zenve-welcome-title">{roleConfig.welcomeTitle}</h2>
+            <p className="zenve-welcome-subtitle">{roleConfig.subtitle}</p>
+          </div>
+
+          {/* Segmented Pill Tab Switcher: [Email / Password] [Mobile OTP] */}
+          <div className="zenve-auth-pill-switcher" role="tablist">
             <button
               type="button"
-              className={`crm-method-btn ${loginMethod === "mobile" ? "active" : ""}`}
+              role="tab"
+              aria-selected={authMode === "email"}
+              className={`zenve-pill-tab-btn ${authMode === "email" ? "active" : ""}`}
               onClick={() => {
-                setLoginMethod("mobile");
+                setAuthMode("email");
                 setError("");
               }}
             >
-              <Smartphone size={15} />
-              <span>Mobile OTP Login</span>
+              <Mail size={16} />
+              <span>Email / Password</span>
             </button>
             <button
               type="button"
-              className={`crm-method-btn ${loginMethod === "password" ? "active" : ""}`}
+              role="tab"
+              aria-selected={authMode === "mobile"}
+              className={`zenve-pill-tab-btn ${authMode === "mobile" ? "active" : ""}`}
               onClick={() => {
-                setLoginMethod("password");
+                setAuthMode("mobile");
                 setError("");
               }}
             >
-              <KeyRound size={15} />
-              <span>Password Login</span>
+              <Smartphone size={16} />
+              <span>Mobile OTP</span>
             </button>
           </div>
 
+          {/* Feedback Alerts */}
           {error && (
-            <div className="crm-login-error" role="alert">
-              <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+            <div className="zenve-auth-alert alert-error">
+              <AlertCircle size={16} />
               <span>{error}</span>
             </div>
           )}
 
-          {/* ───────────────── MOBILE OTP LOGIN ───────────────── */}
-          {loginMethod === "mobile" ? (
-            <>
-              {/* Phone Input with Prefix and Send Button */}
-              <div className="crm-login-form-group">
-                <label className="crm-login-label">Registered Mobile Number</label>
-                <div className="crm-phone-row">
-                  <div className="crm-phone-prefix">+91</div>
-                  <div className="crm-login-input-wrap" style={{ flex: 1 }}>
-                    <span className="crm-login-field-icon">
-                      <Phone size={16} />
-                    </span>
-                    <input
-                      ref={phoneInputRef}
-                      type="tel"
-                      inputMode="numeric"
-                      maxLength={10}
-                      className="crm-login-input"
-                      placeholder="10-digit mobile number"
-                      value={phone}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "");
-                        if (digits.length <= 10) setPhone(digits);
-                        setError("");
-                      }}
-                      autoComplete="tel-national"
-                    />
-                  </div>
+          {successMsg && (
+            <div className="zenve-auth-alert alert-success">
+              <Check size={16} />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────
+              TAB 1: EMAIL & PASSWORD LOGIN
+             ──────────────────────────────────────────────── */}
+          {authMode === "email" && (
+            <form onSubmit={handlePasswordSubmit} className="zenve-auth-form" noValidate>
+              <div className="zenve-field-group">
+                <label className="zenve-field-label">
+                  Email or Mobile number <span className="zenve-required-asterisk">*</span>
+                </label>
+                <div className="zenve-input-wrap">
+                  <Mail size={17} className="zenve-field-left-icon" />
+                  <input
+                    ref={emailInputRef}
+                    type="text"
+                    className="zenve-input-text zenve-input-with-icon"
+                    placeholder={`${currentRole}@example.com`}
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      setError("");
+                    }}
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="zenve-field-group">
+                <label className="zenve-field-label">
+                  Password <span className="zenve-required-asterisk">*</span>
+                </label>
+                <div className="zenve-input-wrap">
+                  <Lock size={17} className="zenve-field-left-icon" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="zenve-input-text zenve-input-with-icon zenve-input-with-eye"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError("");
+                    }}
+                    autoComplete="current-password"
+                    required
+                  />
                   <button
                     type="button"
-                    className="crm-send-otp-btn"
-                    onClick={handleSendOtp}
-                    disabled={otpLoading || phone.replace(/\D/g, "").length !== 10 || (otpSent && otpCountdown > 0)}
+                    className="zenve-eye-toggle-btn"
+                    onClick={() => setShowPassword((p) => !p)}
+                    title={showPassword ? "Hide password" : "Show password"}
+                    aria-label="Toggle password visibility"
                   >
-                    {otpLoading ? (
-                      <span>Sending...</span>
-                    ) : otpSent && otpCountdown > 0 ? (
-                      <span>{otpCountdown}s</span>
-                    ) : otpSent ? (
-                      <span>Resend</span>
-                    ) : (
-                      <span>Get OTP</span>
-                    )}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
-              {/* OTP Input */}
-              {otpSent && (
-                <div className="crm-login-form-group">
-                  <div className="crm-login-label-row">
-                    <label className="crm-login-label">Enter 6-Digit OTP</label>
+              <div className="zenve-form-options-row">
+                <label className="zenve-remember-label">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="zenve-checkbox"
+                  />
+                  <span>Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  className="zenve-forgot-link"
+                  onClick={() => {
+                    setError("To reset your password, contact your Zenve Portal Administrator.");
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                className="zenve-action-btn btn-primary"
+                disabled={passwordLoading || !username.trim() || !password.trim()}
+              >
+                {passwordLoading ? <span>Signing in...</span> : <span>Sign in</span>}
+              </button>
+            </form>
+          )}
+
+          {/* ────────────────────────────────────────────────
+              TAB 2: MOBILE WITH OTP LOGIN
+             ──────────────────────────────────────────────── */}
+          {authMode === "mobile" && (
+            <form onSubmit={handleMobileSubmit} className="zenve-auth-form" noValidate>
+              <div className="zenve-field-group">
+                <label className="zenve-field-label">
+                  Mobile number <span className="zenve-required-asterisk">*</span>
+                </label>
+                <div className="zenve-phone-input-row">
+                  <div className="zenve-country-prefix">
+                    <Smartphone size={15} className="zenve-phone-prefix-icon" />
+                    <span>{countryCode}</span>
+                    <ChevronDown size={12} className="zenve-prefix-chevron" />
                   </div>
-                  <div className="crm-login-input-wrap">
-                    <span className="crm-login-field-icon">
-                      <KeyRound size={16} />
-                    </span>
+                  <input
+                    ref={phoneInputRef}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    className="zenve-phone-input"
+                    placeholder="Enter 10-digit mobile number"
+                    value={phone}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      if (digits.length <= 10) setPhone(digits);
+                      setError("");
+                    }}
+                    required
+                  />
+                </div>
+              </div>
+
+              {otpSent ? (
+                <div className="zenve-field-group zenve-otp-reveal-box">
+                  <div className="zenve-otp-label-row">
+                    <label className="zenve-field-label">
+                      One-Time Password (OTP) <span className="zenve-required-asterisk">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      className="zenve-resend-btn"
+                      onClick={handleSendOtp}
+                      disabled={otpCountdown > 0 || otpLoading}
+                    >
+                      {otpCountdown > 0 ? `Resend code in ${otpCountdown}s` : "Resend OTP"}
+                    </button>
+                  </div>
+                  <div className="zenve-input-wrap">
+                    <KeyRound size={17} className="zenve-field-left-icon" />
                     <input
                       type="text"
                       inputMode="numeric"
                       maxLength={6}
-                      className="crm-login-input crm-otp-input-field"
-                      placeholder="••••••"
+                      className="zenve-input-text zenve-input-with-icon zenve-otp-digits"
+                      placeholder="Enter 6-digit OTP"
                       value={otp}
                       onChange={(e) => {
                         const digits = e.target.value.replace(/\D/g, "");
@@ -622,150 +698,49 @@ export default function SalesCrmLoginModal({
                       autoFocus
                     />
                   </div>
-                  <div className="crm-resend-row">
-                    <span>Didn't receive code?</span>
-                    <button
-                      type="button"
-                      className="crm-resend-link"
-                      disabled={otpCountdown > 0 || otpLoading}
-                      onClick={handleSendOtp}
-                    >
-                      {otpCountdown > 0 ? `Resend in ${otpCountdown}s` : "Resend OTP"}
-                    </button>
-                  </div>
                 </div>
+              ) : (
+                <p className="zenve-mobile-hint-text">
+                  A 6-digit verification code will be sent to your registered number via SMS.
+                </p>
               )}
-            </>
-          ) : (
-            /* ───────────────── PASSWORD LOGIN ───────────────── */
-            <>
-              {/* Username / Employee Code / Email */}
-              <div className="crm-login-form-group">
-                <label className="crm-login-label">Email, Username, or Employee Code</label>
-                <div className="crm-login-input-wrap">
-                  <span className="crm-login-field-icon">
-                    <User size={16} />
-                  </span>
-                  <input
-                    ref={usernameInputRef}
-                    type="text"
-                    className="crm-login-input"
-                    placeholder="Enter email, username, or code"
-                    value={username}
-                    onChange={(e) => handleUsernameChange(e.target.value)}
-                    autoComplete="username"
-                  />
-                </div>
-                {usersList.length > 0 && (
-                  <div className="crm-quick-users-wrap">
-                    <span className="crm-quick-user-label">Quick select:</span>
-                    <div className="crm-quick-users-scroll">
-                      {usersList.slice(0, 5).map((u) => {
-                        const isSel = selectedUser?.id === u.id;
-                        return (
-                          <button
-                            key={u.id || u.code || u.email}
-                            type="button"
-                            className={`crm-quick-user-pill ${isSel ? "selected" : ""}`}
-                            onClick={() => {
-                              setSelectedUser(u);
-                              setUsername(u.email || u.code || u.name || "");
-                              setError("");
-                            }}
-                          >
-                            <span>{u.name}</span>
-                            {u.code && <span className="crm-quick-user-code">({u.code})</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Password Field */}
-              <div className="crm-login-form-group">
-                <div className="crm-login-label-row">
-                  <label className="crm-login-label">Password</label>
-                </div>
-                <div className="crm-login-input-wrap">
-                  <span className="crm-login-field-icon">
-                    <Lock size={16} />
-                  </span>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    className="crm-login-input"
-                    placeholder="Enter your security password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setError("");
-                    }}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    className="crm-login-toggle-pw"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    title={showPassword ? "Hide password" : "Show password"}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-            </>
+              <button
+                type="submit"
+                className="zenve-action-btn btn-primary"
+                disabled={
+                  mobileLoading ||
+                  otpLoading ||
+                  phone.replace(/\D/g, "").length !== 10 ||
+                  (otpSent && otp.length < 4)
+                }
+              >
+                {mobileLoading ? (
+                  <span>Verifying OTP...</span>
+                ) : otpLoading ? (
+                  <span>Sending OTP...</span>
+                ) : otpSent ? (
+                  <span>Verify &amp; Sign in</span>
+                ) : (
+                  <span>Send OTP</span>
+                )}
+              </button>
+            </form>
           )}
 
-          {/* Keep Signed In Checkbox */}
-          <label className="crm-remember-row">
-            <input
-              type="checkbox"
-              className="crm-remember-input"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <span className="crm-custom-checkbox">
-              {rememberMe && <Check size={12} strokeWidth={3.5} />}
-            </span>
-            <span className="crm-remember-label">Keep me signed in for this role</span>
-          </label>
-
-          {/* Action Buttons */}
-          <div className="crm-login-actions">
-            <button
-              type="submit"
-              className="crm-login-submit-btn"
-              disabled={loading || (loginMethod === "mobile" && (!otpSent || otp.length < 4))}
-            >
-              {loading ? (
-                <>
-                  <span className="crm-login-spinner" />
-                  <span>Authenticating...</span>
-                </>
-              ) : (
-                <>
-                  <span>
-                    {loginMethod === "mobile"
-                      ? `Verify & Log In (${roleConfig.shortTitle})`
-                      : `Log In to ${roleConfig.title} CRM`}
-                  </span>
-                  <ArrowRight size={17} className="crm-submit-arrow" />
-                </>
-              )}
-            </button>
-
-            {onClose && (
-              <button
-                type="button"
-                className="crm-login-cancel-btn"
-                onClick={onClose}
-              >
-                Cancel &amp; Return to Admin CRM
-              </button>
-            )}
+          {/* Bottom Security Footer */}
+          <div className="zenve-single-card-footer">
+            <div className="zenve-secure-divider">
+              <span className="zenve-divider-line" />
+              <div className="zenve-secure-badge">
+                <ShieldCheck size={14} className="zenve-shield-icon" />
+                <span>{roleConfig.footerText}</span>
+              </div>
+              <span className="zenve-divider-line" />
+            </div>
           </div>
-        </form>
+
+        </div>
       </div>
     </div>
   );
