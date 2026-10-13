@@ -8,7 +8,7 @@ import {
   loginWithMobileOtp,
 } from "../api.js";
 import { getFreshExecutiveLocation } from "../geoUtils.js";
-import heroImg from "../assets/sales-exec-hero.jpg";
+import heroImg from "../assets/zenve-sales-hero.jpg";
 import {
   Users,
   TrendingUp,
@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import "./SalesCrmLoginModal.css";
 
-function PawIcon({ size = 26, color = "#0284c7", className = "" }) {
+function PawIcon({ size = 26, color = "#0077e6", className = "" }) {
   return (
     <svg
       width={size}
@@ -60,7 +60,6 @@ const ROLES_INFO = {
     headlinePart1: "Drive Sales.",
     headlinePart2: "Build Relationships.",
     headlineAccent: "For a Healthier\nTomorrow.",
-    description: "Manage your leads, doctor visits, and sales follow-ups anytime, anywhere with Zenve.",
     pillars: [
       { icon: Users, title: "Track Leads", desc: "Manage and convert doctor opportunities" },
       { icon: TrendingUp, title: "Stay Productive", desc: "Plan daily visits and meet targets" },
@@ -69,7 +68,7 @@ const ROLES_INFO = {
     quote: "“Together for\nHappier, Healthier Pets.”",
     footerText: "Secure Field Operations Management",
     tableKey: "sales_executives",
-    accentColor: "#0284c7",
+    accentColor: "#0077e6",
     icon: Briefcase,
   },
   manager: {
@@ -82,7 +81,6 @@ const ROLES_INFO = {
     headlinePart1: "Empower Teams.",
     headlinePart2: "Drive Performance.",
     headlineAccent: "For a Healthier\nTomorrow.",
-    description: "Oversee sales executives, approve visit plans, and track regional performance with Zenve.",
     pillars: [
       { icon: UserCheck, title: "Team Approvals", desc: "Review daily logs and visit schedules" },
       { icon: TrendingUp, title: "Target Tracking", desc: "Monitor team quotas and conversions" },
@@ -104,7 +102,6 @@ const ROLES_INFO = {
     headlinePart1: "Expand Horizons.",
     headlinePart2: "Lead Regions.",
     headlineAccent: "For a Healthier\nTomorrow.",
-    description: "Coordinate cross-city branches, analyze regional metrics, and steer executive leadership.",
     pillars: [
       { icon: Globe, title: "Regional Command", desc: "Comprehensive city & state overviews" },
       { icon: TrendingUp, title: "Strategic Growth", desc: "Territory expansion & doctor networks" },
@@ -152,6 +149,41 @@ export default function SalesCrmLoginModal({
 
   const phoneInputRef = useRef(null);
   const emailInputRef = useRef(null);
+  const leftPanelRef = useRef(null);
+
+  // Interactive Parallax, Dynamic Light Spotlight & Paw Ripples
+  const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0, px: 50, py: 50 });
+  const [activeBadge, setActiveBadge] = useState(null);
+  const [pawsRipples, setPawsRipples] = useState([]);
+
+  function handleLeftMouseMove(e) {
+    if (!leftPanelRef.current) return;
+    const rect = leftPanelRef.current.getBoundingClientRect();
+    const relX = (e.clientX - rect.left) / rect.width;
+    const relY = (e.clientY - rect.top) / rect.height;
+    setMouseCoords({
+      x: (relX - 0.5) * 16,
+      y: (relY - 0.5) * 14,
+      px: Math.round(relX * 100),
+      py: Math.round(relY * 100),
+    });
+  }
+
+  function handleLeftMouseLeave() {
+    setMouseCoords({ x: 0, y: 0, px: 50, py: 50 });
+  }
+
+  function handleLeftClick(e) {
+    if (!leftPanelRef.current) return;
+    const rect = leftPanelRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const ripple = { id: Date.now() + Math.random(), x, y };
+    setPawsRipples((prev) => [...prev.slice(-3), ripple]);
+    setTimeout(() => {
+      setPawsRipples((prev) => prev.filter((r) => r.id !== ripple.id));
+    }, 900);
+  }
 
   const roleConfig = ROLES_INFO[currentRole] || ROLES_INFO.executive;
 
@@ -398,22 +430,89 @@ export default function SalesCrmLoginModal({
       {/* ══════════════════════════════════════════════════════
           LEFT PANEL: BRANDING, VALUE PILLARS & HERO IMAGE
          ══════════════════════════════════════════════════════ */}
-      <div className="zenve-portal-left">
-        {/* Subtle Ambient Background Waves */}
+      <div
+        ref={leftPanelRef}
+        className="zenve-portal-left"
+        onMouseMove={handleLeftMouseMove}
+        onMouseLeave={handleLeftMouseLeave}
+        onClick={handleLeftClick}
+      >
+        {/* Dynamic Interactive Spotlight Glow Following Cursor */}
+        <div
+          className="zenve-interactive-spotlight"
+          style={{
+            background: `radial-gradient(circle 420px at ${mouseCoords.px}% ${mouseCoords.py}%, rgba(56, 189, 248, 0.24) 0%, rgba(0, 119, 230, 0.08) 50%, transparent 75%)`,
+          }}
+        />
+
+        {/* Zenve Hero Image as Integrated Left-Panel Background with Parallax */}
+        <div
+          className="zenve-portal-bg-img-wrap"
+          style={{
+            transform: `translate3d(${mouseCoords.x}px, ${mouseCoords.y}px, 0) scale(1.03)`,
+          }}
+        >
+          <img
+            src={heroImg}
+            alt="Zenve Pet Care Sales Executive"
+            className="zenve-portal-bg-img"
+          />
+          <div className="zenve-bg-img-overlay-blend" />
+
+          {/* Interactive Floating Live Zenve Feature Chips */}
+          <div
+            className={`zenve-interactive-chip chip-top ${activeBadge === "top" ? "active" : ""}`}
+            onMouseEnter={() => setActiveBadge("top")}
+            onMouseLeave={() => setActiveBadge(null)}
+          >
+            <div className="zenve-chip-dot pulse" />
+            <span className="zenve-chip-icon">🐾</span>
+            <div className="zenve-chip-text">
+              <strong>Zenve Pet Health</strong>
+              <small>Verified Partner Clinics</small>
+            </div>
+          </div>
+
+          <div
+            className={`zenve-interactive-chip chip-bottom ${activeBadge === "bottom" ? "active" : ""}`}
+            onMouseEnter={() => setActiveBadge("bottom")}
+            onMouseLeave={() => setActiveBadge(null)}
+          >
+            <div className="zenve-chip-dot pulse-blue" />
+            <span className="zenve-chip-icon">🩺</span>
+            <div className="zenve-chip-text">
+              <strong>Field CRM Live</strong>
+              <small>Doctor Visits &amp; Attendance</small>
+            </div>
+          </div>
+        </div>
+
+        {/* Interactive Click Ripples */}
+        {pawsRipples.map((r) => (
+          <div
+            key={r.id}
+            className="zenve-click-ripple"
+            style={{ left: r.x, top: r.y }}
+          >
+            <PawIcon size={24} color="#0077e6" />
+          </div>
+        ))}
+
+        {/* Ambient Fluid Wave Swooshes */}
         <div className="zenve-ambient-wave wave-1" />
         <div className="zenve-ambient-wave wave-2" />
         <div className="zenve-floating-paw paw-1">
-          <PawIcon size={72} color="rgba(255,255,255,0.08)" />
+          <PawIcon size={72} color="rgba(0, 119, 230, 0.12)" />
         </div>
         <div className="zenve-floating-paw paw-2">
-          <PawIcon size={48} color="rgba(255,255,255,0.06)" />
+          <PawIcon size={48} color="rgba(0, 119, 230, 0.08)" />
         </div>
 
         <div className="zenve-left-content">
           {/* Top Brand Header */}
           <div className="zenve-brand-badge-row">
             <div className="zenve-brand-icon-box">
-              <PawIcon size={26} color="#0284c7" />
+              <PawIcon size={28} color="#0077e6" />
             </div>
             <div>
               <h1 className="zenve-brand-logo-text">Zenve</h1>
@@ -435,37 +534,22 @@ export default function SalesCrmLoginModal({
             </h2>
           </div>
 
-          <p className="zenve-hero-description">
-            {roleConfig.description}
-          </p>
-
-          {/* Showcase Row: Value Pillars (Left) + Hero Photo (Right) */}
-          <div className="zenve-hero-showcase-row">
-            <div className="zenve-value-pillars">
-              {roleConfig.pillars.map((pillar, pIdx) => {
-                const PillarIcon = pillar.icon;
-                return (
-                  <div key={pIdx} className="zenve-pillar-item">
-                    <div className="zenve-pillar-icon-wrap">
-                      <PillarIcon size={16} />
-                    </div>
-                    <div>
-                      <h4 className="zenve-pillar-title">{pillar.title}</h4>
-                      <p className="zenve-pillar-sub">{pillar.desc}</p>
-                    </div>
+          {/* Value Pillars List (Stacked vertically on the left over background) */}
+          <div className="zenve-value-pillars-stack">
+            {roleConfig.pillars.map((pillar, pIdx) => {
+              const PillarIcon = pillar.icon;
+              return (
+                <div key={pIdx} className="zenve-pillar-item">
+                  <div className="zenve-pillar-icon-wrap">
+                    <PillarIcon size={18} />
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Hero Image Showcase */}
-            <div className="zenve-hero-image-card">
-              <img
-                src={heroImg}
-                alt="Zenve Sales Executive with Golden Retriever"
-                className="zenve-hero-photo"
-              />
-            </div>
+                  <div>
+                    <h4 className="zenve-pillar-title">{pillar.title}</h4>
+                    <p className="zenve-pillar-sub">{pillar.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Bottom Quote Banner */}
@@ -494,7 +578,7 @@ export default function SalesCrmLoginModal({
           {/* Welcome Avatar & Header */}
           <div className="zenve-welcome-header">
             <div className="zenve-welcome-avatar">
-              <PawIcon size={30} color="#0284c7" />
+              <PawIcon size={30} color="#0077e6" />
             </div>
             <h2 className="zenve-welcome-title">{roleConfig.welcomeTitle}</h2>
             <p className="zenve-welcome-subtitle">{roleConfig.subtitle}</p>
