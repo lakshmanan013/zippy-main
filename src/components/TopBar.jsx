@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { LogOut, User } from "lucide-react";
+import { Search, Plus, LogOut, User } from "lucide-react";
 
 export default function TopBar({
   title,
@@ -18,9 +18,10 @@ export default function TopBar({
 }) {
   // State to handle opening and closing the dropdown list panel
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
+
   const dropdownRef = useRef(null);
 
-  // Closes the menu automatically if you click anywhere else on the screen
+  // Closes menus automatically if you click anywhere else on the screen
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -44,16 +45,24 @@ export default function TopBar({
       </div>
       <div className="zzc-topbar-actions">
         {showSearch && (
-          <input
-            className="zzc-search-input"
-            placeholder={searchPlaceholder}
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
+          <div className="zzc-search-wrap" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <Search className="zzc-search-icon" size={15} style={{ color: "var(--muted-foreground, #64748b)", flexShrink: 0 }} />
+            <input
+              className="zzc-search-input"
+              placeholder={searchPlaceholder}
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          </div>
         )}
         {showNewRecord && (
-          <button className="zzc-btn zzc-btn-primary" onClick={onNewRecord}>
-            New record
+          <button
+            className="zzc-btn zzc-btn-primary"
+            onClick={onNewRecord}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <Plus size={14} />
+            <span>New record</span>
           </button>
         )}
         
@@ -67,21 +76,20 @@ export default function TopBar({
           </button>
         ))}
 
+
         {/* Sales CRM Dropdown Container Layout */}
         <div className="zzc-sales-menu-wrap" ref={dropdownRef}>
-          {/* Swapped <a> for <button> to match sizes, and forced non-bold text */}
           <button
             className={"zzc-btn zzc-btn-outline" + (salesMenuOpen ? " active" : "")}
             style={{ fontWeight: "normal", display: "inline-flex", alignItems: "center" }}
             onClick={(e) => {
               e.preventDefault();
-              setSalesMenuOpen((prev) => !prev); // Toggles open/close state on click
+              setSalesMenuOpen((prev) => !prev);
             }}
           >
             Sales CRM <span className="zzc-caret" style={{ marginLeft: "6px", fontSize: "10px" }}>▼</span>
           </button>
 
-          {/* Conditional dropdown panel containing your 3 team actions */}
           {salesMenuOpen && (
             <div className="zzc-sales-menu">
               <button onClick={() => handleRoleClick("executive")}>
@@ -97,7 +105,8 @@ export default function TopBar({
           )}
         </div>
 
-        {/* Admin User Chip & Logout (aligned with standard zzc-btn pattern) */}
+
+        {/* Admin User Chip & Logout */}
         {adminUser && (
           <span
             className="zzc-btn zzc-btn-outline"
@@ -133,4 +142,3 @@ export default function TopBar({
     </header>
   );
 }
-

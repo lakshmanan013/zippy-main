@@ -21,6 +21,31 @@ export const API_BASE =
  *   "bool"    - fields the backend stores and returns as real true/false
  */
 export const TABLE_CONFIG = {
+  attendance: {
+    path: "/attendance",
+    fields: [
+      { key: "executive_id", type: "number", required: true },
+      { key: "attendance_date", type: "date", required: true },
+      { key: "login_time", type: "datetime" },
+      { key: "lunch_out_time", type: "datetime" },
+      { key: "lunch_in_time", type: "datetime" },
+      { key: "logout_time", type: "datetime" },
+      { key: "login_latitude", type: "number" },
+      { key: "login_longitude", type: "number" },
+      { key: "login_area", type: "text" },
+      { key: "lunch_out_area", type: "text" },
+      { key: "lunch_in_area", type: "text" },
+      { key: "logout_latitude", type: "number" },
+      { key: "logout_longitude", type: "number" },
+      { key: "logout_area", type: "text" },
+      { key: "login_selfie_url", type: "text" },
+      { key: "logout_selfie_url", type: "text" },
+      { key: "total_working_minutes", type: "number" },
+      { key: "status", type: "text" },
+      { key: "created_at", type: "datetime", readOnly: true },
+      { key: "updated_at", type: "datetime", readOnly: true },
+    ],
+  },
   pet_parents: {
     path: "/pet-parents",
     fields: [
@@ -87,6 +112,7 @@ export const TABLE_CONFIG = {
     path: "/doctors",
     fields: [
       { key: "name", type: "text", required: true },
+      { key: "email", type: "text" },
       { key: "qualification", type: "text" },
       { key: "specializations", type: "text" },
       { key: "pincode", type: "text" },
@@ -94,7 +120,7 @@ export const TABLE_CONFIG = {
       { key: "phone", type: "text" },
       { key: "experience_years", type: "number" },
       { key: "consultation_fee", type: "number" },
-      { key: "verification_status", type: "text", default: "pending" },
+      { key: "verification_status", type: "select", options: ["pending", "verified", "rejected"], default: "pending" },
       { key: "is_active", type: "yesno", default: "Yes" },
     ],
   },
@@ -167,7 +193,6 @@ export const TABLE_CONFIG = {
       { key: "owner_name", type: "text" },
       { key: "valid_until", type: "date" },
       { key: "created_at", type: "datetime", readOnly: true },
-
     ],
   },
   service_providers: {
@@ -460,30 +485,28 @@ export const TABLE_CONFIG = {
     fields: [
       { key: "name", type: "text", required: true },
       { key: "code", type: "text", required: true },
-      { key: "phone", type: "text" },
-      { key: "email", type: "text" },
-      { key: "password", type: "password" },
+      { key: "phone", type: "text", required: true },
+      { key: "is_phone_verified", type: "bool", label: "Phone Verified", default: false },
+      { key: "email", type: "email" },
+      { key: "password_display", type: "text", label: "Password", readOnly: true, tableOnly: true },
+      // Set the dashboard login password when creating an executive.
+      { key: "password", type: "password", label: "Password", required: true, formOnly: true },
       { key: "region", type: "text" },
       { key: "city", type: "text" },
       { key: "monthly_target", type: "number" },
       { key: "is_active", type: "yesno", default: "Yes" },
     ],
   },
-  // NOTE: the backend (pets.py) has no /regional-managers or /sales-managers
-  // routes yet — these are sidebar entries prepared ahead of that backend
-  // work, using the same shape as sales_executives (the closest existing
-  // table) as a placeholder schema. Until those endpoints exist, opening
-  // either section will show the usual "couldn't reach backend" banner.
-  // Once real routes are added, this config likely won't need to change at
-  // all (only the field list, if the real schema differs).
   regional_managers: {
     path: "/regional-managers",
     fields: [
       { key: "name", type: "text", required: true },
       { key: "code", type: "text" },
-      { key: "phone", type: "text" },
+      { key: "phone", type: "text", required: true },
+      { key: "is_phone_verified", type: "bool", label: "Phone Verified", default: false },
       { key: "email", type: "text" },
-      { key: "password", type: "password" },
+      { key: "password_display", type: "text", label: "Password", readOnly: true, tableOnly: true },
+      { key: "password", type: "password", label: "Password", required: true, formOnly: true },
       { key: "region", type: "text" },
       { key: "is_active", type: "yesno", default: "Yes" },
     ],
@@ -493,9 +516,11 @@ export const TABLE_CONFIG = {
     fields: [
       { key: "name", type: "text", required: true },
       { key: "code", type: "text" },
-      { key: "phone", type: "text" },
+      { key: "phone", type: "text", required: true },
+      { key: "is_phone_verified", type: "bool", label: "Phone Verified", default: false },
       { key: "email", type: "text" },
-      { key: "password", type: "password" },
+      { key: "password_display", type: "text", label: "Password", readOnly: true, tableOnly: true },
+      { key: "password", type: "password", label: "Password", required: true, formOnly: true },
       { key: "region", type: "text" },
       { key: "is_active", type: "yesno", default: "Yes" },
     ],
@@ -532,7 +557,6 @@ export const TABLE_CONFIG = {
       { key: "pincode", type: "text" },
       { key: "is_read", type: "bool", default: false },
       { key: "created_at", type: "datetime", readOnly: true },
-
     ],
   },
 };
@@ -612,6 +636,66 @@ export async function updateRecord(tableKey, id, payload) {
   return handleResponse(res);
 }
 
+// Sales executive dashboard login - the password is verified on the server.
+export async function loginSalesExecutive(identifier, password) {
+  const res = await fetch(`${API_BASE}/sales-executives/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier, password }),
+  });
+  return handleResponse(res);
+}
+
+// Sales manager dashboard login
+export async function loginSalesManager(identifier, password) {
+  const res = await fetch(`${API_BASE}/sales-managers/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier, password }),
+  });
+  return handleResponse(res);
+}
+
+// Regional manager dashboard login
+export async function loginRegionalManager(identifier, password) {
+  const res = await fetch(`${API_BASE}/regional-managers/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier, password }),
+  });
+  return handleResponse(res);
+}
+
+// Send OTP to mobile (Supports Real SMS API Key and Mock OTP)
+export async function sendMobileOtp({ phone, purpose = "login", role = null, forceMock = false }) {
+  const res = await fetch(`${API_BASE}/auth/send-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, purpose, role, force_mock: forceMock }),
+  });
+  return handleResponse(res);
+}
+
+// Verify mobile OTP for registration or confirmation
+export async function verifyMobileOtp({ phone, otp, purpose = "verify_phone", role = null }) {
+  const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, otp, purpose, role }),
+  });
+  return handleResponse(res);
+}
+
+// Mobile Login for Sales Executive, Sales Manager, and Regional Manager
+export async function loginWithMobileOtp({ phone, otp, role }) {
+  const res = await fetch(`${API_BASE}/auth/login-mobile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, otp, role }),
+  });
+  return handleResponse(res);
+}
+
 export async function deleteRecord(tableKey, id) {
   const config = TABLE_CONFIG[tableKey];
   const res = await fetch(`${API_BASE}${config.path}/${id}`, {
@@ -664,9 +748,94 @@ export function buildRecordPayload(tableKey, record, changes = {}) {
 // Turn a display value (as it will be shown in the table/modal) into a
 // normalized string/boolean for form inputs.
 export function displayFieldValue(field, record) {
-  const raw = record ? record[field.key] : undefined;
+  let raw = record ? record[field.key] : undefined;
+  if ((raw === undefined || raw === null) && (field.key === "password_display" || field.key === "password")) {
+    raw = record?.password ?? record?.password_display;
+  }
   if (raw === undefined || raw === null) return field.type === "bool" ? false : "";
   if (field.type === "bool") return raw === true || raw === "true";
   if (field.type === "yesno") return raw === "Yes" || raw === true;
   return String(raw);
 }
+
+// -------------------------------------------------------------
+// ATTENDANCE BIOMETRIC PUNCH & HISTORY API (MySQL pets-ms)
+// -------------------------------------------------------------
+
+export async function punchInAttendance(payload) {
+  const res = await fetch(`${API_BASE}/attendance/punch-in`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function punchOutAttendance(payload) {
+  const res = await fetch(`${API_BASE}/attendance/punch-out`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function punchLunchAttendance(payload) {
+  const res = await fetch(`${API_BASE}/attendance/lunch`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function punchLunchOutAttendance(payload) {
+  const res = await fetch(`${API_BASE}/attendance/lunch-out`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function punchLunchInAttendance(payload) {
+  const res = await fetch(`${API_BASE}/attendance/lunch-in`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function fetchAttendanceList(params = {}) {
+  const query = new URLSearchParams();
+  if (params.executive_id) query.append("executive_id", params.executive_id);
+  if (params.attendance_date) query.append("attendance_date", params.attendance_date);
+  const qStr = query.toString() ? `?${query.toString()}` : "";
+  const res = await fetch(`${API_BASE}/attendance${qStr}`);
+  return handleResponse(res);
+}
+
+export async function fetchTodayAttendance(executiveId, attendanceDate) {
+  const query = attendanceDate ? `?attendance_date=${attendanceDate}` : "";
+  const res = await fetch(`${API_BASE}/attendance/today/${executiveId}${query}`);
+  if (res.status === 404) return null;
+  return handleResponse(res);
+}
+
+export async function deleteAttendanceRecord(attendanceId) {
+  const res = await fetch(`${API_BASE}/attendance/${attendanceId}`, {
+    method: "DELETE",
+  });
+  return handleResponse(res);
+}
+
+export async function checkFaceImage(imageDataUrl) {
+  const res = await fetch(`${API_BASE}/attendance/check-face`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image: imageDataUrl }),
+  });
+  return handleResponse(res);
+}
+

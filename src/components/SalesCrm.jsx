@@ -1,5 +1,29 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { VscSearch, VscEye } from "react-icons/vsc";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
+import { VscSearch } from "react-icons/vsc";
+import {
+  Clock,
+  LayoutGrid,
+  Stethoscope,
+  ClipboardCheck,
+  FileText,
+  LogOut,
+  Calendar,
+  UserCheck,
+  Check,
+  MapPin,
+  Camera,
+  PenTool,
+  Trash2,
+  Eye,
+  Upload,
+  RotateCcw,
+  Sparkles,
+  Building,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   fetchList,
   TABLE_CONFIG,
@@ -10,9 +34,15 @@ import {
   createRecord,
   API_BASE,
 } from "../api.js";
-import logo from "../assets/zenve-zippy-logo.jpeg";
+import logo from "../assets/zenve-zippy-logo.png";
 import "./SalesCRM.css";
+import SalesCrmLoginModal from "./SalesCrmLoginModal.jsx";
 import PlanView from "./planView.jsx";
+import AttendanceView from "./AttendanceView.jsx";
+import AttendanceReportView from "./AttendanceReportView.jsx";
+import DoctorAvatar from "./DoctorAvatar.jsx";
+import StylizedEyeIcon from "./StylizedEyeIcon.jsx";
+
 import {
   usePlanStats,
   PLAN_MONTH_KEY,
@@ -31,6 +61,90 @@ const ROLE_TABLE_KEY = {
   manager: "sales_managers",
   regional: "regional_managers",
 };
+
+/* ─────────────────────────────────────────────────────────
+   PINCODE TO CITY AUTO-GENERATION DICTIONARY
+───────────────────────────────────────────────────────── */
+const PINCODE_CITY_MAP = {
+  "560068": "Silk Board, Bangalore",
+  "560034": "Koramangala, Bangalore",
+  "560076": "BTM Layout, Bangalore",
+  "560100": "Electronic City, Bangalore",
+  "560038": "Indiranagar, Bangalore",
+  "560001": "Bangalore GPO",
+  "560002": "City Market, Bangalore",
+  "560003": "Malleswaram, Bangalore",
+  "560004": "Basavanagudi, Bangalore",
+  "560011": "Jayanagar, Bangalore",
+  "560025": "Richmond Town, Bangalore",
+  "560041": "Jayanagar 4th Block, Bangalore",
+  "560078": "JP Nagar, Bangalore",
+  "560085": "Banashankari, Bangalore",
+  "560095": "Koramangala 8th Block, Bangalore",
+  "560102": "HSR Layout, Bangalore",
+  "560066": "Whitefield, Bangalore",
+  "560037": "Marathahalli, Bangalore",
+  "560043": "Kalyan Nagar, Bangalore",
+  "560092": "Hebbal, Bangalore",
+  "560064": "Yelahanka, Bangalore",
+  "635653": "Natrampalli, Tamil Nadu",
+  "635851": "Vaniyambadi, Tamil Nadu",
+  "635601": "Tirupattur, Tamil Nadu",
+  "570001": "Mysore",
+  "575001": "Mangalore",
+  "580001": "Hubli",
+  "600001": "Chennai",
+  "400001": "Mumbai",
+  "110001": "New Delhi",
+  "500001": "Hyderabad",
+};
+
+/**
+ * Checks if a doctor belongs to the executive's territory.
+ * Supports direct pincode coverage match, Bangalore/Bengaluru city equivalence,
+ * 560xxx pincode prefix, and postal localities.
+ */
+function matchesExecutiveTerritory(doc, exec, myPincodes) {
+  if (!doc) return false;
+  // 1. Direct match on assigned coverage pincodes
+  if (myPincodes && myPincodes.size > 0 && myPincodes.has(doc.pincode)) {
+    return true;
+  }
+  if (!exec) return true;
+
+  const docCity = (doc.city || "").toLowerCase().trim();
+  const execCity = (exec.city || "").toLowerCase().trim();
+  const execRegion = (exec.region || "").toLowerCase().trim();
+  const docPin = String(doc.pincode || "").trim();
+
+  // Direct city equality or containment
+  if (execCity && docCity && (docCity === execCity || docCity.includes(execCity) || execCity.includes(docCity))) {
+    return true;
+  }
+
+  // Bangalore / Bengaluru equivalence
+  const isExecBangalore = /bang|beng/i.test(execCity) || /bang|beng/i.test(execRegion);
+  const isDocBangalore =
+    /bang|beng/i.test(docCity) ||
+    docPin.startsWith("560") ||
+    /bang|beng/i.test(PINCODE_CITY_MAP[docPin] || "");
+  if (isExecBangalore && isDocBangalore) {
+    return true;
+  }
+
+  // Check known pincode dictionary
+  const mappedCity = (PINCODE_CITY_MAP[docPin] || "").toLowerCase();
+  if (execCity && mappedCity && (mappedCity.includes(execCity) || execCity.includes(mappedCity))) {
+    return true;
+  }
+
+  // State / Region matching
+  if (execRegion && (docCity.includes(execRegion) || (doc.state || "").toLowerCase().includes(execRegion))) {
+    return true;
+  }
+
+  return false;
+}
 
 /* ─────────────────────────────────────────────────────────
    SMALL SHARED UI COMPONENTS
@@ -121,25 +235,6 @@ function Performers({ title, people }) {
   );
 }
 
-function DashTable({ title, headers, rows }) {
-  return (
-    <div className="panel table-panel">
-      <div className="panel-title"><h2>{title}</h2></div>
-      <table>
-        <thead><tr>{headers.map((h) => <th key={h}>{h}</th>)}</tr></thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr><td colSpan={headers.length} style={{ color: "#7f8b98" }}>No data yet</td></tr>
-          ) : (
-            rows.map((row, i) => (
-              <tr key={i}>{row.map((cell, ci) => <td key={ci}>{cell}</td>)}</tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 function StatusList({ title, rows }) {
   return (
@@ -235,7 +330,7 @@ function useSalesData() {
 ───────────────────────────────────────────────────────── */
 function ProfileModal({ tableKey, record, onClose, onSaved }) {
   const config = TABLE_CONFIG[tableKey];
-  const fields = config.fields;
+  const fields = config.fields.filter((f) => !f.formOnly); // password is set by admin only
   const [values, setValues] = useState(() => {
     const init = {};
     fields.forEach((f) => { init[f.key] = displayFieldValue(f, record); });
@@ -307,7 +402,7 @@ function ProfileModal({ tableKey, record, onClose, onSaved }) {
 }
 
 /* ─────────────────────────────────────────────────────────
-   PRE-CALL MODAL
+   PRE-VISIT MODAL
 ───────────────────────────────────────────────────────── */
 function PreCallModal({ visit, onClose, onSave }) {
   const [brands, setBrands] = useState(visit.brands === "—" ? "" : visit.brands);
@@ -325,12 +420,15 @@ function PreCallModal({ visit, onClose, onSave }) {
     <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="zzc-modal rpt-call-modal">
         <div className="rpt-call-modal-header">
-          <div>
-            <h2>Pre Call — {visit.doctorName}</h2>
-            <p className="rpt-call-modal-sub">Sno: {visit.advaitNo} · <span className="rpt-doc-tag">{visit.tag}</span></p>
-            <p className="rpt-call-modal-sub">
-              Phone: {visit.phone || "—"} · City: {visit.city || "—"} · Pin: {visit.pincode || "—"} · Specialization: {visit.tag || "—"}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <DoctorAvatar name={visit.doctorName} size={44} />
+            <div>
+              <h2>Pre Visit — {visit.doctorName}</h2>
+              <p className="rpt-call-modal-sub">Sno: {visit.advaitNo} · <span className="rpt-doc-tag">{visit.tag}</span></p>
+              <p className="rpt-call-modal-sub">
+                Phone: {visit.phone || "—"} · City: {visit.city || "—"} · Pin: {visit.pincode || "—"} · Specialization: {visit.tag || "—"}
+              </p>
+            </div>
           </div>
           <button className="rpt-call-close" onClick={onClose} type="button">✕</button>
         </div>
@@ -356,15 +454,15 @@ function PreCallModal({ visit, onClose, onSave }) {
             </div>
           </div>
           <div className="rpt-call-field rpt-call-field-full">
-            <label>Call Objective</label>
+            <label>Visit Objective</label>
             <input
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              placeholder="What do you plan to discuss?"
+              placeholder="What do you plan to discuss during the doctor visit?"
             />
           </div>
           <div className="rpt-call-field rpt-call-field-full">
-            <label>Pre-Call Notes</label>
+            <label>Pre-Visit Notes</label>
             <textarea
               rows={3}
               value={notes}
@@ -376,7 +474,7 @@ function PreCallModal({ visit, onClose, onSave }) {
 
         <div className="rpt-call-modal-footer">
           <button type="button" className="rpt-btn-outline" onClick={onClose}>Cancel</button>
-          <button type="submit" form="preCallForm" className="rpt-btn-primary">Save Pre Call</button>
+          <button type="submit" form="preCallForm" className="rpt-btn-primary">Save Pre Visit</button>
         </div>
       </div>
     </div>
@@ -384,9 +482,9 @@ function PreCallModal({ visit, onClose, onSave }) {
 }
 
 /* ─────────────────────────────────────────────────────────
-   POST-CALL MODAL
+   POST-VISIT MODAL
 ───────────────────────────────────────────────────────── */
-function PostCallModal({ visit, onClose, onSave }) {
+function PostCallModal({ visit, onClose, onSave, isEdit = false }) {
   const [brands, setBrands] = useState(visit.brands === "—" ? "" : visit.brands);
   const [campaign, setCampaign] = useState(visit.campaign === "—" ? "" : visit.campaign);
   const [outcome, setOutcome] = useState(visit.callOutcome || "Interested");
@@ -415,12 +513,15 @@ function PostCallModal({ visit, onClose, onSave }) {
     <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="zzc-modal rpt-call-modal">
         <div className="rpt-call-modal-header">
-          <div>
-            <h2>Post Call — {visit.doctorName}</h2>
-            <p className="rpt-call-modal-sub">Sno: {visit.advaitNo} · <span className="rpt-doc-tag">{visit.tag}</span></p>
-            <p className="rpt-call-modal-sub">
-              Phone: {visit.phone || "—"} · City: {visit.city || "—"} · Pin: {visit.pincode || "—"} · Specialization: {visit.tag || "—"}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <DoctorAvatar name={visit.doctorName} size={44} />
+            <div>
+              <h2>{isEdit ? "Edit Visit" : "Post Visit"} — {visit.doctorName}</h2>
+              <p className="rpt-call-modal-sub">Sno: {visit.advaitNo} · <span className="rpt-doc-tag">{visit.tag}</span></p>
+              <p className="rpt-call-modal-sub">
+                Phone: {visit.phone || "—"} · City: {visit.city || "—"} · Pin: {visit.pincode || "—"} · Specialization: {visit.tag || "—"}
+              </p>
+            </div>
           </div>
           <button className="rpt-call-close" onClick={onClose} type="button">✕</button>
         </div>
@@ -447,7 +548,7 @@ function PostCallModal({ visit, onClose, onSave }) {
           </div>
           <div className="rpt-call-row">
             <div className="rpt-call-field">
-              <label>Call Outcome *</label>
+              <label>Visit Outcome *</label>
               <select value={outcome} onChange={(e) => setOutcome(e.target.value)} required>
                 <option>Interested</option>
                 <option>Prescribed</option>
@@ -492,7 +593,7 @@ function PostCallModal({ visit, onClose, onSave }) {
         <div className="rpt-call-modal-footer">
           <button type="button" className="rpt-btn-outline" onClick={onClose}>Cancel</button>
           <button type="submit" form="postCallForm" className="rpt-btn-primary rpt-btn-post-submit">
-            ✓ Mark as Reported
+            {isEdit ? "✓ Update Visit" : "✓ Mark as Reported"}
           </button>
         </div>
       </div>
@@ -501,10 +602,10 @@ function PostCallModal({ visit, onClose, onSave }) {
 }
 
 /* ─────────────────────────────────────────────────────────
-   EDIT CALL MODAL (same shape as post call but pre-filled)
+   EDIT VISIT MODAL (same shape as post visit but pre-filled)
 ───────────────────────────────────────────────────────── */
 function EditCallModal({ visit, onClose, onSave }) {
-  return <PostCallModal visit={visit} onClose={onClose} onSave={onSave} />;
+  return <PostCallModal visit={visit} onClose={onClose} onSave={onSave} isEdit={true} />;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -542,9 +643,12 @@ function ReportedCallsModal({ visits, onClose }) {
                     <tr key={v.id}>
                       <td>{v.advaitNo}</td>
                       <td>
-                        <div className="rpt-doc-cell">
-                          <strong>{v.doctorName}</strong>
-                          <span className="rpt-doc-tag">{v.tag}</span>
+                        <div className="rpt-doc-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <DoctorAvatar name={v.doctorName} size={30} />
+                          <div>
+                            <strong>{v.doctorName}</strong>
+                            <span className="rpt-doc-tag" style={{ marginLeft: 6 }}>{v.tag}</span>
+                          </div>
                         </div>
                       </td>
                       <td>{v.phone || "—"}</td>
@@ -1301,13 +1405,11 @@ function ReceivedReportsSection({ data, role, currentRecord }) {
    - Executive: submit reports to Manager, Regional Manager, or Both
    - Manager & Regional Manager: review received reports & give coaching feedback
 ───────────────────────────────────────────────────────── */
-function ViewDoctorModal({ doctor, onClose }) {
+export function ViewDoctorModal({ doctor, onClose }) {
   if (!doctor) return null;
 
   const docName = doctor.doctorName || doctor.name || "—";
   const spec = doctor.specializations || doctor.specialization || doctor.tag || "—";
-  const cleanName = docName.replace(/^dr\.?\s*/i, '').trim();
-  const avatarChar = cleanName.length > 0 ? cleanName.charAt(0).toUpperCase() : "D";
 
   return (
     <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -1316,15 +1418,10 @@ function ViewDoctorModal({ doctor, onClose }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }}>
 
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%', backgroundColor: '#e0f7fa', color: 'var(--primary, #00796b)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.15rem'
-          }}>
-            {avatarChar}
-          </div>
+          <DoctorAvatar name={docName} size={48} />
 
-          <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1e293b' }}>{docName}</span>
+          <div style={{ flex: 1, textAlign: 'left', marginLeft: '14px', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--foreground, #1e293b)' }}>{docName}</span>
             <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2 }}>{spec}</span>
           </div>
 
@@ -1405,17 +1502,10 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
   const territoryDoctors = useMemo(() => {
     if (!data.doctors || data.doctors.length === 0) return [];
     // 1. Doctors matching assigned pincodes
-    let list = data.doctors.filter((d) => myPincodes.has(d.pincode));
-    // 2. If no coverage pincodes assigned or no match, match by executive's city or region
+    let list = myPincodes.size > 0 ? data.doctors.filter((d) => myPincodes.has(d.pincode)) : [];
+    // 2. If no coverage pincodes assigned or no match, match by executive's territory
     if (list.length === 0 && exec) {
-      list = data.doctors.filter((d) => {
-        const docCity = (d.city || "").toLowerCase().trim();
-        const execCity = (exec.city || "").toLowerCase().trim();
-        const execRegion = (exec.region || "").toLowerCase().trim();
-        const isCityMatch = execCity && (docCity === execCity || (docCity.includes("bang") && execCity.includes("bang")));
-        const isRegionMatch = execRegion && (docCity.includes(execRegion) || (d.name || "").toLowerCase().includes(execRegion));
-        return isCityMatch || isRegionMatch;
-      });
+      list = data.doctors.filter((d) => matchesExecutiveTerritory(d, exec, myPincodes));
     }
     // 3. Fallback to all available doctors so executive is never blocked
     if (list.length === 0) {
@@ -1969,13 +2059,8 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
                     <td className="rpt-advait-no">{v.advaitNo}</td>
                     <td>
                       <div className="rpt-doc-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{
-                          width: 36, height: 36, borderRadius: '50%', backgroundColor: '#e0f7fa', color: 'var(--primary, #00796b)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem', flexShrink: 0
-                        }}>
-                          {(v.doctorName || "").replace(/^dr\.?\s*/i, '').trim().charAt(0).toUpperCase() || "D"}
-                        </div>
-                        <div>
+                        <DoctorAvatar name={v.doctorName} size={36} />
+                        <div style={{ fontWeight: 600, color: 'var(--foreground, #0f172a)' }}>
                           {v.doctorName}
                         </div>
                       </div>
@@ -2000,52 +2085,43 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
                     <td style={{ textAlign: "center" }}>
                       <button
                         type="button"
-                        className="rpt-btn-outline"
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          padding: 0,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          borderWidth: 1,
-                          borderColor: "var(--primary)",
-                          color: "var(--primary)"
-                        }}
+                        className="rpt-btn-view-eye"
                         title="View Doctor Details"
                         onClick={() => {
                           const fullDoc = territoryDoctors.find(d => d.id === v.id) || data.doctors?.find(d => d.id === v.id) || {};
                           setViewingDoctor({ ...fullDoc, ...v });
                         }}
                       >
-                        <VscEye size={18} />
+                        <StylizedEyeIcon width={24} height={15} live={true} />
                       </button>
                     </td>
                     <td>
                       <div className="rpt-options">
                         <button
-                          className="rpt-btn-sm rpt-btn-outline"
+                          type="button"
+                          className="rpt-btn-sm rpt-btn-pre"
                           onClick={() => setPreCallVisit(v)}
-                          title="Fill pre-call details"
+                          title="Fill pre-visit details"
                         >
-                          Pre Call
+                          Pre Visit
                         </button>
                         {v.status === "Reported" ? (
                           <button
+                            type="button"
                             className="rpt-btn-sm rpt-btn-edit"
                             onClick={() => setEditCallVisit(v)}
-                            title="Edit reported call"
+                            title="Edit reported visit"
                           >
-                            Edit Call
+                            Edit Visit
                           </button>
                         ) : (
                           <button
+                            type="button"
                             className="rpt-btn-sm rpt-btn-post"
                             onClick={() => setPostCallVisit(v)}
                             title="Mark as reported"
                           >
-                            Post Call
+                            Post Visit
                           </button>
                         )}
                       </div>
@@ -2139,290 +2215,1408 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
 }
 
 /* ─────────────────────────────────────────────────────────
-   ADD DOCTOR MODAL
-───────────────────────────────────────────────────────── */
-function AddDoctorModal({ onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    qualification: "",
-    specializations: "",
-    phone: "",
-    experience_years: "",
-    consultation_fee: "",
-    verification_status: "pending",
-    is_active: "Yes",
-    pincode: "",
-    city: ""
-  });
-  const [clinicInside, setClinicInside] = useState(null);
-  const [clinicOutside, setClinicOutside] = useState(null);
-  const [profileImage, setProfileImage] = useState(null);
-  const [signatureImage, setSignatureImage] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleDetectLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-    setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-          const data = await res.json();
-          if (data && data.address) {
-            setFormData(prev => ({
-              ...prev,
-              city: data.address.city || data.address.town || data.address.village || prev.city,
-              pincode: data.address.postcode || prev.pincode
-            }));
-          }
-        } catch (err) {
-          console.error("Geocoding failed", err);
-          alert("Failed to auto-detect location.");
-        } finally {
-          setLocationLoading(false);
-        }
-      },
-      (err) => {
-        console.error(err);
-        alert("Failed to get current position.");
-        setLocationLoading(false);
-      }
-    );
-  };
-
-  const fileToDataUrl = (file) => {
-    if (!file) return Promise.resolve(null);
-    return new Promise((resolve) => {
-      if (!file.type || !file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const maxDim = 1200;
-          let width = img.width;
-          let height = img.height;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL("image/jpeg", 0.85);
-          resolve(compressed);
-        };
-        img.onerror = () => resolve(e.target.result);
-        img.src = e.target.result;
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
-    try {
-      const [insideUrl, outsideUrl, profUrl, sigUrl] = await Promise.all([
-        fileToDataUrl(clinicInside),
-        fileToDataUrl(clinicOutside),
-        fileToDataUrl(profileImage),
-        fileToDataUrl(signatureImage)
-      ]);
-
-      const payload = { ...formData };
-      if (payload.experience_years) payload.experience_years = Number(payload.experience_years);
-      else payload.experience_years = null;
-      if (payload.consultation_fee) payload.consultation_fee = Number(payload.consultation_fee);
-      else payload.consultation_fee = null;
-
-      if (profUrl) payload.profile_image = profUrl;
-      if (sigUrl) payload.signature_image = sigUrl;
-      if (insideUrl) payload.clinic_inside_image = insideUrl;
-      if (outsideUrl) payload.clinic_outside_image = outsideUrl;
-
-      const newDoc = await createRecord("doctors", payload);
-
-      const uploadImage = async (file, type) => {
-        const formDataUpload = new FormData();
-        formDataUpload.append("file", file);
-        const res = await fetch(`${API_BASE}/doctors/${newDoc.id}/documents?document_type=${type}`, {
-          method: "POST",
-          body: formDataUpload
-        });
-        if (!res.ok) throw new Error("Failed to upload image " + type);
-      };
-
-      if (clinicInside) await uploadImage(clinicInside, "clinic_inside");
-      if (clinicOutside) await uploadImage(clinicOutside, "clinic_outside");
-      if (profileImage) await uploadImage(profileImage, "profile_image");
-      if (signatureImage) await uploadImage(signatureImage, "signature_image");
-
-      onSave();
-    } catch (err) {
-      setError(err.message || "Failed to add doctor");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="zzc-modal rpt-call-modal" style={{ maxWidth: 600 }}>
-        <div className="rpt-call-modal-header">
-          <h2>Add New Doctor</h2>
-          <button className="rpt-call-close" onClick={onClose} type="button">✕</button>
-        </div>
-        <form className="rpt-call-form" style={{ padding: "1rem" }} onSubmit={handleSubmit}>
-          {error && <div className="rpt-call-error" style={{ color: "red", marginBottom: "1rem" }}>{error}</div>}
-
-          <div className="rpt-call-row">
-            <div className="rpt-call-field">
-              <label>Name *</label>
-              <input name="name" value={formData.name} onChange={handleChange} required />
-            </div>
-            <div className="rpt-call-field">
-              <label>Phone *</label>
-              <input name="phone" value={formData.phone} onChange={handleChange} required />
-            </div>
-          </div>
-
-          <div className="rpt-call-row">
-            <div className="rpt-call-field">
-              <label>Email *</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required />
-            </div>
-            <div className="rpt-call-field">
-              <label>Password *</label>
-              <input type="text" name="password" value={formData.password} onChange={handleChange} required />
-            </div>
-          </div>
-
-          <div className="rpt-call-row">
-            <div className="rpt-call-field">
-              <label>Qualification</label>
-              <input name="qualification" value={formData.qualification} onChange={handleChange} />
-            </div>
-            <div className="rpt-call-field">
-              <label>Specialization</label>
-              <input name="specializations" value={formData.specializations} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="rpt-call-row">
-            <div className="rpt-call-field">
-              <label>Experience (Years)</label>
-              <input type="number" name="experience_years" value={formData.experience_years} onChange={handleChange} />
-            </div>
-            <div className="rpt-call-field">
-              <label>Consultation Fee</label>
-              <input type="number" name="consultation_fee" value={formData.consultation_fee} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="rpt-call-row" style={{ alignItems: "flex-end" }}>
-            <div className="rpt-call-field">
-              <label>Pin Code</label>
-              <input name="pincode" value={formData.pincode} onChange={handleChange} />
-            </div>
-            <div className="rpt-call-field">
-              <label>City</label>
-              <input name="city" value={formData.city} onChange={handleChange} />
-            </div>
-            <button type="button" className="rpt-btn-outline" onClick={handleDetectLocation} disabled={locationLoading} style={{ marginBottom: "0.2rem" }}>
-              {locationLoading ? "Detecting..." : "Detect Location"}
-            </button>
-          </div>
-
-          <div className="rpt-call-row">
-            <div className="rpt-call-field">
-              <label>Clinic Inside Image</label>
-              <input type="file" accept="image/*" onChange={(e) => setClinicInside(e.target.files[0])} />
-            </div>
-            <div className="rpt-call-field">
-              <label>Clinic Outside Image</label>
-              <input type="file" accept="image/*" onChange={(e) => setClinicOutside(e.target.files[0])} />
-            </div>
-          </div>
-
-          <div className="rpt-call-row">
-            <div className="rpt-call-field">
-              <label>Doctor Profile Image</label>
-              <input type="file" accept="image/*" onChange={(e) => setProfileImage(e.target.files[0])} />
-            </div>
-            <div className="rpt-call-field">
-              <label>Doctor Signature Image</label>
-              <input type="file" accept="image/*" onChange={(e) => setSignatureImage(e.target.files[0])} />
-            </div>
-          </div>
-
-          <div className="rpt-call-row">
-            <div className="rpt-call-field">
-              <label>Verification Status</label>
-              <select name="verification_status" value={formData.verification_status} onChange={handleChange}>
-                <option value="pending">Pending</option>
-                <option value="verified">Verified</option>
-              </select>
-            </div>
-            <div className="rpt-call-field">
-              <label>Is Active</label>
-              <select name="is_active" value={formData.is_active} onChange={handleChange}>
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="rpt-call-modal-footer" style={{ marginTop: "1rem" }}>
-            <button type="button" className="rpt-btn-outline" onClick={onClose} disabled={saving}>Cancel</button>
-            <button type="submit" className="rpt-btn-primary" disabled={saving}>
-              {saving ? "Saving..." : "Save Doctor"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
    DOCTORS VIEW
    - Real-time doctors from API filtered by exec's pincodes
    - Proper heading matching Reports page style
    - Consistent CSS classes
 ───────────────────────────────────────────────────────── */
-function DoctorsView({ data, execId, role }) {
+
+/* ─────────────────────────────────────────────────────────
+   DIGITAL SIGNATURE PAD MODAL (PNG MODEL)
+───────────────────────────────────────────────────────── */
+function SignaturePadModal({ isOpen, onClose, onSave, existingSignature }) {
+  const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (existingSignature) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setHasDrawn(true);
+      };
+      img.src = existingSignature;
+    } else {
+      const t = setTimeout(() => setHasDrawn(false), 0);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen, existingSignature]);
+
+  const getCoordinates = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    }
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDrawing = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const coords = getCoordinates(e);
+    const ctx = canvas.getContext("2d");
+
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#0f172a";
+    setIsDrawing(true);
+  };
+
+  const draw = (e) => {
+    if (!isDrawing) return;
+    if (e.touches) {
+      e.preventDefault();
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const coords = getCoordinates(e);
+    const ctx = canvas.getContext("2d");
+
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+    setHasDrawn(true);
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const handleClear = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+  };
+
+  const handleSave = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasDrawn) {
+      alert("Please draw your signature before saving.");
+      return;
+    }
+    const pngDataUrl = canvas.toDataURL("image/png");
+    onSave(pngDataUrl);
+    onClose();
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result;
+      const canvas = canvasRef.current;
+      if (canvas && dataUrl) {
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          setHasDrawn(true);
+        };
+        img.src = dataUrl;
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.classList.add("crm-modal-open");
+    return () => {
+      const remainingModals = document.querySelectorAll(".zzc-modal-overlay");
+      if (remainingModals.length <= 1) {
+        document.body.classList.remove("crm-modal-open");
+      }
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div
+      className="zzc-modal-overlay"
+      style={{ zIndex: 11000 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="zzc-modal"
+        style={{ maxWidth: 520, padding: "1.25rem 1.5rem" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.6rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "rgba(13, 148, 136, 0.12)", color: "#0d9488", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <PenTool size={16} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 800, color: "var(--foreground)" }}>
+                Digital Signature (PNG Model)
+              </h3>
+              <span style={{ fontSize: "0.74rem", color: "var(--muted-foreground)" }}>
+                Sign below using mouse, stylus, or touch to export transparent PNG
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "var(--muted-foreground)" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="sig-canvas-container">
+          <canvas
+            ref={canvasRef}
+            width={480}
+            height={180}
+            className="sig-canvas"
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+          />
+          <div className="sig-baseline-guide">
+            <span>✕ Sign on line above</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-outline"
+              onClick={handleClear}
+              style={{ height: "32px", fontSize: "0.76rem", display: "inline-flex", alignItems: "center", gap: "5px" }}
+            >
+              <RotateCcw size={13} />
+              <span>Clear</span>
+            </button>
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-outline"
+              onClick={() => fileInputRef.current?.click()}
+              style={{ height: "32px", fontSize: "0.76rem", display: "inline-flex", alignItems: "center", gap: "5px" }}
+            >
+              <Upload size={13} />
+              <span>Upload PNG</span>
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/png,image/*"
+              style={{ display: "none" }}
+              onChange={handleFileUpload}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-outline"
+              onClick={onClose}
+              style={{ height: "32px", fontSize: "0.78rem" }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-primary"
+              onClick={handleSave}
+              style={{
+                height: "32px",
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                background: "linear-gradient(135deg, #0d9488 0%, #007c71 100%)",
+                color: "#fff",
+                border: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "0 16px",
+                borderRadius: "8px",
+              }}
+            >
+              <Check size={14} strokeWidth={2.5} />
+              <span>Save Signature (PNG)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   ADD DOCTOR MODAL
+   Allows creating a new doctor record with:
+   - Auto-generated City and Pincode (GPS & Directory)
+   - Inside & Outside Clinic Images with Upload Buttons
+   - Digital Signature Model with PNG export
+───────────────────────────────────────────────────────── */
+function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onDoctorAdded }) {
+  const initialPin = availablePincodes[0] || "560068";
+  const initialCity = defaultCity || (PINCODE_CITY_MAP[initialPin] || "Silk Board, Bangalore");
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    qualification: "",
+    specializations: "",
+    clinic_name: "",
+    facility_type: "Clinic",
+    phone: "",
+    experience_years: "",
+    city: initialCity,
+    pincode: initialPin,
+    consultation_fee: "",
+    verification_status: "pending",
+    is_active: "Yes",
+    inside_clinic_image: null,
+    outside_clinic_image: null,
+    digital_signature: null,
+  });
+
+  const [existingClinics, setExistingClinics] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/clinics-hospitals`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setExistingClinics(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [autoDetected, setAutoDetected] = useState(true);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [previewClinicImage, setPreviewClinicImage] = useState(null);
+
+  const insideInputRef = useRef(null);
+  const outsideInputRef = useRef(null);
+
+  const handleChange = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Lock background body scroll and blur all other background pages while modal is open
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.body.classList.add("crm-modal-open");
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.classList.remove("crm-modal-open");
+    };
+  }, []);
+
+  // Auto-detect GPS Location
+  const handleAutoDetectGPS = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            { headers: { "Accept-Language": "en" } }
+          );
+          const data = await res.json();
+          if (data && data.address) {
+            const addr = data.address;
+            const detectedCity =
+              addr.suburb ||
+              addr.neighbourhood ||
+              addr.city ||
+              addr.town ||
+              addr.county ||
+              initialCity;
+            const detectedPin = addr.postcode || initialPin;
+            setForm((prev) => ({
+              ...prev,
+              city: detectedCity,
+              pincode: detectedPin,
+            }));
+            setAutoDetected(true);
+          }
+        } catch {
+          setForm((prev) => ({
+            ...prev,
+            city: initialCity,
+            pincode: initialPin,
+          }));
+          setAutoDetected(true);
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (err) => {
+        console.warn("GPS Location error:", err);
+        setForm((prev) => ({
+          ...prev,
+          city: initialCity,
+          pincode: initialPin,
+        }));
+        setAutoDetected(true);
+        setDetectingLocation(false);
+      },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  };
+
+  // Pincode change handler with auto-fill
+  const handlePincodeChange = (val) => {
+    const cleanPin = val.replace(/\D/g, "").slice(0, 6);
+    setForm((prev) => ({ ...prev, pincode: cleanPin }));
+
+    if (cleanPin.length === 6) {
+      if (PINCODE_CITY_MAP[cleanPin]) {
+        setForm((prev) => ({ ...prev, city: PINCODE_CITY_MAP[cleanPin] }));
+        setAutoDetected(true);
+      } else {
+        // Fallback live Indian Postal Pincode lookup
+        fetch(`https://api.postalpincode.in/pincode/${cleanPin}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.[0]?.Status === "Success" && data[0].PostOffice?.[0]) {
+              const po = data[0].PostOffice[0];
+              const detectedCity = `${po.Name}, ${po.District || po.State}`;
+              setForm((prev) => ({ ...prev, city: detectedCity }));
+              setAutoDetected(true);
+            }
+          })
+          .catch(() => { });
+      }
+    }
+  };
+
+  // City change handler with auto-suggested pincode
+  const handleCityChange = (val) => {
+    setForm((prev) => ({ ...prev, city: val }));
+    const lower = val.toLowerCase();
+    for (const [pin, name] of Object.entries(PINCODE_CITY_MAP)) {
+      if (name.toLowerCase().includes(lower) && lower.length > 3) {
+        if (!form.pincode || form.pincode === initialPin) {
+          setForm((prev) => ({ ...prev, pincode: pin }));
+          setAutoDetected(true);
+        }
+        break;
+      }
+    }
+  };
+
+  // Image Upload Handler
+  const handleImageUpload = (key, file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload a valid image file");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result;
+      if (dataUrl) {
+        setForm((prev) => ({ ...prev, [key]: dataUrl }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      setError("Doctor Name is required");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const clinicImagesObj = {
+        inside: form.inside_clinic_image || null,
+        outside: form.outside_clinic_image || null,
+      };
+
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.trim() || null,
+        password: form.password ? form.password.trim() : null,
+        qualification: form.qualification.trim() || null,
+        specializations: form.specializations.trim() || null,
+        clinic_name: form.clinic_name.trim() || null,
+        clinic_hospital: form.clinic_name.trim() || null,
+        facility_type: form.facility_type || "Clinic",
+        inside_clinic_image: form.inside_clinic_image || null,
+        outside_clinic_image: form.outside_clinic_image || null,
+        phone: form.phone.trim() || null,
+        experience_years: form.experience_years !== "" ? Number(form.experience_years) : null,
+        city: form.city.trim() || null,
+        pincode: form.pincode.trim() || null,
+        consultation_fee: form.consultation_fee !== "" ? Number(form.consultation_fee) : null,
+        verification_status: form.verification_status || "pending",
+        is_active: form.is_active || "Yes",
+        digital_signature: form.digital_signature || null,
+        clinic_images:
+          form.inside_clinic_image || form.outside_clinic_image
+            ? JSON.stringify(clinicImagesObj)
+            : null,
+      };
+      const created = await createRecord("doctors", payload);
+      await onDoctorAdded(created || payload);
+    } catch (err) {
+      console.error("Failed to add doctor:", err);
+      setError(err.message || "Failed to add doctor. Please try again.");
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+      <div className="zzc-modal" style={{ maxWidth: 680, maxHeight: "90vh", overflowY: "auto" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              background: "rgba(13, 148, 136, 0.12)",
+              color: "#0d9488",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.25rem",
+              fontWeight: 900
+            }}>
+              +
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--foreground)" }}>Add New Doctor</h2>
+              <span style={{ fontSize: "0.78rem", color: "var(--muted-foreground)" }}>Enter doctor details to add to territory database</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="rpt-call-close"
+            onClick={onClose}
+            disabled={saving}
+            style={{ fontSize: "1.1rem", background: "none", border: "none", cursor: "pointer", color: "var(--muted-foreground)" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {error && (
+          <div className="rpt-call-error" style={{ marginBottom: "1rem", padding: "8px 12px", background: "#fef2f2", color: "#dc2626", borderRadius: "8px", fontSize: "0.85rem", border: "1px solid #fecaca" }}>
+            {error}
+          </div>
+        )}
+
+        <form id="addDoctorForm" className="zzc-modal-form" onSubmit={handleSubmit}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
+            {/* Full Name */}
+            <div className="zzc-field" style={{ gridColumn: "1 / -1" }}>
+              <label htmlFor="doc_name">Doctor Name <span style={{ color: "#ef4444" }}>*</span></label>
+              <input
+                id="doc_name"
+                type="text"
+                placeholder="e.g. Dr. Rajesh Kumar"
+                value={form.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+
+            {/* Qualification */}
+            <div className="zzc-field">
+              <label htmlFor="doc_qualification">Qualification</label>
+              <input
+                id="doc_qualification"
+                type="text"
+                placeholder="e.g. BVSc & AH, MVSc"
+                value={form.qualification}
+                onChange={(e) => handleChange("qualification", e.target.value)}
+              />
+            </div>
+
+            {/* Specialization */}
+            <div className="zzc-field">
+              <label htmlFor="doc_specialization">Specialization</label>
+              <input
+                id="doc_specialization"
+                type="text"
+                placeholder="e.g. Surgery, Dermatology"
+                value={form.specializations}
+                onChange={(e) => handleChange("specializations", e.target.value)}
+              />
+            </div>
+
+            {/* Clinic / Hospital Name */}
+            <div className="zzc-field">
+              <label htmlFor="doc_clinic_name">Clinic / Hospital Name</label>
+              <input
+                id="doc_clinic_name"
+                type="text"
+                list="crm-clinic-options"
+                placeholder="e.g. City Vet Clinic & Hospital"
+                value={form.clinic_name}
+                onChange={(e) => handleChange("clinic_name", e.target.value)}
+              />
+              {existingClinics.length > 0 && (
+                <datalist id="crm-clinic-options">
+                  {existingClinics.map((c, i) => (
+                    <option key={c.id || i} value={c.name} />
+                  ))}
+                </datalist>
+              )}
+              <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>Select from existing or type new clinic</span>
+            </div>
+
+            {/* Facility Type */}
+            <div className="zzc-field">
+              <label htmlFor="doc_facility_type">Facility Type</label>
+              <select
+                id="doc_facility_type"
+                value={form.facility_type}
+                onChange={(e) => handleChange("facility_type", e.target.value)}
+              >
+                <option value="Clinic">Clinic</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Specialty Referral Center">Specialty Referral Center</option>
+                <option value="Diagnostic Center">Diagnostic Center</option>
+                <option value="Animal Shelter / NGO">Animal Shelter / NGO</option>
+              </select>
+            </div>
+
+            {/* Phone */}
+            <div className="zzc-field">
+              <label htmlFor="doc_phone">Phone Number <span style={{ color: "#ef4444" }}>*</span></label>
+              <input
+                id="doc_phone"
+                type="tel"
+                placeholder="e.g. 9876543210"
+                value={form.phone}
+                onChange={(e) => handleChange("phone", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Doctor Email (Doctor Website Login) */}
+            <div className="zzc-field">
+              <label htmlFor="doc_email">Doctor Email (Login ID) <span style={{ color: "#ef4444" }}>*</span></label>
+              <input
+                id="doc_email"
+                type="email"
+                placeholder="e.g. doctor@clinic.com"
+                value={form.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                required
+              />
+              <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>Login user ID for Doctor Website</span>
+            </div>
+
+            {/* Doctor Password (Doctor Website Login) */}
+            <div className="zzc-field">
+              <label htmlFor="doc_password">Doctor Password <span style={{ color: "#ef4444" }}>*</span></label>
+              <input
+                id="doc_password"
+                type="password"
+                placeholder="Minimum 6 characters"
+                value={form.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                required
+                minLength={6}
+              />
+              <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>Login password for Doctor Website</span>
+            </div>
+
+            {/* Experience */}
+            <div className="zzc-field">
+              <label htmlFor="doc_exp">Experience (Years)</label>
+              <input
+                id="doc_exp"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="e.g. 5"
+                value={form.experience_years}
+                onChange={(e) => handleChange("experience_years", e.target.value)}
+              />
+            </div>
+
+            {/* City (with Auto-generate) */}
+            <div className="zzc-field">
+              <div className="doc-loc-header">
+                <label htmlFor="doc_city">City</label>
+                <button
+                  type="button"
+                  className="doc-detect-btn"
+                  onClick={handleAutoDetectGPS}
+                  disabled={detectingLocation}
+                  title="Auto-detect City & Pincode using GPS"
+                >
+                  <MapPin size={11} />
+                  <span>{detectingLocation ? "Detecting…" : "Auto Detect"}</span>
+                </button>
+              </div>
+              <input
+                id="doc_city"
+                type="text"
+                placeholder="e.g. Silk Board, Bangalore"
+                value={form.city}
+                onChange={(e) => handleCityChange(e.target.value)}
+              />
+              {autoDetected && (
+                <span className="doc-auto-badge">
+                  <Sparkles size={11} /> Auto-generated
+                </span>
+              )}
+            </div>
+
+            {/* Pin Code (with Auto-generate) */}
+            <div className="zzc-field">
+              <div className="doc-loc-header">
+                <label htmlFor="doc_pincode">Pin Code</label>
+                <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>6 Digits</span>
+              </div>
+              <input
+                id="doc_pincode"
+                type="text"
+                list="pincode-options"
+                placeholder="e.g. 560068"
+                maxLength={6}
+                value={form.pincode}
+                onChange={(e) => handlePincodeChange(e.target.value)}
+              />
+              {availablePincodes.length > 0 && (
+                <datalist id="pincode-options">
+                  {availablePincodes.map((pc) => (
+                    <option key={pc} value={pc} />
+                  ))}
+                </datalist>
+              )}
+            </div>
+
+            {/* Consultation Fee */}
+            <div className="zzc-field">
+              <label htmlFor="doc_fee">Consultation Fee (₹)</label>
+              <input
+                id="doc_fee"
+                type="number"
+                min="0"
+                step="10"
+                placeholder="e.g. 500"
+                value={form.consultation_fee}
+                onChange={(e) => handleChange("consultation_fee", e.target.value)}
+              />
+            </div>
+
+            {/* Status (Active / Inactive) */}
+            <div className="zzc-field">
+              <label htmlFor="doc_active">Active Status</label>
+              <select
+                id="doc_active"
+                value={form.is_active}
+                onChange={(e) => handleChange("is_active", e.target.value)}
+              >
+                <option value="Yes">Active</option>
+                <option value="No">Inactive</option>
+              </select>
+            </div>
+
+            {/* Verification Status */}
+            <div className="zzc-field" style={{ gridColumn: "1 / -1" }}>
+              <label htmlFor="doc_verification">Verification Status</label>
+              <select
+                id="doc_verification"
+                value={form.verification_status}
+                onChange={(e) => handleChange("verification_status", e.target.value)}
+              >
+                <option value="pending">Pending (Submit for Admin Approval)</option>
+                <option value="verified">Verified (Approved)</option>
+              </select>
+              <span style={{ fontSize: "0.75rem", color: "#0284c7", marginTop: "4px", display: "block" }}>
+                ℹ️ When submitted as <strong>Pending</strong>, this doctor routes to the Admin Approval page and their login account is prepared for the Doctor Website.
+              </span>
+            </div>
+
+            {/* ── CLINIC PHOTOS SECTION (INSIDE & OUTSIDE CLINIC IMAGES) ── */}
+            <div className="clinic-photos-section">
+              <div className="clinic-photos-title-row">
+                <div>
+                  <h4>
+                    <Building2 size={16} color="#0d9488" />
+                    <span>Clinic Verification Photos</span>
+                  </h4>
+                  <p>Add inside and outside clinic images for field verification</p>
+                </div>
+              </div>
+
+              <div className="clinic-photos-grid">
+                {/* Inside Clinic Image Card */}
+                <div className={`clinic-photo-card ${form.inside_clinic_image ? "has-photo" : ""}`}>
+                  <input
+                    type="file"
+                    ref={insideInputRef}
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => handleImageUpload("inside_clinic_image", e.target.files?.[0])}
+                  />
+
+                  {form.inside_clinic_image ? (
+                    <>
+                      <img
+                        src={form.inside_clinic_image}
+                        alt="Inside Clinic"
+                        className="clinic-photo-thumb"
+                      />
+                      <span className="clinic-photo-tag">Inside Clinic</span>
+                      <div className="clinic-photo-overlay">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewClinicImage({ url: form.inside_clinic_image, title: "Inside Clinic Photo" })}
+                        >
+                          <Eye size={12} /> View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insideInputRef.current?.click()}
+                        >
+                          <Camera size={12} /> Change
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-del"
+                          onClick={() => setForm((prev) => ({ ...prev, inside_clinic_image: null }))}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Building size={24} color="#0d9488" style={{ opacity: 0.8, marginBottom: "4px" }} />
+                      <span className="clinic-photo-card-label">Inside Clinic Image</span>
+                      <span className="clinic-photo-card-sub">Consultation area, exam table, interior</span>
+                      <button
+                        type="button"
+                        className="clinic-photo-action-btn"
+                        onClick={() => insideInputRef.current?.click()}
+                      >
+                        <Camera size={14} />
+                        <span>Inside Clinic Image</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Outside Clinic Image Card */}
+                <div className={`clinic-photo-card ${form.outside_clinic_image ? "has-photo" : ""}`}>
+                  <input
+                    type="file"
+                    ref={outsideInputRef}
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => handleImageUpload("outside_clinic_image", e.target.files?.[0])}
+                  />
+
+                  {form.outside_clinic_image ? (
+                    <>
+                      <img
+                        src={form.outside_clinic_image}
+                        alt="Outside Clinic"
+                        className="clinic-photo-thumb"
+                      />
+                      <span className="clinic-photo-tag">Outside Clinic</span>
+                      <div className="clinic-photo-overlay">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewClinicImage({ url: form.outside_clinic_image, title: "Outside Clinic Photo" })}
+                        >
+                          <Eye size={12} /> View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => outsideInputRef.current?.click()}
+                        >
+                          <Camera size={12} /> Change
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-del"
+                          onClick={() => setForm((prev) => ({ ...prev, outside_clinic_image: null }))}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Building2 size={24} color="#0d9488" style={{ opacity: 0.8, marginBottom: "4px" }} />
+                      <span className="clinic-photo-card-label">Outside Clinic Image</span>
+                      <span className="clinic-photo-card-sub">Signboard, entrance, building exterior</span>
+                      <button
+                        type="button"
+                        className="clinic-photo-action-btn"
+                        onClick={() => outsideInputRef.current?.click()}
+                      >
+                        <Camera size={14} />
+                        <span>Outside Clinic Image</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── DIGITAL SIGNATURE SECTION (PNG MODEL) ── */}
+            <div className="doc-signature-section">
+              <div className="clinic-photos-title-row">
+                <div>
+                  <h4>
+                    <PenTool size={16} color="#0d9488" />
+                    <span>Doctor / Executive Signature</span>
+                  </h4>
+                  <p>Official verified signature captured in transparent PNG format</p>
+                </div>
+              </div>
+
+              <div className={`doc-signature-card ${form.digital_signature ? "has-sig" : ""}`}>
+                {form.digital_signature ? (
+                  <>
+                    <div className="doc-signature-left">
+                      <img
+                        src={form.digital_signature}
+                        alt="Doctor Signature"
+                        className="doc-signature-preview-img"
+                      />
+                      <div>
+                        <div className="doc-signature-badge">
+                          <Check size={14} strokeWidth={2.5} />
+                          <span>PNG Signature Confirmed</span>
+                        </div>
+                        <span style={{ fontSize: "0.7rem", color: "var(--muted-foreground)", display: "block", marginTop: "2px" }}>
+                          Transparent PNG model format
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        type="button"
+                        className="doc-sig-action-btn"
+                        onClick={() => setShowSignatureModal(true)}
+                      >
+                        <PenTool size={13} />
+                        <span>Re-sign</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="doc-sig-action-btn btn-del"
+                        onClick={() => setForm((prev) => ({ ...prev, digital_signature: null }))}
+                      >
+                        <Trash2 size={13} />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--foreground)" }}>
+                        No Signature Attached
+                      </span>
+                      <p style={{ margin: "2px 0 0 0", fontSize: "0.72rem", color: "var(--muted-foreground)" }}>
+                        Click to draw or upload official doctor onboarding signature (PNG)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="doc-signature-trigger-btn"
+                      onClick={() => setShowSignatureModal(true)}
+                    >
+                      <PenTool size={15} />
+                      <span>Signature</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </form>
+
+        {/* Modal Actions */}
+        <div className="zzc-modal-actions" style={{ marginTop: "1.5rem" }}>
+          <button
+            type="button"
+            className="zzc-btn zzc-btn-outline"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="addDoctorForm"
+            className="zzc-btn zzc-btn-primary"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "linear-gradient(135deg, #0d9488 0%, #007c71 100%)",
+              color: "#fff",
+              border: "none",
+              padding: "0 22px",
+              fontWeight: 700,
+              fontSize: "0.88rem",
+              borderRadius: "8px",
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+            disabled={saving}
+          >
+            {saving ? (
+              "Saving…"
+            ) : (
+              <>
+                <Check size={16} strokeWidth={2.5} />
+                <span>Save</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── SIGNATURE PAD MODAL (PNG MODEL) ── */}
+      <SignaturePadModal
+        isOpen={showSignatureModal}
+        onClose={() => setShowSignatureModal(false)}
+        onSave={(pngDataUrl) => setForm((prev) => ({ ...prev, digital_signature: pngDataUrl }))}
+        existingSignature={form.digital_signature}
+      />
+
+      {/* ── CLINIC PHOTO LIGHTBOX PREVIEW ── */}
+      {previewClinicImage && (
+        <div
+          className="attend-preview-lightbox"
+          onClick={() => setPreviewClinicImage(null)}
+          style={{ zIndex: 1000005 }}
+        >
+          <div
+            className="attend-lightbox-card"
+            style={{ maxWidth: 540 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="attend-lightbox-header">
+              <div className="attend-lightbox-title">
+                <Camera size={18} className="camera-icon-teal" />
+                <span>{previewClinicImage.title}</span>
+              </div>
+              <button
+                type="button"
+                className="attend-lightbox-close"
+                onClick={() => setPreviewClinicImage(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="attend-lightbox-body">
+              <img
+                src={previewClinicImage.url}
+                alt="Clinic Preview"
+                style={{ width: "100%", maxHeight: "360px", objectFit: "contain", borderRadius: "10px", background: "#0f172a" }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="zzc-btn zzc-btn-outline"
+                  onClick={() => setPreviewClinicImage(null)}
+                >
+                  Close Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   DOCTOR DETAILS MODAL
+   - Opens when clicking doctor row or "Details" button
+   - Shows focused details only, all background pages blurred
+   - Displays full doctor credentials, clinic verification
+     photos, and official transparent PNG signature
+───────────────────────────────────────────────────────── */
+function DoctorDetailsModal({ doctor, onClose }) {
+  const [previewClinicImage, setPreviewClinicImage] = useState(null);
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.body.classList.add("crm-modal-open");
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.classList.remove("crm-modal-open");
+    };
+  }, []);
+
+  if (!doctor) return null;
+
+  let clinicImages = null;
+  if (doctor.clinic_images) {
+    try {
+      clinicImages =
+        typeof doctor.clinic_images === "string"
+          ? JSON.parse(doctor.clinic_images)
+          : doctor.clinic_images;
+    } catch {
+      clinicImages = null;
+    }
+  }
+
+  const isActive = doctor.is_active === "Yes" || doctor.is_active === true;
+
+  return createPortal(
+    <div
+      className="zzc-modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="zzc-modal doc-details-modal" style={{ maxWidth: 680, maxHeight: "90vh", overflowY: "auto" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <DoctorAvatar name={doctor.name || doctor.doctorName} size={42} />
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 800, color: "var(--foreground)" }}>
+                  {doctor.name || "Doctor Details"}
+                </h3>
+                <span className={"doc-status-badge" + (isActive ? " active" : " inactive")}>
+                  {isActive ? "Active" : "Inactive"}
+                </span>
+              </div>
+              <span style={{ fontSize: "0.8rem", color: "var(--muted-foreground)" }}>
+                ID #{doctor.id} • {doctor.verification_status || "Verified"} Territory Doctor Profile
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "1.3rem",
+              cursor: "pointer",
+              color: "var(--muted-foreground)",
+              padding: "4px 8px",
+              borderRadius: "6px"
+            }}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="doc-details-body">
+          {/* Quick Metrics Bar */}
+          <div className="doc-details-stats-bar">
+            <div className="doc-details-stat-box">
+              <span className="doc-details-stat-label">Experience</span>
+              <strong className="doc-details-stat-val">
+                {doctor.experience_years != null ? `${doctor.experience_years} Years` : "—"}
+              </strong>
+            </div>
+            <div className="doc-details-stat-box">
+              <span className="doc-details-stat-label">Consultation Fee</span>
+              <strong className="doc-details-stat-val" style={{ color: "#0d9488" }}>
+                {doctor.consultation_fee != null ? `₹${doctor.consultation_fee}` : "—"}
+              </strong>
+            </div>
+            <div className="doc-details-stat-box">
+              <span className="doc-details-stat-label">Assigned City</span>
+              <strong className="doc-details-stat-val">
+                {doctor.city || "—"}
+              </strong>
+            </div>
+            <div className="doc-details-stat-box">
+              <span className="doc-details-stat-label">Pin Code</span>
+              <strong className="doc-details-stat-val">
+                {doctor.pincode || "—"}
+              </strong>
+            </div>
+          </div>
+
+          {/* Details Grid */}
+          <div className="doc-details-info-grid">
+            <div className="doc-details-item">
+              <span className="doc-details-label">Qualification</span>
+              <span className="doc-details-value">{doctor.qualification || "—"}</span>
+            </div>
+            <div className="doc-details-item">
+              <span className="doc-details-label">Phone Number</span>
+              <span className="doc-details-value" style={{ fontWeight: 600, color: "var(--primary)" }}>
+                {doctor.phone || "—"}
+              </span>
+            </div>
+            <div className="doc-details-item">
+              <span className="doc-details-label">Clinic / Hospital</span>
+              <span className="doc-details-value" style={{ fontWeight: 600, color: "var(--foreground)" }}>
+                {doctor.clinic_name || doctor.clinic_hospital || "—"}
+              </span>
+            </div>
+            <div className="doc-details-item">
+              <span className="doc-details-label">Facility Type</span>
+              <span className="doc-details-value">
+                {doctor.facility_type || "Clinic"}
+              </span>
+            </div>
+            <div className="doc-details-item" style={{ gridColumn: "1 / -1" }}>
+              <span className="doc-details-label">Specializations</span>
+              <div style={{ marginTop: "4px", display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {doctor.specializations ? (
+                  doctor.specializations.split(",").map((s, idx) => (
+                    <span key={idx} className="rpt-doc-tag" style={{ fontSize: "0.82rem", padding: "3px 10px" }}>
+                      {s.trim()}
+                    </span>
+                  ))
+                ) : (
+                  <span className="doc-muted">—</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Clinic Verification Photos */}
+          <div className="clinic-photos-section" style={{ marginTop: "1.25rem" }}>
+            <div className="clinic-photos-title-row">
+              <div>
+                <h4>
+                  <Building size={16} color="#0d9488" />
+                  <span>Clinic Verification Photos</span>
+                </h4>
+                <p>Verified physical clinic premises</p>
+              </div>
+            </div>
+
+            <div className="clinic-photos-grid">
+              {/* Inside Clinic Image */}
+              <div className={`clinic-photo-card ${clinicImages?.inside ? "has-photo" : ""}`}>
+                {clinicImages?.inside ? (
+                  <>
+                    <img
+                      src={clinicImages.inside}
+                      alt="Inside Clinic"
+                      className="clinic-photo-thumb"
+                    />
+                    <span className="clinic-photo-tag">Inside Clinic</span>
+                    <div className="clinic-photo-overlay">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewClinicImage({ url: clinicImages.inside, title: "Inside Clinic Photo" })}
+                      >
+                        <Eye size={12} /> View
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--muted-foreground)" }}>
+                    <Building size={28} style={{ opacity: 0.35, marginBottom: "6px" }} />
+                    <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>No Inside Photo</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Outside Clinic Image */}
+              <div className={`clinic-photo-card ${clinicImages?.outside ? "has-photo" : ""}`}>
+                {clinicImages?.outside ? (
+                  <>
+                    <img
+                      src={clinicImages.outside}
+                      alt="Outside Clinic"
+                      className="clinic-photo-thumb"
+                    />
+                    <span className="clinic-photo-tag">Outside Clinic</span>
+                    <div className="clinic-photo-overlay">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewClinicImage({ url: clinicImages.outside, title: "Outside Clinic Photo" })}
+                      >
+                        <Eye size={12} /> View
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--muted-foreground)" }}>
+                    <Building2 size={28} style={{ opacity: 0.35, marginBottom: "6px" }} />
+                    <div style={{ fontSize: "0.8rem", fontWeight: 600 }}>No Outside Photo</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Digital Signature Model Section */}
+          <div className="doc-signature-section" style={{ marginTop: "1.25rem" }}>
+            <div className="clinic-photos-title-row">
+              <div>
+                <h4>
+                  <PenTool size={16} color="#0d9488" />
+                  <span>Doctor Official Signature</span>
+                </h4>
+                <p>Digital signature verified on territory database (PNG Model)</p>
+              </div>
+            </div>
+
+            <div className={`doc-signature-card ${doctor.digital_signature ? "has-sig" : ""}`}>
+              {doctor.digital_signature ? (
+                <div className="doc-signature-left" style={{ width: "100%", justifyContent: "space-between" }}>
+                  <img
+                    src={doctor.digital_signature}
+                    alt="Doctor Signature"
+                    className="doc-signature-preview-img"
+                  />
+                  <div>
+                    <div className="doc-signature-badge">
+                      <Check size={14} strokeWidth={2.5} />
+                      <span>Verified PNG Signature</span>
+                    </div>
+                    <span style={{ fontSize: "0.72rem", color: "var(--muted-foreground)", display: "block", marginTop: "3px" }}>
+                      Authenticated digital model
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: "0.5rem 0", color: "var(--muted-foreground)", fontSize: "0.8rem" }}>
+                  No digital signature captured for this doctor yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer Actions */}
+        <div className="zzc-modal-actions" style={{ marginTop: "1.5rem" }}>
+          <button
+            type="button"
+            className="zzc-btn zzc-btn-primary"
+            onClick={onClose}
+            style={{
+              padding: "0 24px",
+              background: "linear-gradient(135deg, #0d9488 0%, #007c71 100%)",
+              border: "none",
+              color: "#fff",
+              fontWeight: 700
+            }}
+          >
+            Close Details
+          </button>
+        </div>
+      </div>
+
+      {/* Clinic Photo Lightbox Preview */}
+      {previewClinicImage && (
+        <div
+          className="attend-preview-lightbox"
+          onClick={() => setPreviewClinicImage(null)}
+          style={{ zIndex: 1000005 }}
+        >
+          <div
+            className="attend-lightbox-card"
+            style={{ maxWidth: 540 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="attend-lightbox-header">
+              <div className="attend-lightbox-title">
+                <Camera size={18} className="camera-icon-teal" />
+                <span>{previewClinicImage.title}</span>
+              </div>
+              <button
+                type="button"
+                className="attend-lightbox-close"
+                onClick={() => setPreviewClinicImage(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="attend-lightbox-body">
+              <img
+                src={previewClinicImage.url}
+                alt="Clinic Preview"
+                style={{ width: "100%", maxHeight: "360px", objectFit: "contain", borderRadius: "10px", background: "#0f172a" }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="zzc-btn zzc-btn-outline"
+                  onClick={() => setPreviewClinicImage(null)}
+                >
+                  Close Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+}
+
+function DoctorsView({ data, execId }) {
   const [search, setSearch] = useState("");
   const [filterPincode, setFilterPincode] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [showAddDoctorModal, setShowAddDoctorModal] = useState(false);
+  const [selectedDoctorDetails, setSelectedDoctorDetails] = useState(null);
+  const [successToast, setSuccessToast] = useState("");
 
   const exec = data.executives.find((e) => e.id === execId) || data.executives[0];
 
@@ -2433,17 +3627,13 @@ function DoctorsView({ data, execId, role }) {
 
   const myDoctors = useMemo(() => {
     if (!data.doctors || data.doctors.length === 0) return [];
-    let list = data.doctors.filter((d) => myPincodes.has(d.pincode));
+    // 1. Doctors matching assigned pincodes
+    let list = myPincodes.size > 0 ? data.doctors.filter((d) => myPincodes.has(d.pincode)) : [];
+    // 2. If no coverage pincodes assigned or no match, match by executive's territory
     if (list.length === 0 && exec) {
-      list = data.doctors.filter((d) => {
-        const docCity = (d.city || "").toLowerCase().trim();
-        const execCity = (exec.city || "").toLowerCase().trim();
-        const execRegion = (exec.region || "").toLowerCase().trim();
-        const isCityMatch = execCity && (docCity === execCity || (docCity.includes("bang") && execCity.includes("bang")));
-        const isRegionMatch = execRegion && (docCity.includes(execRegion) || (d.name || "").toLowerCase().includes(execRegion));
-        return isCityMatch || isRegionMatch;
-      });
+      list = data.doctors.filter((d) => matchesExecutiveTerritory(d, exec, myPincodes));
     }
+    // 3. Fallback to all available doctors so executive is never blocked
     if (list.length === 0) {
       list = data.doctors;
     }
@@ -2484,14 +3674,29 @@ function DoctorsView({ data, execId, role }) {
   return (
     <div className="doc-view-wrap">
 
-      {/* ── PAGE TITLE — same pattern as Reports ── */}
-      <div className="crm-page-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>Doctors in My Region</h2>
-        {role === "executive" && (
-          <button className="rpt-btn-primary" onClick={() => setIsAddOpen(true)}>
-            + Add Doctor
-          </button>
-        )}
+      {/* ── SUCCESS TOAST ── */}
+      {successToast && (
+        <div className="rpt-submit-toast" style={{ marginBottom: "0.5rem" }}>
+          <div className="rpt-submit-toast-icon">✓</div>
+          <div>
+            <strong>Doctor Added</strong>
+            <p>{successToast}</p>
+          </div>
+          <button className="rpt-call-close" onClick={() => setSuccessToast("")} type="button">✕</button>
+        </div>
+      )}
+
+      {/* ── PAGE TITLE & + ADD DOCTOR BUTTON ── */}
+      <div className="crm-page-title doc-header-row">
+        <h2 style={{ margin: 0 }}>Doctors in My Region</h2>
+        <button
+          type="button"
+          className="doc-add-btn"
+          onClick={() => setShowAddDoctorModal(true)}
+        >
+          <span style={{ fontSize: "1.25rem", fontWeight: "900", lineHeight: 1 }}>+</span>
+          <span>Add Doctor</span>
+        </button>
       </div>
 
       {/* ── STAT PILLS ── */}
@@ -2500,8 +3705,8 @@ function DoctorsView({ data, execId, role }) {
           <div className="stat-icon orange">⊞</div>
           <div>
             <span>Pin Codes</span>
-            <strong>{pincodeList.length || myPincodes.size}</strong>
-            <small>Assigned coverage</small>
+            <strong>{myPincodes.size || pincodeList.length}</strong>
+            <small>{myPincodes.size > 0 ? "Assigned coverage" : "In my Region"}</small>
           </div>
         </div>
         <div className="doc-stat-card">
@@ -2584,13 +3789,19 @@ function DoctorsView({ data, execId, role }) {
                 <th>City</th>
                 <th>Pin Code</th>
                 <th>Status</th>
+                <th style={{ textAlign: "center" }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((doc, i) => {
                 const isActive = doc.is_active === "Yes" || doc.is_active === true;
                 return (
-                  <tr key={doc.id}>
+                  <tr
+                    key={doc.id}
+                    className="doc-table-row"
+                    onClick={() => setSelectedDoctorDetails(doc)}
+                    title="Click row to view full doctor details"
+                  >
                     <td className="doc-row-num">{i + 1}</td>
                     <td>
                       <div>
@@ -2619,6 +3830,17 @@ function DoctorsView({ data, execId, role }) {
                         {isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
+                    <td style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="doc-details-view-btn"
+                        onClick={() => setSelectedDoctorDetails(doc)}
+                        title="View Doctor Details"
+                      >
+                        <StylizedEyeIcon width={18} height={11} live={true} />
+                        <span>Details</span>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -2626,14 +3848,28 @@ function DoctorsView({ data, execId, role }) {
           </table>
         </div>
       )}
-
-      {isAddOpen && (
+      {/* ── ADD DOCTOR MODAL ── */}
+      {showAddDoctorModal && (
         <AddDoctorModal
-          onClose={() => setIsAddOpen(false)}
-          onSave={() => {
-            setIsAddOpen(false);
-            if (data.reload) data.reload();
+          defaultCity={exec?.city || ""}
+          availablePincodes={Array.from(myPincodes)}
+          onClose={() => setShowAddDoctorModal(false)}
+          onDoctorAdded={async (newDoc) => {
+            if (data?.reload) {
+              await data.reload();
+            }
+            setShowAddDoctorModal(false);
+            setSuccessToast(`Doctor "${newDoc?.name || "New Doctor"}" submitted for Admin approval! Login credentials created for Doctor Website.`);
+            setTimeout(() => setSuccessToast(""), 5000);
           }}
+        />
+      )}
+
+      {/* ── DOCTOR DETAILS MODAL (Focused details, all background pages blurred) ── */}
+      {selectedDoctorDetails && (
+        <DoctorDetailsModal
+          doctor={selectedDoctorDetails}
+          onClose={() => setSelectedDoctorDetails(null)}
         />
       )}
     </div>
@@ -2768,8 +4004,15 @@ function PlanTargetPanel({ planStats, monthLabel, onGoToPlan }) {
 function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, onTeamStatsLoaded }) {
   const [teamPlans, setTeamPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const activeMonth = monthKey || PLAN_MONTH_KEY;
   const activeMonthLabel = monthLabel || formatMonthLabel(activeMonth);
+
+  useEffect(() => {
+    const t = setTimeout(() => setCurrentPage(1), 0);
+    return () => clearTimeout(t);
+  }, [execsInScope, activeMonth]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2813,7 +4056,7 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
           const tDone = results.reduce((s, r) => s + (r.stats?.completed || 0), 0);
           const hasAny = results.some((r) => r.stats?.has_plan);
           const pct = tTarget > 0 ? Math.round((tDone / tTarget) * 100) : 0;
-          onTeamStatsLoaded({ totalTarget: tTarget, totalDone: tDone, hasAnyPlan: hasAny, pct });
+          onTeamStatsLoaded({ totalTarget: tTarget, totalDone: tDone, hasAnyPlan: hasAny, pct, results });
         }
       }
     });
@@ -2831,6 +4074,30 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
     : overallPct >= 50
       ? "oklch(70% .16 75)"
       : "var(--destructive)";
+
+  const totalExecs = teamPlans.length;
+  const effectivePageSize = pageSize === "all" ? Math.max(1, totalExecs) : Number(pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalExecs / effectivePageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const displayedPlans = useMemo(() => {
+    if (pageSize === "all") return teamPlans;
+    const start = (validCurrentPage - 1) * effectivePageSize;
+    return teamPlans.slice(start, start + effectivePageSize);
+  }, [teamPlans, validCurrentPage, effectivePageSize, pageSize]);
+
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (validCurrentPage <= 3) {
+      return [1, 2, 3, "...", totalPages];
+    }
+    if (validCurrentPage >= totalPages - 2) {
+      return [1, "...", totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, "...", validCurrentPage, "...", totalPages];
+  }, [validCurrentPage, totalPages]);
 
   return (
     <div className="panel pln-target-panel">
@@ -2899,51 +4166,127 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
         ) : teamPlans.length === 0 ? (
           <p className="pln-hint" style={{ padding: ".5rem 0" }}>No executives in scope.</p>
         ) : (
-          teamPlans.map(({ exec, stats }) => {
-            const statusCls = {
-              Approved: "pln-planstatus-approved",
-              Submitted: "pln-planstatus-submitted",
-              Draft: "pln-planstatus-draft",
-              Rejected: "pln-planstatus-rejected",
-              "In Progress": "pln-planstatus-in-progress",
-              Completed: "pln-planstatus-completed",
-            }[stats.plan_status] ?? "pln-planstatus-draft";
+          <>
+            {displayedPlans.map(({ exec, stats }) => {
+              const statusCls = {
+                Approved: "pln-planstatus-approved",
+                Submitted: "pln-planstatus-submitted",
+                Draft: "pln-planstatus-draft",
+                Rejected: "pln-planstatus-rejected",
+                "In Progress": "pln-planstatus-in-progress",
+                Completed: "pln-planstatus-completed",
+              }[stats.plan_status] ?? "pln-planstatus-draft";
 
-            return (
-              <div key={exec.id} className="pln-team-exec-row">
-                <div className="pln-team-exec-info">
-                  <div className="person-avatar">{exec.name?.charAt(0) || "?"}</div>
-                  <div>
-                    <strong>{exec.name}</strong>
-                    <small>{exec.region || exec.city || "—"}</small>
+              return (
+                <div key={exec.id} className="pln-team-exec-row">
+                  <div className="pln-team-exec-info">
+                    <div className="person-avatar">{exec.name?.charAt(0) || "?"}</div>
+                    <div>
+                      <strong>{exec.name}</strong>
+                      <small>{exec.region || exec.city || "—"}</small>
+                    </div>
                   </div>
-                </div>
-                <div className="pln-team-exec-stats">
-                  <span>
-                    <strong>{stats.completed}</strong> / {stats.total_doctors || 0} ({stats.completion_pct}%)
-                  </span>
-                  <div className="pln-team-exec-bar">
-                    <div
-                      className="pln-team-exec-fill"
-                      style={{
-                        width: `${Math.min(100, stats.completion_pct)}%`,
-                        background: stats.completion_pct >= 80 ? "var(--chart-1)" : stats.completion_pct >= 50 ? "oklch(70% .16 75)" : "var(--primary)"
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="pln-team-exec-badge-wrap">
-                  {stats.has_plan ? (
-                    <span className={"pln-planstatus " + statusCls}>
-                      {stats.plan_status}
+                  <div className="pln-team-exec-stats">
+                    <span>
+                      <strong>{stats.completed}</strong> / {stats.total_doctors || 0} ({stats.completion_pct}%)
                     </span>
-                  ) : (
-                    <span className="doc-status-badge inactive">No Plan</span>
+                    <div className="pln-team-exec-bar">
+                      <div
+                        className="pln-team-exec-fill"
+                        style={{
+                          width: `${Math.min(100, stats.completion_pct)}%`,
+                          background: stats.completion_pct >= 80 ? "var(--chart-1)" : stats.completion_pct >= 50 ? "oklch(70% .16 75)" : "var(--primary)"
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="pln-team-exec-badge-wrap">
+                    {stats.has_plan ? (
+                      <span className={"pln-planstatus " + statusCls}>
+                        {stats.plan_status}
+                      </span>
+                    ) : (
+                      <span className="doc-status-badge inactive">No Plan</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {totalExecs > 0 && (
+              <div className="pln-team-pagination-bar">
+                <div className="pln-team-page-info">
+                  <span>
+                    Showing <strong>{(validCurrentPage - 1) * effectivePageSize + 1}</strong>–<strong>{Math.min(validCurrentPage * effectivePageSize, totalExecs)}</strong> of <strong>{totalExecs}</strong>
+                  </span>
+                  {totalPages > 1 && (
+                    <span className="pln-team-page-pill">Page {validCurrentPage} of {totalPages}</span>
                   )}
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="pln-team-page-controls">
+                    <button
+                      type="button"
+                      className="pln-page-nav-btn"
+                      disabled={validCurrentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      title="Previous Page"
+                    >
+                      <ChevronLeft size={13} />
+                      <span>Prev</span>
+                    </button>
+
+                    <div className="pln-page-numbers">
+                      {pageNumbers.map((p, idx) =>
+                        p === "..." ? (
+                          <span key={`dots-${idx}`} className="pln-page-dots">…</span>
+                        ) : (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`pln-page-num-btn ${validCurrentPage === p ? "active" : ""}`}
+                            onClick={() => setCurrentPage(p)}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="pln-page-nav-btn"
+                      disabled={validCurrentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      title="Next Page"
+                    >
+                      <span>Next</span>
+                      <ChevronRight size={13} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="pln-team-page-size">
+                  <label htmlFor="pln_exec_size">Per page:</label>
+                  <select
+                    id="pln_exec_size"
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(e.target.value === "all" ? "all" : Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value={4}>4</option>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value="all">All ({totalExecs})</option>
+                  </select>
+                </div>
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
     </div>
@@ -3005,6 +4348,7 @@ function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan })
         <Stat icon="⚕" title="Doctors In Area" value={pincodeRows.reduce((s, r) => s + r.doctorCount, 0)} text="Across my pin codes" type="red" />
       </div>
 
+
       {/* ── Top Grid: Tasks by Priority side-by-side with Plan Target Panel ── */}
       <div className="two-columns">
         <Chart title="My Tasks by Priority" categories={["Low", "Medium", "High"]} targets={totals} achieved={doneByPriority} />
@@ -3027,61 +4371,225 @@ function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan })
 }
 
 /* ─────────────────────────────────────────────────────────
+   EXECUTIVE PERFORMANCE TABLE (With Pagination Controls)
+───────────────────────────────────────────────────────── */
+function ExecutivePerformanceTable({ rows }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
+  const totalRecords = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const validPage = Math.min(currentPage, totalPages);
+
+  // Auto-reset to page 1 whenever row count or region filter changes
+  useEffect(() => {
+    const t = setTimeout(() => setCurrentPage(1), 0);
+    return () => clearTimeout(t);
+  }, [rows.length]);
+
+  const displayedRows = useMemo(() => {
+    const start = (validPage - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }, [rows, validPage, pageSize]);
+
+  return (
+    <div className="panel table-panel">
+      <div className="panel-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2>Executive Performance</h2>
+        {totalRecords > 0 && (
+          <span className="pln-team-page-pill" style={{ fontSize: "0.7rem" }}>
+            {totalRecords} Executive{totalRecords !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Executive</th>
+            <th>Target Visits</th>
+            <th>Done</th>
+            <th>%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {displayedRows.length === 0 ? (
+            <tr>
+              <td colSpan={4} style={{ color: "#7f8b98", textAlign: "center", padding: "1.5rem" }}>
+                No executives found in this region
+              </td>
+            </tr>
+          ) : (
+            displayedRows.map((row, i) => {
+              const pctVal = parseInt(row[3]) || 0;
+              const barColor = pctVal >= 70 ? "#10b981" : pctVal >= 40 ? "#f59e0b" : "#0d9488";
+              return (
+                <tr key={i}>
+                  <td><strong>{row[0]}</strong></td>
+                  <td>{row[1]}</td>
+                  <td><span style={{ color: "#059669", fontWeight: 700 }}>{row[2]}</span></td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <div style={{ flex: 1, height: "6px", background: "var(--secondary, #f1f5f9)", borderRadius: "99px", overflow: "hidden", minWidth: "40px" }}>
+                        <div style={{ width: `${Math.min(100, pctVal)}%`, height: "100%", background: barColor, borderRadius: "inherit" }} />
+                      </div>
+                      <span style={{ fontWeight: 700, minWidth: "34px", fontSize: "0.75rem" }}>{row[3]}</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="pln-team-pagination-bar" style={{ marginTop: "0.5rem" }}>
+          <div className="pln-team-page-info">
+            <span>
+              Showing <strong>{(validPage - 1) * pageSize + 1}</strong>–<strong>{Math.min(validPage * pageSize, totalRecords)}</strong> of <strong>{totalRecords}</strong>
+            </span>
+            <span className="pln-team-page-pill">Page {validPage} of {totalPages}</span>
+          </div>
+
+          <div className="pln-team-page-controls">
+            <button
+              type="button"
+              className="pln-page-nav-btn"
+              disabled={validPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              title="Previous Page"
+            >
+              <ChevronLeft size={13} />
+              <span>Prev</span>
+            </button>
+
+            <div className="pln-page-numbers">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pln-page-num-btn ${validPage === p ? "active" : ""}`}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="pln-page-nav-btn"
+              disabled={validPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              title="Next Page"
+            >
+              <span>Next</span>
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
    TEAM DASHBOARD (Managers & Regional Managers)
 ───────────────────────────────────────────────────────── */
 function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToPlan }) {
-  const { executives, coverage, tasks, doctors } = data;
-  const execsInScope = useMemo(() =>
-    region ? executives.filter((e) => e.region === region) : executives,
-    [region, executives]);
+  const { executives, doctors } = data;
+
+  const normalizeReg = (r) => (r || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+
+  const execsInScope = useMemo(() => {
+    if (!region) return executives;
+    const rNorm = normalizeReg(region);
+    return executives.filter((e) => normalizeReg(e.region) === rNorm);
+  }, [executives, region]);
+
   const [teamStatsSummary, setTeamStatsSummary] = useState(null);
 
-  const execStats = useMemo(() => execsInScope.map((exec) => {
-    const pincodes = new Set(coverage.filter((c) => c.executive_id === exec.id).map((c) => c.pincode));
-    const myTasks = tasks.filter((t) => t.pincode && pincodes.has(t.pincode));
-    const done = myTasks.filter((t) => t.status === "done").length;
-    const pct = myTasks.length > 0 ? Math.round((done / myTasks.length) * 100) : 0;
-    return { exec, pincodes, taskCount: myTasks.length, done, pct };
-  }), [execsInScope, coverage, tasks]);
-  const scopePincodes = [...new Set(coverage.filter((c) => execsInScope.some((e) => e.id === c.executive_id)).map((c) => c.pincode))];
-  const scopeTasks = tasks.filter((t) => !t.pincode || scopePincodes.includes(t.pincode));
-  const totalDone = scopeTasks.filter((t) => t.status === "done").length;
-  const totalOpen = scopeTasks.length - totalDone;
-  const overallPct = scopeTasks.length > 0 ? Math.round((totalDone / scopeTasks.length) * 100) : 0;
-  const scopeDoctors = doctors.filter((d) => scopePincodes.includes(d.pincode)).length;
-  const tableRows = execStats.slice(0, 6).map((r) => [r.exec.name, r.taskCount, r.done, `${r.pct}%`]);
-  const categories = execStats.slice(0, 6).map((r) => r.exec.name);
-  const targets = execStats.slice(0, 6).map((r) => r.taskCount);
-  const achieved = execStats.slice(0, 6).map((r) => r.done);
+  // Derived metrics from actual team plans loaded in TeamPlanTargetPanel
+  const totalPlannedVisits = teamStatsSummary?.totalTarget || 0;
+  const totalDoneVisits = teamStatsSummary?.totalDone || 0;
+  const totalPendingVisits = Math.max(0, totalPlannedVisits - totalDoneVisits);
+  const totalInProgress = useMemo(() => {
+    if (!teamStatsSummary?.results) return 0;
+    return teamStatsSummary.results.filter(
+      (r) => (parseInt(r.stats?.completion_pct) || 0) > 0 && (parseInt(r.stats?.completion_pct) || 0) < 100
+    ).length;
+  }, [teamStatsSummary]);
+  const overallPct = teamStatsSummary?.pct || 0;
+
+  // Real rows for Executive Performance Table
+  const performanceRows = useMemo(() => {
+    if (teamStatsSummary?.results && teamStatsSummary.results.length > 0) {
+      return teamStatsSummary.results.map((r) => [
+        r.exec.name,
+        r.stats?.total_doctors || r.stats?.planned_visits || 0,
+        r.stats?.completed || 0,
+        `${r.stats?.completion_pct ?? 0}%`,
+      ]);
+    }
+    return execsInScope.map((exec) => [exec.name, 0, 0, "0%"]);
+  }, [teamStatsSummary, execsInScope]);
+
+  // Chart data from actual loaded executive stats
+  const chartData = useMemo(() => {
+    const list = teamStatsSummary?.results || [];
+    const slice = list.slice(0, 6);
+    return {
+      categories: slice.length ? slice.map((r) => r.exec.name) : (execsInScope.slice(0, 6).map((e) => e.name) || ["—"]),
+      targets: slice.length ? slice.map((r) => r.stats?.total_doctors || r.stats?.planned_visits || 0) : [0],
+      achieved: slice.length ? slice.map((r) => r.stats?.completed || 0) : [0],
+    };
+  }, [teamStatsSummary, execsInScope]);
 
   return (
     <>
       <div className="stats">
         <Stat icon="♙" title="My Executives" value={execsInScope.length} text={scopeLabel} type="blue" />
-        <Stat icon="◎" title="Total Tasks" value={scopeTasks.length} text="This period" type="green" />
+        <Stat icon="◎" title="Total Plan Visits" value={totalPlannedVisits} text={monthLabel || "This Month"} type="green" />
         {teamStatsSummary?.hasAnyPlan ? (
           <Stat
             icon="🗓"
             title="Team Plan Completion"
-            value={`${teamStatsSummary.pct}%`}
-            text={`${teamStatsSummary.totalDone} / ${teamStatsSummary.totalTarget} visits`}
+            value={`${overallPct}%`}
+            text={`${totalDoneVisits} / ${totalPlannedVisits} visits`}
             type="orange"
           />
         ) : (
-          <Stat icon="▣" title="Pin Codes" value={scopePincodes.length} text="Covered" type="orange" />
+          <Stat icon="▣" title="Doctors in Territory" value={doctors.length} text="Covered" type="orange" />
         )}
-        <Stat icon="₹" title="Task Completion" value={`${overallPct}%`} text={`${scopeDoctors} doctors in scope`} type="red" />
+        <Stat icon="₹" title="Visit Completion" value={`${overallPct}%`} text={`${totalDoneVisits} completed`} type="red" />
       </div>
 
       {/* ── Top Grid: Team Target vs Achievement side-by-side with Team Plan Target Panel ── */}
       <div className="two-columns">
-        <Chart title="Team Target vs Achievement" categories={categories.length ? categories : ["—"]} targets={targets.length ? targets : [0]} achieved={achieved.length ? achieved : [0]} />
-        <TeamPlanTargetPanel execsInScope={execsInScope} monthKey={monthKey} monthLabel={monthLabel} onGoToPlan={onGoToPlan} onTeamStatsLoaded={setTeamStatsSummary} />
+        <Chart
+          title="Team Target vs Achievement"
+          categories={chartData.categories}
+          targets={chartData.targets}
+          achieved={chartData.achieved}
+        />
+        <TeamPlanTargetPanel
+          execsInScope={execsInScope}
+          monthKey={monthKey}
+          monthLabel={monthLabel}
+          onGoToPlan={onGoToPlan}
+          onTeamStatsLoaded={setTeamStatsSummary}
+        />
       </div>
 
       <div className="two-columns">
-        <Achievement percentage={`${overallPct}%`} achieved={totalDone} progress={0} pending={totalOpen} />
-        <DashTable title="Executive Performance" headers={["Executive", "Tasks", "Done", "%"]} rows={tableRows} />
+        <Achievement
+          percentage={`${overallPct}%`}
+          achieved={totalDoneVisits}
+          progress={totalInProgress}
+          pending={totalPendingVisits}
+        />
+        <ExecutivePerformanceTable rows={performanceRows} />
       </div>
     </>
   );
@@ -3103,6 +4611,8 @@ const ROLE_TITLES = {
 };
 
 const SECTION_TITLES = {
+  attendance: "Attendance & Shift Punch",
+  attendance_report: "Attendance Report",
   dashboard: "Dashboard",
   doctors: "Doctors",
   plan: "Plan",
@@ -3110,14 +4620,129 @@ const SECTION_TITLES = {
   reports: "Reports",
 };
 
-export default function SalesCrm({ role, user, onExit }) {
+export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
   const data = useSalesData();
-  const execId = role === ROLES.EXECUTIVE ? user?.id : null;
-  const managerId = role === ROLES.MANAGER ? user?.id : null;
-  const regionalId = role === ROLES.REGIONAL ? user?.id : null;
+  const [execId, setExecId] = useState(() => {
+    if (initialUser?.id) return initialUser.id;
+    try {
+      const prefId = localStorage.getItem("zippy_crm_preferred_exec_id");
+      if (prefId) return Number(prefId);
+      const authStr = localStorage.getItem("zippy_crm_active_auth");
+      if (authStr) {
+        const auth = JSON.parse(authStr);
+        if (auth?.role === "executive" && auth?.user?.id) {
+          return auth.user.id;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return null;
+  });
+  const [managerId, setManagerId] = useState(() => {
+    if (role === "manager" && initialUser?.id) return initialUser.id;
+    return null;
+  });
+  const [regionalId, setRegionalId] = useState(() => {
+    if (role === "regional" && initialUser?.id) return initialUser.id;
+    return null;
+  });
   const [region, setRegion] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("dashboard");
+  const [loginModal, setLoginModal] = useState({ isOpen: false, role: "executive" });
+  const [activeSection, setActiveSection] = useState(() => {
+    try {
+      const hash = window.location.hash.replace("#", "");
+      if (["attendance", "attendance_report", "dashboard", "doctors", "plan", "approvals", "reports"].includes(hash)) {
+        // Managers and regional managers should not land on attendance
+        if ((role === ROLES.MANAGER || role === ROLES.REGIONAL) && hash === "attendance") {
+          return "dashboard";
+        }
+        return hash;
+      }
+    } catch {
+      /* ignore */
+    }
+    // Default: executives start at Attendance, managers/regional start at Dashboard
+    return (role === ROLES.MANAGER || role === ROLES.REGIONAL) ? "dashboard" : "attendance";
+  });
+
+
+  const handleSelectSection = (sec) => {
+    setActiveSection(sec);
+    try {
+      window.location.hash = sec;
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => {
+    let t;
+    if (initialUser?.id) {
+      t = setTimeout(() => {
+        if (role === ROLES.EXECUTIVE) setExecId(initialUser.id);
+        if (role === ROLES.MANAGER) setManagerId(initialUser.id);
+        if (role === ROLES.REGIONAL) setRegionalId(initialUser.id);
+      }, 0);
+    }
+    return () => clearTimeout(t);
+  }, [initialUser, role]);
+
+  useEffect(() => {
+    let t;
+    if (role === ROLES.EXECUTIVE && data.executives.length) {
+      let targetId = null;
+      try {
+        const prefId = localStorage.getItem("zippy_crm_preferred_exec_id");
+        if (prefId) {
+          const match = data.executives.find((e) => String(e.id) === String(prefId));
+          if (match) {
+            targetId = match.id;
+          }
+        }
+        if (!targetId) {
+          const authStr = localStorage.getItem("zippy_crm_active_auth");
+          if (authStr) {
+            const auth = JSON.parse(authStr);
+            if (auth?.role === ROLES.EXECUTIVE && auth?.user?.id) {
+              const match = data.executives.find((e) => e.id === auth.user.id);
+              if (match) {
+                targetId = match.id;
+              }
+            }
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+      if (!targetId && !execId) {
+        // Default to latest added executive (newest record in database)
+        const latest = data.executives[data.executives.length - 1];
+        if (latest?.id) {
+          targetId = latest.id;
+        }
+      }
+      if (targetId && targetId !== execId) {
+        t = setTimeout(() => setExecId(targetId), 0);
+      }
+    }
+    return () => clearTimeout(t);
+  }, [data.executives, role, execId]);
+
+  useEffect(() => {
+    if (!managerId && data.salesManagers.length) {
+      const t = setTimeout(() => setManagerId(data.salesManagers[0].id), 0);
+      return () => clearTimeout(t);
+    }
+  }, [data.salesManagers, managerId]);
+
+  useEffect(() => {
+    if (!regionalId && data.regionalManagers.length) {
+      const t = setTimeout(() => setRegionalId(data.regionalManagers[0].id), 0);
+      return () => clearTimeout(t);
+    }
+  }, [data.regionalManagers, regionalId]);
 
   useEffect(() => {
     let t;
@@ -3125,6 +4750,8 @@ export default function SalesCrm({ role, user, onExit }) {
       t = setTimeout(() => setActiveSection("approvals"), 0);
     } else if (role === ROLES.EXECUTIVE && activeSection === "approvals") {
       t = setTimeout(() => setActiveSection("plan"), 0);
+    } else if (role === ROLES.EXECUTIVE && activeSection === "attendance_report") {
+      t = setTimeout(() => setActiveSection("attendance"), 0);
     }
     return () => clearTimeout(t);
   }, [role, activeSection]);
@@ -3137,22 +4764,70 @@ export default function SalesCrm({ role, user, onExit }) {
   // usePlanStats is a lightweight hook: just one GET /plan-stats/{id} call
   const { stats: planStats } = usePlanStats(execId, selectedMonth);
 
-  const regions = useMemo(
-    () => [...new Set(data.executives.map((e) => e.region).filter(Boolean))],
-    [data.executives]
-  );
+  const normalizeRegionStr = (r) => (r || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+
+  const regions = useMemo(() => {
+    const raw = data.executives.map((e) => e.region).filter(Boolean);
+    const seen = new Set();
+    const list = [];
+    raw.forEach((r) => {
+      const norm = normalizeRegionStr(r);
+      if (!seen.has(norm)) {
+        seen.add(norm);
+        if (norm.includes("tamil")) list.push("Tamil Nadu");
+        else if (norm.includes("karnat")) list.push("Karnataka");
+        else if (norm.includes("assam")) list.push("Assam");
+        else list.push(r.trim());
+      }
+    });
+    return list.sort();
+  }, [data.executives]);
 
   const currentTableKey = ROLE_TABLE_KEY[role];
-  const currentRecord =
-    role === ROLES.EXECUTIVE
-      ? data.executives.find((e) => e.id === execId)
-      : role === ROLES.MANAGER
-        ? data.salesManagers.find((m) => m.id === managerId)
-        : data.regionalManagers.find((r) => r.id === regionalId);
+  const currentRecord = useMemo(() => {
+    if (role === ROLES.EXECUTIVE) {
+      const match = data.executives.find((e) => String(e.id) === String(execId));
+      if (match) return match;
+      if (initialUser && (String(initialUser.id) === String(execId) || !execId)) return initialUser;
+      try {
+        const authStr = localStorage.getItem("zippy_crm_active_auth");
+        if (authStr) {
+          const auth = JSON.parse(authStr);
+          if (auth?.role === ROLES.EXECUTIVE && auth?.user) {
+            if (String(auth.user.id) === String(execId) || !execId) return auth.user;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+      return initialUser || data.executives[data.executives.length - 1] || null;
+    }
+    if (role === ROLES.MANAGER) {
+      const match = data.salesManagers.find((m) => String(m.id) === String(managerId));
+      if (match) return match;
+      if (initialUser && (String(initialUser.id) === String(managerId) || !managerId)) return initialUser;
+      return initialUser || data.salesManagers[0] || null;
+    }
+    if (role === ROLES.REGIONAL) {
+      const match = data.regionalManagers.find((r) => String(r.id) === String(regionalId));
+      if (match) return match;
+      if (initialUser && (String(initialUser.id) === String(regionalId) || !regionalId)) return initialUser;
+      return initialUser || data.regionalManagers[0] || null;
+    }
+    return null;
+  }, [role, data.executives, data.salesManagers, data.regionalManagers, execId, managerId, regionalId, initialUser]);
 
-  function initialsOf(name) {
-    if (!name) return "?";
-    return name.trim().charAt(0).toUpperCase();
+  function handleLoginModalSuccess({ role: targetRole, user }) {
+    setLoginModal({ isOpen: false, role: targetRole });
+    handleSelectSection(targetRole === ROLES.EXECUTIVE ? "attendance" : "dashboard");
+    onSwitchRole(targetRole);
+    if (targetRole === ROLES.EXECUTIVE && user?.id) {
+      setExecId(user.id);
+    } else if (targetRole === ROLES.MANAGER && user?.id) {
+      setManagerId(user.id);
+    } else if (targetRole === ROLES.REGIONAL && user?.id) {
+      setRegionalId(user.id);
+    }
   }
 
   const pageTitle = `${ROLE_TITLES[role]} — ${SECTION_TITLES[activeSection] ?? "Dashboard"}`;
@@ -3164,49 +4839,74 @@ export default function SalesCrm({ role, user, onExit }) {
           <div className="brand-logo"><img src={logo} alt="Zenve Zippy" /></div>
           <div>
             <div className="brand-name">Zenve Zippy CRM</div>
-            <div className="brand-sub">Sales CRM</div>
+            <div className="brand-sub">
+              <span style={{ color: "#10b981", marginRight: "4px" }}>●</span> SALES CRM
+            </div>
           </div>
         </div>
 
         <nav>
+          {role === ROLES.EXECUTIVE && (
+            <button
+              className={"nav-item" + (activeSection === "attendance" ? " active" : "")}
+              onClick={() => handleSelectSection("attendance")}
+            >
+              <Clock size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
+              Attendance
+            </button>
+          )}
+          {role !== ROLES.EXECUTIVE && (
+            <button
+              className={"nav-item" + (activeSection === "attendance_report" ? " active" : "")}
+              onClick={() => handleSelectSection("attendance_report")}
+            >
+              <UserCheck size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
+              Attendance Report
+            </button>
+          )}
           <button
             className={"nav-item" + (activeSection === "dashboard" ? " active" : "")}
-            onClick={() => setActiveSection("dashboard")}
+            onClick={() => handleSelectSection("dashboard")}
           >
+            <LayoutGrid size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
             Dashboard
           </button>
           <button
             className={"nav-item" + (activeSection === "doctors" ? " active" : "")}
-            onClick={() => setActiveSection("doctors")}
+            onClick={() => handleSelectSection("doctors")}
           >
+            <Stethoscope size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
             Doctors
           </button>
-          {role === ROLES.EXECUTIVE && (
+          {role === ROLES.EXECUTIVE ? (
             <button
               className={"nav-item" + (activeSection === "plan" ? " active" : "")}
-              onClick={() => setActiveSection("plan")}
+              onClick={() => handleSelectSection("plan")}
             >
+              <Calendar size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
               Plan
             </button>
-          )}
-          {(role === ROLES.MANAGER || role === ROLES.REGIONAL) && (
+          ) : (
             <button
               className={"nav-item" + (activeSection === "approvals" ? " active" : "")}
-              onClick={() => setActiveSection("approvals")}
+              onClick={() => handleSelectSection("approvals")}
             >
+              <ClipboardCheck size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
               Approvals
             </button>
           )}
           <button
             className={"nav-item" + (activeSection === "reports" ? " active" : "")}
-            onClick={() => setActiveSection("reports")}
+            onClick={() => handleSelectSection("reports")}
           >
+            <FileText size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
             Reports
           </button>
 
-          <div className="nav-heading">SALES CRM</div>
-          {/* Admin role switching removed for actual logged-in users */}
-          <button className="nav-item" onClick={onExit}>Admin CRM</button>
+          <button className="nav-item" onClick={onExit} style={{ marginTop: "0.5rem" }}>
+            <LogOut size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
+            Admin CRM
+          </button>
         </nav>
       </aside>
 
@@ -3220,11 +4920,31 @@ export default function SalesCrm({ role, user, onExit }) {
           </div>
 
           <div className="header-right">
-            {/* View As and user selects removed */}
+            {role === ROLES.MANAGER && data.salesManagers.length > 0 && (
+              <div className="role-switch">
+                <label>MANAGER</label>
+                <select value={managerId ?? ""} onChange={(e) => setManagerId(Number(e.target.value))}>
+                  {data.salesManagers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {role === ROLES.REGIONAL && data.regionalManagers.length > 0 && (
+              <div className="role-switch">
+                <label>REGIONAL MANAGER</label>
+                <select value={regionalId ?? ""} onChange={(e) => setRegionalId(Number(e.target.value))}>
+                  {data.regionalManagers.map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {(role === ROLES.MANAGER || role === ROLES.REGIONAL) && (
               <div className="role-switch">
-                <label>Region filter</label>
+                <label>REGION FILTER</label>
                 <select value={region} onChange={(e) => setRegion(e.target.value)}>
                   <option value="">All</option>
                   {regions.map((r) => (
@@ -3235,7 +4955,7 @@ export default function SalesCrm({ role, user, onExit }) {
             )}
 
             <div className="role-switch">
-              <label>Month</label>
+              <label>MONTH</label>
               <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                 {monthOptions.map((opt) => (
                   <option key={opt.key} value={opt.key}>{opt.label}</option>
@@ -3243,18 +4963,55 @@ export default function SalesCrm({ role, user, onExit }) {
               </select>
             </div>
 
-            <button
-              className="profile-avatar-btn"
+
+
+            <div
+              className="header-user-status-pill"
               title={currentRecord ? `${currentRecord.name} — view profile` : "No profile selected"}
               onClick={() => currentRecord && setProfileOpen(true)}
-              disabled={!currentRecord}
             >
-              {initialsOf(currentRecord?.name)}
+              <DoctorAvatar name={currentRecord?.name || "dhanushkodi"} size={26} isOnline={true} />
+              <div className="header-user-meta">
+                <span className="header-user-name">{currentRecord?.name || "dhanushkodi"}</span>
+                <span className="header-user-status-tag">
+                  <span className="online-dot" /> Online
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="header-logout-btn"
+              onClick={onExit}
+              title="Log Out of Sales CRM"
+            >
+              <LogOut size={13} />
+              <span>Log Out</span>
             </button>
+
           </div>
         </header>
 
+
         <section className="content">
+          {activeSection === "attendance" && (
+            <AttendanceView
+              data={data}
+              execId={execId}
+              role={role}
+              currentRecord={currentRecord}
+              onSwitchExecutive={(newId) => setExecId(newId)}
+            />
+          )}
+
+          {activeSection === "attendance_report" && (
+            <AttendanceReportView
+              data={data}
+              execId={execId}
+              role={role}
+              currentRecord={currentRecord}
+            />
+          )}
           {activeSection === "dashboard" && (
             <>
               {data.loading && <p style={{ color: "#7f8b98" }}>Loading dashboard…</p>}
@@ -3303,7 +5060,7 @@ export default function SalesCrm({ role, user, onExit }) {
           )}
 
           {activeSection === "doctors" && (
-            <DoctorsView data={data} execId={execId} role={role} />
+            <DoctorsView data={data} execId={execId} />
           )}
 
           {(activeSection === "plan" || activeSection === "approvals") && (
@@ -3343,6 +5100,13 @@ export default function SalesCrm({ role, user, onExit }) {
           onClose={() => setProfileOpen(false)}
         />
       )}
+
+      <SalesCrmLoginModal
+        isOpen={loginModal.isOpen}
+        initialRole={loginModal.role}
+        onClose={() => setLoginModal((prev) => ({ ...prev, isOpen: false }))}
+        onLoginSuccess={handleLoginModalSuccess}
+      />
     </div>
   );
 }

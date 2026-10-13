@@ -396,6 +396,17 @@ a {
    SEARCH
 ========================= */
 
+.zzc-search-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zzc-search-icon {
+  color: var(--muted-foreground, #64748b);
+  flex-shrink: 0;
+}
+
 .zzc-search-input {
   height: 2.25rem;
 

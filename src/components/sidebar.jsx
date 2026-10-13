@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { NAV_GROUPS } from "../data.js";
-import logo from "../assets/zenve-zippy-logo.jpeg";
+import logo from "../assets/zenve-zippy-logo.png";
 import { LogOut } from "lucide-react";
 
 export default function Sidebar({ currentKey, onSelect, adminUser, onLogout }) {
@@ -142,4 +142,3 @@ export default function Sidebar({ currentKey, onSelect, adminUser, onLogout }) {
     </aside>
   );
 }
-
