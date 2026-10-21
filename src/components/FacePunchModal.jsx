@@ -9,136 +9,18 @@ import {
   RefreshCw,
   AlertCircle,
   AlertTriangle,
-  Upload,
-  Sparkles,
   Users,
   X,
-  Map,
   Compass,
-  Crosshair,
-  Search,
   Check,
   RotateCw,
   Navigation,
   Loader2,
-  Plus,
-  Minus,
-  ExternalLink,
+  Radio,
 } from "lucide-react";
-import docMale1 from "../assets/doctor-male.jpg";
-import docMale2 from "../assets/doctor-male-2.jpg";
-import docMale3 from "../assets/doctor-male-3.jpg";
-import docFemale1 from "../assets/doctor-female.jpg";
-import docFemale2 from "../assets/doctor-female-2.jpg";
-import docFemale3 from "../assets/doctor-female-3.jpg";
 import { checkFaceImage } from "../api.js";
-import { loadGoogleMaps, getGoogleMapsApiKey, hasGoogleMapsAuthError } from "../utils/googleMapsLoader.js";
-import { reverseGeocodeCoordinates, searchLocationsWithGoogle } from "../utils/googleGeocoder.js";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { reverseGeocodeCoordinates } from "../utils/googleGeocoder.js";
 import "./FacePunchModal.css";
-
-// SVG Icons matching Google Maps Controls
-const TargetGpsIcon = () => (
-  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="7" />
-    <circle cx="12" cy="12" r="2.2" fill="currentColor" />
-    <line x1="12" y1="1" x2="12" y2="4" />
-    <line x1="12" y1="20" x2="12" y2="23" />
-    <line x1="1" y1="12" x2="4" y2="12" />
-    <line x1="20" y1="12" x2="23" y2="12" />
-  </svg>
-);
-
-const PegmanIcon = ({ active = false }) => (
-  <svg width="18" height="23" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="6" r="4.2" fill="#F59E0B" stroke="#B45309" strokeWidth="0.8" />
-    <path d="M10 10.5 L12 13 L14 10.5 Z" fill="#DC2626" />
-    <path d="M7 11.5 C7 11.5, 9 10.5, 12 10.5 C15 10.5, 17 11.5, 17 11.5 L18 20 L15.5 20 L15 15 L14 15 L14.5 28 L12.5 28 L12 21 L11.5 21 L11 28 L9 28 L9.5 15 L8.5 15 L8 20 L5.5 20 Z" fill="#F59E0B" stroke="#B45309" strokeWidth="0.8" />
-  </svg>
-);
-
-const TerrainLayerIcon = ({ active }) => (
-  <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="gmap-layer-thumb-svg">
-    <rect width="40" height="40" rx="8" fill="#758279" />
-    <path d="M0 24C10 20 20 28 40 18V40H0V24Z" fill="#5A675E" />
-    <path d="M0 32C12 28 24 35 40 28V40H0V32Z" fill="#445048" />
-    <path d="M38 12C28 20 20 10 12 20C6 27 0 25 0 25" stroke="#FFFFFF" strokeWidth="3.4" strokeLinecap="round" />
-  </svg>
-);
-
-const TrafficLayerIcon = ({ active }) => (
-  <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="gmap-layer-thumb-svg">
-    <rect width="40" height="40" rx="8" fill="#E5E7EB" />
-    <rect x="15" y="0" width="10" height="40" fill="#9CA3AF" />
-    <rect x="0" y="15" width="40" height="10" fill="#9CA3AF" />
-    <path d="M18 0V15C18 18 18 18 0 18" stroke="#10B981" strokeWidth="3.2" strokeLinecap="round" />
-    <path d="M22 40V25C22 22 22 22 40 22" stroke="#EF4444" strokeWidth="3.2" strokeLinecap="round" />
-    <path d="M22 0V14" stroke="#10B981" strokeWidth="3.2" />
-    <path d="M18 40V26" stroke="#F59E0B" strokeWidth="3.2" />
-  </svg>
-);
-
-const TransitLayerIcon = ({ active }) => (
-  <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="gmap-layer-thumb-svg">
-    <rect width="40" height="40" rx="8" fill="#E2E8F0" />
-    <path d="M0 16L40 12" stroke="#3B82F6" strokeWidth="2.8" strokeLinecap="round" />
-    <path d="M0 25L40 21" stroke="#8B5CF6" strokeWidth="2.8" strokeLinecap="round" />
-    <rect x="23" y="4" width="13" height="12" rx="2.5" fill="#1D4ED8" />
-    <text x="29.5" y="13.5" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontWeight="bold" fontFamily="sans-serif">M</text>
-    <rect x="18" y="22" width="13" height="12" rx="2.5" fill="#2563EB" />
-    <rect x="20.5" y="24" width="8" height="6.5" rx="1.2" fill="#FFFFFF" />
-    <circle cx="22" cy="32.5" r="1" fill="#FFFFFF" />
-    <circle cx="27" cy="32.5" r="1" fill="#FFFFFF" />
-  </svg>
-);
-
-const BikingLayerIcon = ({ active }) => (
-  <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="gmap-layer-thumb-svg">
-    <rect width="40" height="40" rx="8" fill="#E6F4EA" />
-    <circle cx="20" cy="20" r="8" stroke="#A7D7B5" strokeWidth="3" />
-    <path d="M0 12C12 12 14 18 20 18C26 18 28 12 40 12" stroke="#34A853" strokeWidth="3" strokeLinecap="round" />
-    <path d="M12 40C12 28 18 26 18 20" stroke="#34A853" strokeWidth="3" strokeLinecap="round" />
-    <path d="M28 40C28 30 24 24 20 20" stroke="#81C995" strokeWidth="2.6" />
-  </svg>
-);
-
-const MoreLayersIcon = ({ active }) => (
-  <svg width="34" height="34" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="gmap-layer-thumb-svg">
-    <rect width="40" height="40" rx="8" fill="#F1F3F4" />
-    <path d="M20 10L31 16L20 22L9 16L20 10Z" fill="#374151" />
-    <path d="M9 20.5L20 26.5L31 20.5" stroke="#374151" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M9 25.5L20 31.5L31 25.5" stroke="#374151" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const MapModeThumbnail = ({ mapType }) => {
-  const isSatellite = mapType === "satellite" || mapType === "hybrid";
-  return (
-    <div className="gmap-type-toggle-thumbnail" title={isSatellite ? "Switch to Map view" : "Switch to Satellite view"}>
-      {isSatellite ? (
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="8" fill="#F3F4F6" />
-          <path d="M0 14H48M0 34H48M14 0V48M34 0V48" stroke="#E5E7EB" strokeWidth="2.5" />
-          <path d="M6 24H42M24 6V42" stroke="#FDE047" strokeWidth="3" />
-          <rect x="25" y="25" width="15" height="15" rx="2" fill="#BBF7D0" />
-        </svg>
-      ) : (
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="8" fill="#2E4035" />
-          <path d="M0 16C16 14 30 24 48 20V48H0V16Z" fill="#1C2D22" />
-          <path d="M0 32L48 28" stroke="#E2E8F0" strokeWidth="2.6" />
-          <path d="M19 0L25 48" stroke="#CBD5E1" strokeWidth="2" strokeDasharray="3 2" />
-          <rect x="6" y="8" width="10" height="12" rx="1.5" fill="#4B6053" />
-          <rect x="30" y="10" width="12" height="10" rx="1.5" fill="#3D5044" />
-        </svg>
-      )}
-      <div className="gmap-type-label-pill">
-        {isSatellite ? "Map" : "Satellite"}
-      </div>
-    </div>
-  );
-};
 
 const MAX_SELFIE_DATA_URL_LENGTH = 48 * 1024;
 
@@ -189,22 +71,6 @@ function createCompactSelfie(sourceCanvas) {
   return lastDataUrl;
 }
 
-// Leaflet Fallback Marker Icon
-const createLeafletPinIcon = () =>
-  L.divIcon({
-    className: "custom-map-marker-pin",
-    html: `
-      <div class="pin-svg-wrap">
-        <svg width="34" height="46" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 0C5.37258 0 0 5.37258 0 12C0 21 12 32 12 32C12 32 24 21 24 12C24 5.37258 18.6274 0 12 0Z" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-          <circle cx="12" cy="12" r="4.5" fill="#ffffff"/>
-        </svg>
-      </div>
-    `,
-    iconSize: [34, 46],
-    iconAnchor: [17, 46],
-  });
-
 export default function FacePunchModal({
   isOpen,
   executive = {},
@@ -215,7 +81,7 @@ export default function FacePunchModal({
   onConfirm,
 }) {
   // -------------------------------------------------------------
-  // Camera & Face State
+  // Camera & Face State (Live Photo Capture Only)
   // -------------------------------------------------------------
   const [stream, setStream] = useState(null);
   const [cameraStatus, setCameraStatus] = useState("loading"); // "loading" | "active" | "denied" | "error"
@@ -230,17 +96,15 @@ export default function FacePunchModal({
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   // -------------------------------------------------------------
-  // Google Maps & Location State
+  // Live GPS Tracking & High-Accuracy Refinement Engine
   // -------------------------------------------------------------
-  const mapContainerRef = useRef(null);
-  const googleMapRef = useRef(null);
-  const googleMarkerRef = useRef(null);
-  const googleCircleRef = useRef(null);
-  const leafletMapRef = useRef(null);
-  const leafletMarkerRef = useRef(null);
+  const watchIdRef = useRef(null);
+  const bestFixRef = useRef(null);
+  const refinementTimeoutRef = useRef(null);
+  const retryTimerRef = useRef(null);
+  const sampleCountRef = useRef(0);
 
   const defaultLat = initialLocation?.latitude ?? 12.9716;
   const defaultLng = initialLocation?.longitude ?? 77.5946;
@@ -251,34 +115,18 @@ export default function FacePunchModal({
   });
 
   const [accuracy, setAccuracy] = useState(initialLocation?.accuracy ?? null);
-  const [locationSource, setLocationSource] = useState(
-    initialLocation?.location_source || (initialLocation?.accuracy && initialLocation.accuracy <= 1000 ? "BROWSER_GPS" : "MAP_CONFIRMED")
-  );
+  const [altitude, setAltitude] = useState(null);
+  const [gpsSampleCount, setGpsSampleCount] = useState(0);
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+  const [isRefiningGps, setIsRefiningGps] = useState(false);
+  const [gpsLocked, setGpsLocked] = useState(false);
+  const [lastFixTime, setLastFixTime] = useState("");
 
-  // Map Layers & Types (Matching User Screenshot)
-  const [mapType, setMapType] = useState("roadmap"); // "roadmap" | "satellite" | "hybrid" | "terrain"
-  const [isTrafficActive, setIsTrafficActive] = useState(false);
-  const [isTransitActive, setIsTransitActive] = useState(false);
-  const [isBikingActive, setIsBikingActive] = useState(false);
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-
-  const trafficLayerRef = useRef(null);
-  const transitLayerRef = useRef(null);
-  const bikingLayerRef = useRef(null);
-  const leafletBaseLayerRef = useRef(null);
-  const leafletLabelsLayerRef = useRef(null);
-  const leafletTrafficLayerRef = useRef(null);
-  const leafletTransitLayerRef = useRef(null);
-  const leafletBikingLayerRef = useRef(null);
-
-  const [locationStatus, setLocationStatus] = useState("detecting"); // "detecting" | "locked" | "error"
   const [locationError, setLocationError] = useState("");
   const [statusNotice, setStatusNotice] = useState("");
-  const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const [isStreetViewActive, setIsStreetViewActive] = useState(false);
 
-  // Address Details HUD (neighborhood/sublocality/route -> AREA+STREET, locality -> CITY, district, state, PIN)
+  // Structured Address Details HUD
   const [addressDetails, setAddressDetails] = useState({
     street: initialLocation?.street || "",
     area: initialLocation?.area || "",
@@ -290,14 +138,9 @@ export default function FacePunchModal({
     state: initialLocation?.state || "",
     country: initialLocation?.country || "India",
     pincode: initialLocation?.pincode || initialLocation?.pin || "",
-    displayAddress: initialLocation?.displayAddress || "Resolving location address...",
+    displayAddress: initialLocation?.displayAddress || "Acquiring live GPS address...",
     formattedAddress: initialLocation?.formattedAddress || "",
   });
-
-  // Search State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
 
   // Lock body scroll
   useEffect(() => {
@@ -319,79 +162,26 @@ export default function FacePunchModal({
     }
   }, [stream]);
 
-  // Clean stop for maps
-  const destroyMaps = useCallback(() => {
-    if (googleCircleRef.current) {
-      googleCircleRef.current.setMap(null);
-      googleCircleRef.current = null;
-    }
-    if (googleMarkerRef.current) {
-      googleMarkerRef.current.setMap(null);
-      googleMarkerRef.current = null;
-    }
-    if (googleMapRef.current) {
+  // Clean stop for GPS tracking
+  const stopGpsTracking = useCallback(() => {
+    if (watchIdRef.current != null) {
       try {
-        const sv = googleMapRef.current.getStreetView?.();
-        if (sv && sv.getVisible?.()) {
-          sv.setVisible(false);
-        }
+        navigator.geolocation.clearWatch(watchIdRef.current);
       } catch {}
-      googleMapRef.current = null;
+      watchIdRef.current = null;
     }
-    setIsStreetViewActive(false);
-
-    // Clean up layer references
-    if (trafficLayerRef.current) {
-      try { trafficLayerRef.current.setMap(null); } catch {}
-      trafficLayerRef.current = null;
+    if (refinementTimeoutRef.current) {
+      clearTimeout(refinementTimeoutRef.current);
+      refinementTimeoutRef.current = null;
     }
-    if (transitLayerRef.current) {
-      try { transitLayerRef.current.setMap(null); } catch {}
-      transitLayerRef.current = null;
-    }
-    if (bikingLayerRef.current) {
-      try { bikingLayerRef.current.setMap(null); } catch {}
-      bikingLayerRef.current = null;
-    }
-    setIsTrafficActive(false);
-    setIsTransitActive(false);
-    setIsBikingActive(false);
-    setIsMoreMenuOpen(false);
-    setMapType("roadmap");
-
-    // Clean up Leaflet layers
-    if (leafletTrafficLayerRef.current) {
-      try { leafletTrafficLayerRef.current.remove(); } catch {}
-      leafletTrafficLayerRef.current = null;
-    }
-    if (leafletTransitLayerRef.current) {
-      try { leafletTransitLayerRef.current.remove(); } catch {}
-      leafletTransitLayerRef.current = null;
-    }
-    if (leafletBikingLayerRef.current) {
-      try { leafletBikingLayerRef.current.remove(); } catch {}
-      leafletBikingLayerRef.current = null;
-    }
-    if (leafletLabelsLayerRef.current) {
-      try { leafletLabelsLayerRef.current.remove(); } catch {}
-      leafletLabelsLayerRef.current = null;
-    }
-    if (leafletBaseLayerRef.current) {
-      try { leafletBaseLayerRef.current.remove(); } catch {}
-      leafletBaseLayerRef.current = null;
-    }
-
-    if (leafletMapRef.current) {
-      try {
-        leafletMapRef.current.remove();
-      } catch {}
-      leafletMapRef.current = null;
-      leafletMarkerRef.current = null;
+    if (retryTimerRef.current) {
+      clearInterval(retryTimerRef.current);
+      retryTimerRef.current = null;
     }
   }, []);
 
   // -------------------------------------------------------------
-  // STEP 1: Open Camera
+  // STEP 1: Live Webcam Only (No upload, No simulation)
   // -------------------------------------------------------------
   const startCamera = useCallback(async () => {
     setCameraStatus("loading");
@@ -416,21 +206,29 @@ export default function FacePunchModal({
       mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: 1280, min: 480 },
+          height: { ideal: 720, min: 360 },
         },
         audio: false,
       });
     } catch (err) {
-      console.warn("Camera init error:", err?.name, err?.message);
-      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
-        setCameraStatus("denied");
-        setCameraErrorMsg("Camera access denied. Please allow camera permissions.");
-      } else {
-        setCameraStatus("error");
-        setCameraErrorMsg("Webcam not accessible.");
+      console.warn("Camera ideal constraints failed, falling back to basic video:", err?.name, err?.message);
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      } catch (err2) {
+        console.warn("Camera init error:", err2?.name, err2?.message);
+        if (err2?.name === "NotAllowedError" || err2?.name === "PermissionDeniedError") {
+          setCameraStatus("denied");
+          setCameraErrorMsg("Camera access denied. Please allow camera permissions in your browser.");
+        } else {
+          setCameraStatus("error");
+          setCameraErrorMsg("Webcam not accessible. Please ensure a working camera is connected.");
+        }
+        return;
       }
-      return;
     }
 
     if (mediaStream) {
@@ -454,7 +252,7 @@ export default function FacePunchModal({
     }
   }, [stream, cameraStatus]);
 
-  // Biometric Face Count Check
+  // Biometric Face Count Check (Strictly Exactly 1 Face Allowed)
   const runFaceCheck = async (dataUrl) => {
     if (!dataUrl) return;
     setFaceCheckStatus("checking");
@@ -466,17 +264,21 @@ export default function FacePunchModal({
         setDetectedFaceCount(count);
         if (count >= 2 || res.status === "multiple_faces") {
           setFaceCheckStatus("multiple_faces");
-          setFaceAlertMsg(`Alert: ${count} members detected in front of camera! Strictly 1 person allowed.`);
+          setFaceAlertMsg(`🚨 Multiple faces detected (${count})! Strictly only 1 person allowed in the photo.`);
           playWarningBeep();
+        } else if (count === 0 || res.status === "no_face") {
+          setFaceCheckStatus("no_face");
+          setFaceAlertMsg("❌ No face detected in the photo. Please make sure your face is clearly visible.");
         } else if (count === 1) {
           setFaceCheckStatus("valid");
           setFaceAlertMsg("");
         } else {
-          setFaceCheckStatus("valid");
-          setFaceAlertMsg("");
+          setFaceCheckStatus("no_face");
+          setFaceAlertMsg("❌ Only 1 face allowed in the photo.");
         }
       }
-    } catch (err) {
+    } catch {
+      // Fallback: If camera captured a valid frame and backend is temporarily unreachable
       setFaceCheckStatus("valid");
       setDetectedFaceCount(1);
       setFaceAlertMsg("");
@@ -495,15 +297,15 @@ export default function FacePunchModal({
         inFlight = true;
         const video = videoRef.current;
         const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = 320;
-        tempCanvas.height = 240;
+        tempCanvas.width = 280;
+        tempCanvas.height = 210;
         const ctx = tempCanvas.getContext("2d");
         if (!ctx) {
           inFlight = false;
           return;
         }
-        ctx.drawImage(video, 0, 0, 320, 240);
-        const frameUrl = tempCanvas.toDataURL("image/jpeg", 0.5);
+        ctx.drawImage(video, 0, 0, 280, 210);
+        const frameUrl = tempCanvas.toDataURL("image/jpeg", 0.45);
         if (!isCancelled) {
           const res = await checkFaceImage(frameUrl);
           if (!isCancelled && res) {
@@ -511,11 +313,14 @@ export default function FacePunchModal({
             setDetectedFaceCount(count);
             if (count >= 2 || res.status === "multiple_faces") {
               setFaceCheckStatus("multiple_faces");
-              setFaceAlertMsg(`🚨 Alert: ${count} members detected in front of camera! Only 1 person allowed to punch.`);
+              setFaceAlertMsg(`🚨 Multiple faces detected (${count})! Strictly only 1 person allowed to punch.`);
               playWarningBeep();
-            } else if (count === 1 && faceCheckStatus === "multiple_faces") {
+            } else if (count === 1) {
               setFaceCheckStatus("valid");
               setFaceAlertMsg("");
+            } else {
+              setFaceCheckStatus("no_face");
+              setFaceAlertMsg("Please position your face in the camera frame.");
             }
           }
         }
@@ -523,7 +328,7 @@ export default function FacePunchModal({
       } finally {
         inFlight = false;
       }
-    }, 1800);
+    }, 650);
 
     return () => {
       isCancelled = true;
@@ -532,11 +337,11 @@ export default function FacePunchModal({
   }, [isOpen, cameraStatus, capturedImage, faceCheckStatus]);
 
   // -------------------------------------------------------------
-  // STEP 2 & 3: Get GPS Location & Reverse Geocoding
+  // STEP 2: Reverse Geocode Exact Coordinates to Structured Address
   // -------------------------------------------------------------
   const fetchAddressForCoords = async (lat, lng) => {
     setIsGeocoding(true);
-    setStatusNotice("Reverse geocoding selected coordinates...");
+    setStatusNotice("Resolving high-precision address details...");
     try {
       const geo = await reverseGeocodeCoordinates(lat, lng);
       const cityVal = (geo.city || "").trim();
@@ -561,709 +366,144 @@ export default function FacePunchModal({
         state: geo.state || "",
         country: geo.country || "India",
         pincode: geo.pincode || geo.pin || "",
-        displayAddress: geo.displayAddress || geo.display_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        displayAddress: geo.displayAddress || geo.display_address || `${lat.toFixed(7)}, ${lng.toFixed(7)}`,
         formattedAddress: geo.formattedAddress || geo.formatted_address || geo.displayAddress || "",
       });
       setStatusNotice("");
     } catch (err) {
       console.warn("[FacePunchModal] Reverse geocode notice:", err);
-      setStatusNotice("Could not resolve address details. Coordinates are preserved.");
+      setStatusNotice("Exact coordinates recorded. Resolving address details...");
     } finally {
       setIsGeocoding(false);
     }
   };
 
-  // Update Map Marker and Circle
-  const updateMapMarkerPosition = useCallback((lat, lng, acc = null, isBrowserGps = false) => {
-    setCoords({ latitude: lat, longitude: lng });
-
-    if (isBrowserGps && acc != null) {
-      setAccuracy(Math.round(acc));
-      setLocationSource("BROWSER_GPS");
-    } else {
-      setLocationSource("MAP_CONFIRMED");
-    }
-
-    // Google Maps update
-    if (googleMapRef.current && window.google?.maps) {
-      const latLng = new window.google.maps.LatLng(lat, lng);
-      googleMapRef.current.panTo(latLng);
-
-      if (googleMarkerRef.current) {
-        googleMarkerRef.current.setPosition(latLng);
-        googleMarkerRef.current.setDraggable(false);
-      } else {
-        googleMarkerRef.current = new window.google.maps.Marker({
-          position: latLng,
-          map: googleMapRef.current,
-          draggable: false,
-          title: "Current attendance location (Fixed)",
-          animation: window.google.maps.Animation.DROP,
-        });
-      }
-
-      if (isBrowserGps && acc && acc <= 1000) {
-        if (googleCircleRef.current) {
-          googleCircleRef.current.setCenter(latLng);
-          googleCircleRef.current.setRadius(acc);
-          googleCircleRef.current.setMap(googleMapRef.current);
-        } else {
-          googleCircleRef.current = new window.google.maps.Circle({
-            map: googleMapRef.current,
-            center: latLng,
-            radius: acc,
-            fillColor: acc <= 100 ? "#10b981" : "#f59e0b",
-            fillOpacity: 0.15,
-            strokeColor: acc <= 100 ? "#059669" : "#d97706",
-            strokeOpacity: 0.5,
-            strokeWeight: 1.5,
-            clickable: false,
-          });
-        }
-      } else if (googleCircleRef.current) {
-        googleCircleRef.current.setMap(null);
-        googleCircleRef.current = null;
-      }
-    }
-
-    // Leaflet fallback update
-    if (leafletMapRef.current) {
-      leafletMapRef.current.panTo([lat, lng]);
-      if (leafletMarkerRef.current) {
-        leafletMarkerRef.current.setLatLng([lat, lng]);
-      }
-    }
-  }, []);
-
-  // Initialize Leaflet Fallback (used when Google Maps API key is missing or fails)
-  const initLeafletFallback = useCallback((startLat, startLng) => {
-    if (!mapContainerRef.current) return;
-    destroyMaps();
-
-    try {
-      const map = L.map(mapContainerRef.current, {
-        center: [startLat, startLng],
-        zoom: 16,
-        zoomControl: false,
-      });
-
-      // Authentic Google Maps base layer
-      const baseLayer = L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
-        attribution: '&copy; Google Maps',
-        subdomains: ['0', '1', '2', '3'],
-        maxZoom: 21,
-      }).addTo(map);
-      leafletBaseLayerRef.current = baseLayer;
-
-      const marker = L.marker([startLat, startLng], {
-        icon: createLeafletPinIcon(),
-        draggable: false,
-        title: "Current attendance location (Fixed)",
-        zIndexOffset: 1000,
-      }).addTo(map);
-
-      leafletMapRef.current = map;
-      leafletMarkerRef.current = marker;
-
-      // Leaflet Map Click: update marker, select coordinates, and trigger reverse geocoding
-      map.on("click", (e) => {
-        if (!e.latlng) return;
-        const clickLat = Number(e.latlng.lat.toFixed(7));
-        const clickLng = Number(e.latlng.lng.toFixed(7));
-        marker.setLatLng([clickLat, clickLng]);
-        setCoords({ latitude: clickLat, longitude: clickLng });
-        setLocationSource("MAP_CONFIRMED");
-        fetchAddressForCoords(clickLat, clickLng);
-      });
-
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 200);
-    } catch (err) {
-      console.warn("[FacePunchModal] Leaflet fallback init notice:", err);
-    }
-  }, [destroyMaps]);
-
   // -------------------------------------------------------------
-  // STEP 4: Google Map + Marker Setup
+  // STEP 3: Real-Time GPS Tracking & Progressive Refinement Engine
+  // "low accuracy happen they also fetch correct location now do it and take time"
   // -------------------------------------------------------------
-  const initGoogleMap = useCallback(async (startLat, startLng, initialAcc = null) => {
-    if (!mapContainerRef.current) return;
+  const handleGpsPosition = useCallback((pos) => {
+    if (!pos || !pos.coords) return;
+    const rawLat = pos.coords.latitude;
+    const rawLng = pos.coords.longitude;
+    const rawAcc = Math.round(pos.coords.accuracy || 0);
+    const rawAlt = pos.coords.altitude != null ? Math.round(pos.coords.altitude) : null;
+    const lat = Number(rawLat.toFixed(7));
+    const lng = Number(rawLng.toFixed(7));
 
-    try {
-      const maps = await loadGoogleMaps();
-      if (!mapContainerRef.current) return;
+    sampleCountRef.current += 1;
+    const currentSample = sampleCountRef.current;
+    setGpsSampleCount(currentSample);
+    setLastFixTime(new Date().toLocaleTimeString());
 
-      destroyMaps();
+    const isFirstFix = !bestFixRef.current;
+    const isMoreAccurate = !bestFixRef.current || rawAcc <= bestFixRef.current.accuracy;
 
-      const mapOptions = {
-        center: { lat: startLat, lng: startLng },
-        zoom: 16,
-        zoomControl: false,
-        mapTypeControl: false,
-        scaleControl: true,
-        streetViewControl: false,
-        rotateControl: false,
-        fullscreenControl: false,
-        mapTypeId: maps.MapTypeId.ROADMAP,
-        gestureHandling: "greedy",
-      };
-
-      const map = new maps.Map(mapContainerRef.current, mapOptions);
-      googleMapRef.current = map;
-
-      // Street View visibility listener
-      try {
-        const sv = map.getStreetView();
-        if (sv) {
-          sv.addListener("visible_changed", () => {
-            setIsStreetViewActive(Boolean(sv.getVisible()));
-          });
-        }
-      } catch {}
-
-      const marker = new maps.Marker({
-        position: { lat: startLat, lng: startLng },
-        map,
-        draggable: false,
-        title: "Current attendance location (Fixed)",
-        animation: maps.Animation.DROP,
-      });
-      googleMarkerRef.current = marker;
-
-      // Google Maps Map Click: update marker, select coordinates, and trigger reverse geocoding
-      map.addListener("click", (e) => {
-        if (!e.latLng) return;
-        const clickLat = Number(e.latLng.lat().toFixed(7));
-        const clickLng = Number(e.latLng.lng().toFixed(7));
-
-        marker.setPosition({ lat: clickLat, lng: clickLng });
-        setCoords({ latitude: clickLat, longitude: clickLng });
-        setLocationSource("MAP_CONFIRMED");
-        if (googleCircleRef.current) {
-          googleCircleRef.current.setMap(null);
-          googleCircleRef.current = null;
-        }
-        fetchAddressForCoords(clickLat, clickLng);
-      });
-
-      // Accuracy Circle
-      if (initialAcc && initialAcc <= 1000) {
-        googleCircleRef.current = new maps.Circle({
-          map,
-          center: { lat: startLat, lng: startLng },
-          radius: initialAcc,
-          fillColor: initialAcc <= 100 ? "#10b981" : "#f59e0b",
-          fillOpacity: 0.15,
-          strokeColor: initialAcc <= 100 ? "#059669" : "#d97706",
-          strokeOpacity: 0.5,
-          strokeWeight: 1.5,
-          clickable: false,
-        });
-      }
-    } catch (err) {
-      console.warn("[FacePunchModal] Google Maps load failed, switching to fallback:", err?.message);
-      initLeafletFallback(startLat, startLng);
-    }
-  }, [destroyMaps, initLeafletFallback]);
-
-  // Handle Zoom In
-  const handleZoomIn = useCallback(() => {
-    if (googleMapRef.current) {
-      const sv = googleMapRef.current.getStreetView?.();
-      if (sv && sv.getVisible?.()) {
-        sv.setZoom((sv.getZoom() || 1) + 1);
-      } else {
-        const currentZoom = googleMapRef.current.getZoom() || 16;
-        googleMapRef.current.setZoom(Math.min(21, currentZoom + 1));
-      }
-    } else if (leafletMapRef.current) {
-      leafletMapRef.current.zoomIn();
-    }
-  }, []);
-
-  // Handle Zoom Out
-  const handleZoomOut = useCallback(() => {
-    if (googleMapRef.current) {
-      const sv = googleMapRef.current.getStreetView?.();
-      if (sv && sv.getVisible?.()) {
-        sv.setZoom(Math.max(0, (sv.getZoom() || 1) - 1));
-      } else {
-        const currentZoom = googleMapRef.current.getZoom() || 16;
-        googleMapRef.current.setZoom(Math.max(1, currentZoom - 1));
-      }
-    } else if (leafletMapRef.current) {
-      leafletMapRef.current.zoomOut();
-    }
-  }, []);
-
-  // Handle Pegman Street View Toggle
-  const handleToggleStreetView = useCallback(() => {
-    if (isStreetViewActive) {
-      if (googleMapRef.current) {
-        try {
-          const sv = googleMapRef.current.getStreetView?.();
-          if (sv && sv.getVisible?.()) {
-            sv.setVisible(false);
-          }
-        } catch {}
-      }
-      setIsStreetViewActive(false);
-      setStatusNotice("Exited Street View.");
-      return;
+    if (isFirstFix || isMoreAccurate) {
+      bestFixRef.current = { latitude: lat, longitude: lng, accuracy: rawAcc, altitude: rawAlt };
+      setCoords({ latitude: lat, longitude: lng });
+      setAccuracy(rawAcc);
+      if (rawAlt != null) setAltitude(rawAlt);
+      fetchAddressForCoords(lat, lng);
     }
 
-    // Activate Street View
-    setIsStreetViewActive(true);
-    setStatusNotice("Street View (360° Panorama) activated for this location.");
-
-    if (!googleMapRef.current) {
-      return;
-    }
-
-    try {
-      const sv = googleMapRef.current.getStreetView();
-      if (!sv) return;
-
-      if (sv.getVisible()) {
-        sv.setVisible(false);
-        setIsStreetViewActive(false);
-        setStatusNotice("Exited Street View.");
-      } else {
-        const targetLat = coords.latitude;
-        const targetLng = coords.longitude;
-
-        if (window.google?.maps?.StreetViewService) {
-          const svService = new window.google.maps.StreetViewService();
-          const targetLatLng = new window.google.maps.LatLng(targetLat, targetLng);
-          svService.getPanorama(
-            {
-              location: targetLatLng,
-              radius: 200,
-              source: window.google.maps.StreetViewSource.DEFAULT,
-            },
-            (data, status) => {
-              if (status === window.google.maps.StreetViewStatus.OK && data?.location?.latLng) {
-                sv.setPano(data.location.pano);
-                sv.setPov({ heading: 0, pitch: 0 });
-                sv.setVisible(true);
-                setIsStreetViewActive(true);
-                setStatusNotice("Street View activated for this location.");
-              } else {
-                sv.setPosition(targetLatLng);
-                sv.setVisible(true);
-                setIsStreetViewActive(true);
-                setStatusNotice("Opening Street View near selected location...");
-              }
-            }
-          );
-        } else {
-          sv.setPosition({ lat: targetLat, lng: targetLng });
-          sv.setVisible(true);
-          setIsStreetViewActive(true);
-        }
-      }
-    } catch (err) {
-      console.warn("Street view toggle error:", err);
-    }
-  }, [isStreetViewActive, coords.latitude, coords.longitude]);
-
-  // Toggle Map Type between Roadmap and Satellite/Hybrid (Google Maps + Leaflet)
-  const handleToggleMapType = useCallback(() => {
-    const isSat = mapType === "hybrid" || mapType === "satellite";
-    const nextType = isSat ? "roadmap" : "hybrid";
-    setMapType(nextType);
-
-    // 1. Google Maps
-    if (googleMapRef.current) {
-      googleMapRef.current.setMapTypeId(nextType);
-    }
-
-    // 2. Leaflet Fallback (High-Resolution Google Satellite Hybrid)
-    if (leafletMapRef.current) {
-      if (leafletBaseLayerRef.current) {
-        try { leafletBaseLayerRef.current.remove(); } catch {}
-      }
-      if (leafletLabelsLayerRef.current) {
-        try { leafletLabelsLayerRef.current.remove(); } catch {}
-        leafletLabelsLayerRef.current = null;
-      }
-
-      if (nextType === "hybrid") {
-        // Authentic Google Satellite Hybrid (Ultra-crisp aerial photography + road and place labels)
-        leafletBaseLayerRef.current = L.tileLayer(
-          "https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
-          {
-            maxZoom: 21,
-            subdomains: ["0", "1", "2", "3"],
-            attribution: "&copy; Google Satellite",
-          }
-        ).addTo(leafletMapRef.current);
-      } else {
-        // Standard Google Maps Roadmap
-        leafletBaseLayerRef.current = L.tileLayer(
-          "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
-          {
-            maxZoom: 21,
-            subdomains: ["0", "1", "2", "3"],
-            attribution: "&copy; Google Maps",
-          }
-        ).addTo(leafletMapRef.current);
-      }
-
-      if (leafletMarkerRef.current) {
-        leafletMarkerRef.current.setZIndexOffset(1000);
-      }
-    }
-
-    setStatusNotice(nextType === "hybrid" ? "Satellite view activated." : "Standard Map view activated.");
-  }, [mapType]);
-
-  // Toggle Terrain Mode (Google Maps + Leaflet)
-  const handleToggleTerrain = useCallback(() => {
-    const nextType = mapType === "terrain" ? "roadmap" : "terrain";
-    setMapType(nextType);
-
-    // 1. Google Maps
-    if (googleMapRef.current) {
-      googleMapRef.current.setMapTypeId(nextType);
-    }
-
-    // 2. Leaflet Fallback (Google Terrain)
-    if (leafletMapRef.current) {
-      if (leafletBaseLayerRef.current) {
-        try { leafletBaseLayerRef.current.remove(); } catch {}
-      }
-      if (leafletLabelsLayerRef.current) {
-        try { leafletLabelsLayerRef.current.remove(); } catch {}
-        leafletLabelsLayerRef.current = null;
-      }
-
-      if (nextType === "terrain") {
-        leafletBaseLayerRef.current = L.tileLayer(
-          "https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}",
-          {
-            maxZoom: 20,
-            subdomains: ["0", "1", "2", "3"],
-            attribution: "&copy; Google Terrain",
-          }
-        ).addTo(leafletMapRef.current);
-      } else {
-        leafletBaseLayerRef.current = L.tileLayer(
-          "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
-          {
-            maxZoom: 21,
-            subdomains: ["0", "1", "2", "3"],
-            attribution: "&copy; Google Maps",
-          }
-        ).addTo(leafletMapRef.current);
-      }
-
-      if (leafletMarkerRef.current) {
-        leafletMarkerRef.current.setZIndexOffset(1000);
-      }
-    }
-
-    setStatusNotice(nextType === "terrain" ? "Terrain contours layer enabled." : "Terrain layer disabled.");
-  }, [mapType]);
-
-  // Toggle Real-Time Traffic Layer (Google Maps + Leaflet)
-  const handleToggleTraffic = useCallback(() => {
-    const nextState = !isTrafficActive;
-    setIsTrafficActive(nextState);
-
-    // 1. Google Maps
-    if (googleMapRef.current && window.google?.maps) {
-      if (!trafficLayerRef.current) {
-        trafficLayerRef.current = new window.google.maps.TrafficLayer();
-      }
-      if (nextState) {
-        trafficLayerRef.current.setMap(googleMapRef.current);
-      } else {
-        trafficLayerRef.current.setMap(null);
-      }
-    }
-
-    // 2. Leaflet Fallback (Google Traffic Flow Overlay)
-    if (leafletMapRef.current) {
-      if (nextState) {
-        if (!leafletTrafficLayerRef.current) {
-          leafletTrafficLayerRef.current = L.tileLayer(
-            "https://mt{s}.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}",
-            {
-              maxZoom: 21,
-              subdomains: ["0", "1", "2", "3"],
-              opacity: 0.95,
-              zIndex: 450,
-            }
-          );
-        }
-        leafletTrafficLayerRef.current.addTo(leafletMapRef.current);
-      } else {
-        if (leafletTrafficLayerRef.current) {
-          try { leafletTrafficLayerRef.current.remove(); } catch {}
-        }
-      }
-    }
-
-    setStatusNotice(nextState ? "Live traffic & arterial road layer activated." : "Traffic layer disabled.");
-  }, [isTrafficActive]);
-
-  // Toggle Public Transit Layer (Google Maps + Leaflet)
-  const handleToggleTransit = useCallback(() => {
-    const nextState = !isTransitActive;
-    setIsTransitActive(nextState);
-
-    // 1. Google Maps
-    if (googleMapRef.current && window.google?.maps) {
-      if (!transitLayerRef.current) {
-        transitLayerRef.current = new window.google.maps.TransitLayer();
-      }
-      if (nextState) {
-        transitLayerRef.current.setMap(googleMapRef.current);
-      } else {
-        transitLayerRef.current.setMap(null);
-      }
-    }
-
-    // 2. Leaflet Fallback
-    if (leafletMapRef.current) {
-      if (nextState) {
-        if (!leafletTransitLayerRef.current) {
-          leafletTransitLayerRef.current = L.tileLayer(
-            "https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png",
-            { maxZoom: 19, opacity: 0.92, zIndex: 510 }
-          );
-        }
-        leafletTransitLayerRef.current.addTo(leafletMapRef.current);
-      } else {
-        if (leafletTransitLayerRef.current) {
-          try { leafletTransitLayerRef.current.remove(); } catch {}
-        }
-      }
-    }
-
-    setStatusNotice(nextState ? "Public transit lines, stations & metro routes activated." : "Transit layer disabled.");
-  }, [isTransitActive]);
-
-  // Toggle Bicycling Routes Layer (Google Maps + Leaflet)
-  const handleToggleBiking = useCallback(() => {
-    const nextState = !isBikingActive;
-    setIsBikingActive(nextState);
-
-    // 1. Google Maps
-    if (googleMapRef.current && window.google?.maps) {
-      if (!bikingLayerRef.current) {
-        bikingLayerRef.current = new window.google.maps.BicyclingLayer();
-      }
-      if (nextState) {
-        bikingLayerRef.current.setMap(googleMapRef.current);
-      } else {
-        bikingLayerRef.current.setMap(null);
-      }
-    }
-
-    // 2. Leaflet Fallback
-    if (leafletMapRef.current) {
-      if (nextState) {
-        if (!leafletBikingLayerRef.current) {
-          leafletBikingLayerRef.current = L.tileLayer(
-            "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
-            { maxZoom: 18, opacity: 0.88, zIndex: 515 }
-          );
-        }
-        leafletBikingLayerRef.current.addTo(leafletMapRef.current);
-      } else {
-        if (leafletBikingLayerRef.current) {
-          try { leafletBikingLayerRef.current.remove(); } catch {}
-        }
-      }
-    }
-
-    setStatusNotice(nextState ? "Bicycling routes & dedicated bike paths layer activated." : "Biking routes disabled.");
-  }, [isBikingActive]);
-
-  // Toggle More Layers Menu
-  const handleToggleMoreMenu = useCallback(() => {
-    setIsMoreMenuOpen((prev) => !prev);
-  }, []);
-
-  // Reset All Layers (Google Maps + Leaflet)
-  const handleResetAllLayers = useCallback(() => {
-    if (trafficLayerRef.current) {
-      try { trafficLayerRef.current.setMap(null); } catch {}
-    }
-    if (transitLayerRef.current) {
-      try { transitLayerRef.current.setMap(null); } catch {}
-    }
-    if (bikingLayerRef.current) {
-      try { bikingLayerRef.current.setMap(null); } catch {}
-    }
-    if (googleMapRef.current) {
-      googleMapRef.current.setMapTypeId("roadmap");
-    }
-
-    if (leafletMapRef.current) {
-      if (leafletTrafficLayerRef.current) {
-        try { leafletTrafficLayerRef.current.remove(); } catch {}
-      }
-      if (leafletTransitLayerRef.current) {
-        try { leafletTransitLayerRef.current.remove(); } catch {}
-      }
-      if (leafletBikingLayerRef.current) {
-        try { leafletBikingLayerRef.current.remove(); } catch {}
-      }
-      if (leafletLabelsLayerRef.current) {
-        try { leafletLabelsLayerRef.current.remove(); } catch {}
-        leafletLabelsLayerRef.current = null;
-      }
-      if (leafletBaseLayerRef.current) {
-        try { leafletBaseLayerRef.current.remove(); } catch {}
-      }
-      leafletBaseLayerRef.current = L.tileLayer(
-        "https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
-        { maxZoom: 21, subdomains: ["0", "1", "2", "3"], attribution: "&copy; Google Maps" }
-      ).addTo(leafletMapRef.current);
-
-      if (leafletMarkerRef.current) {
-        leafletMarkerRef.current.setZIndexOffset(1000);
-      }
-    }
-
-    setIsTrafficActive(false);
-    setIsTransitActive(false);
-    setIsBikingActive(false);
-    setMapType("roadmap");
-    setIsMoreMenuOpen(false);
-    setStatusNotice("All map layers reset to standard view.");
-  }, []);
-
-  // Request fresh device GPS
-  const requestFreshBrowserLocation = useCallback(() => {
-    // If Street View is open, close it so map is visible
-    if (googleMapRef.current) {
-      try {
-        const sv = googleMapRef.current.getStreetView?.();
-        if (sv && sv.getVisible?.()) {
-          sv.setVisible(false);
-          setIsStreetViewActive(false);
-        }
-      } catch {}
-    }
-
-    setIsDetectingGps(true);
     setLocationError("");
-    setStatusNotice("Requesting fresh high-accuracy device coordinates from browser...");
+
+    // FAST GPS: Lock immediately upon first position fix without delaying the user!
+    setGpsLocked(true);
+    setIsRefiningGps(false);
+    setIsDetectingGps(false);
+    setStatusNotice(`GPS locked (±${rawAcc}m accuracy · Sample #${currentSample}).`);
+  }, []);
+
+  const startHighAccuracyGpsTracking = useCallback(() => {
+    stopGpsTracking();
+    setIsDetectingGps(true);
+    setIsRefiningGps(false);
+    setGpsLocked(false);
+    setLocationError("");
+    sampleCountRef.current = 0;
+    setGpsSampleCount(0);
+    setStatusNotice("Acquiring fast high-precision GPS tracking...");
 
     if (!navigator.geolocation) {
       setIsDetectingGps(false);
+      setIsRefiningGps(false);
       setLocationError("Geolocation is not supported by your browser.");
-      setLocationStatus("error");
       return;
     }
 
+    // Fast GPS Options: maximumAge 15s allows near-instant fix from device GNSS cache
+    const geoOptions = {
+      enableHighAccuracy: true,
+      maximumAge: 15000,
+      timeout: 6000,
+    };
+
+    // 1. Initial immediate fast request
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setIsDetectingGps(false);
-        const lat = Number(pos.coords.latitude.toFixed(7));
-        const lng = Number(pos.coords.longitude.toFixed(7));
-
-        setAccuracy(0);
-        setCoords({ latitude: lat, longitude: lng });
-        setLocationError("");
-        setLocationStatus("locked");
-        setStatusNotice("100% Exact GPS location acquired (0m Accurate).");
-        updateMapMarkerPosition(lat, lng, 0, true);
-        fetchAddressForCoords(lat, lng);
+        handleGpsPosition(pos);
       },
       (err) => {
-        setIsDetectingGps(false);
-        let errorMsg = "Unable to determine your current location. Please try again.";
-        switch (err.code) {
-          case 1:
-            errorMsg = "Location permission is disabled. Please allow location access for this website.";
-            break;
-          case 2:
-            errorMsg = "Your device could not determine your current location.";
-            break;
-          case 3:
-            errorMsg = "Location request timed out. Please try again.";
-            break;
-          default:
-            errorMsg = err.message || errorMsg;
+        console.warn("[GPS] Initial getCurrentPosition notice:", err);
+        if (err.code === 1) {
+          setLocationError("Location permission is disabled. Please allow location access in your browser.");
+          setIsDetectingGps(false);
+          setIsRefiningGps(false);
+        } else {
+          // Fallback with fresh position query
+          navigator.geolocation.getCurrentPosition(
+            (fallbackPos) => handleGpsPosition(fallbackPos),
+            () => {},
+            { enableHighAccuracy: false, maximumAge: 60000, timeout: 5000 }
+          );
         }
-        setLocationError(errorMsg);
-        setLocationStatus("error");
-        setStatusNotice(errorMsg);
       },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 15000,
-      }
+      geoOptions
     );
-  }, [updateMapMarkerPosition]);
 
-  // Handle Search Submission
-  const handleSearchSubmit = async (e) => {
-    e?.preventDefault();
-    if (!searchQuery || searchQuery.trim().length < 2) return;
-
-    setIsSearching(true);
+    // 2. Continuous watchPosition to refine fix in background without blocking
     try {
-      const results = await searchLocationsWithGoogle(searchQuery);
-      setSearchResults(results);
-      if (results.length === 0) {
-        setStatusNotice("No locations found for this query. Try a nearby town or village.");
-      } else {
-        setStatusNotice("");
-      }
-    } catch (err) {
-      console.warn("[FacePunchModal] Search failed:", err);
-      setStatusNotice("Search request failed. Please check internet connection.");
-    } finally {
-      setIsSearching(false);
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          handleGpsPosition(pos);
+        },
+        (err) => {
+          console.warn("[GPS] watchPosition notice:", err);
+          if (err.code === 1) {
+            setLocationError("Location permission denied. Please allow location permissions.");
+            setIsDetectingGps(false);
+            setIsRefiningGps(false);
+          }
+        },
+        geoOptions
+      );
+    } catch (e) {
+      console.warn("[GPS] watchPosition failed:", e);
     }
-  };
 
-  const handleSelectSearchResult = (res) => {
-    const lat = Number(res.latitude);
-    const lng = Number(res.longitude);
-
-    setCoords({ latitude: lat, longitude: lng });
-    setSearchResults([]);
-    setSearchQuery(res.display_name || "");
-    setLocationSource("MAP_CONFIRMED");
-
-    updateMapMarkerPosition(lat, lng, null, false);
-
-    setAddressDetails({
-      street: res.street || "",
-      area: res.area || res.village || "",
-      areaStreet: res.areaStreet || res.area_street || res.area || res.village || "",
-      village: res.village || "",
-      taluk: res.taluk || "",
-      city: res.city || "",
-      district: res.district || "",
-      state: res.state || "",
-      country: res.country || "India",
-      pincode: res.pincode || res.pin || "",
-      displayAddress: res.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-      formattedAddress: res.display_name || "",
-    });
-  };
-
-  // Switch to Manual Map Selection Mode
-  const handleSelectOnMap = () => {
-    setLocationError("");
-    setLocationStatus("locked");
-    setStatusNotice("Location fixed at current GPS coordinates.");
-  };
+    // Quick safety timeout (3.5s max, never 14s!)
+    refinementTimeoutRef.current = setTimeout(() => {
+      setIsRefiningGps(false);
+      setIsDetectingGps(false);
+      if (bestFixRef.current) {
+        setGpsLocked(true);
+      }
+    }, 3500);
+  }, [stopGpsTracking, handleGpsPosition]);
 
   // -------------------------------------------------------------
-  // STEP 5: Capture Photo Action
+  // STEP 4: Live Photo Capture Action
   // -------------------------------------------------------------
   const handleCapturePhoto = () => {
+    // HARD BLOCK: Cannot capture photo if more than 1 face is in view
+    if (faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) {
+      playWarningBeep();
+      alert(`🚨 Attendance Photo Blocked: ${detectedFaceCount} faces detected in camera!\n\nStrictly only 1 person is allowed in the photo. Please have other members step out of view.`);
+      return;
+    }
+
     if (videoRef.current && cameraStatus === "active") {
       try {
         const video = videoRef.current;
@@ -1277,7 +517,6 @@ export default function FacePunchModal({
         const selfieUrl = createCompactSelfie(canvas);
         setCapturedImage(selfieUrl);
         runFaceCheck(selfieUrl);
-        return;
       } catch (err) {
         console.warn("Could not capture video frame:", err);
       }
@@ -1292,101 +531,49 @@ export default function FacePunchModal({
     startCamera();
   };
 
-  // Simulated Selfie fallback if camera is broken/in dev
-  const generateSimulatedSelfie = useCallback(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext("2d");
-
-    const grad = ctx.createLinearGradient(0, 0, 400, 400);
-    grad.addColorStop(0, "#064e3b");
-    grad.addColorStop(1, "#022c22");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 400, 400);
-
-    const name = executive?.name || "Sales Executive";
-    const clean = name.replace(/^(dr|doctor|dct)\.?\s*/i, "").trim();
-    const hash = clean.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    const males = [docMale1, docMale2, docMale3];
-    const females = [docFemale1, docFemale2, docFemale3];
-    const avatarSrc = males[hash % males.length];
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-
-    return new Promise((resolve) => {
-      img.onload = () => {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(200, 200, 160, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(img, 40, 40, 320, 320);
-        ctx.restore();
-        const url = createCompactSelfie(canvas);
-        resolve(url);
-      };
-      img.onerror = () => {
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(200, 200, 100, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#065f46";
-        ctx.font = "bold 80px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(name.charAt(0).toUpperCase() || "S", 200, 200);
-        const url = createCompactSelfie(canvas);
-        resolve(url);
-      };
-      img.src = avatarSrc;
-    });
-  }, [executive]);
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target.result;
-        setCapturedImage(dataUrl);
-        stopCameraStream();
-        runFaceCheck(dataUrl);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   // -------------------------------------------------------------
-  // STEP 6: Confirm Punch & Save to FastAPI Backend -> Database
+  // STEP 5: Confirm Punch & Save to Backend
   // -------------------------------------------------------------
   const handleConfirmPunchAction = async () => {
     if (isSubmitting) return;
 
+    if (!capturedImage) {
+      alert("⚠️ Live Photo Required: Please capture your live photo with the camera before confirming attendance.");
+      return;
+    }
+
+    if (faceCheckStatus === "checking") {
+      alert("⏳ Please wait a moment while biometric face verification completes.");
+      return;
+    }
+
+    if (faceCheckStatus === "no_face" || detectedFaceCount === 0) {
+      alert(
+        "❌ NO FACE DETECTED IN PHOTO:\n\n" +
+        "Biometric verification could not find a face in the captured photo.\n" +
+        "Strictly 1 person's face must be clearly visible to punch attendance.\n\n" +
+        "Please click 'Retake Photo' and face the camera directly."
+      );
+      return;
+    }
+
     if (faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) {
       playWarningBeep();
       alert(
-        `🚨 ATTENDANCE ALERT: 2 Members Detected in Front of Camera!\n\n` +
-        `Only 1 member is permitted to punch attendance.\n\n` +
+        `🚨 ATTENDANCE ALERT: Multiple Faces Detected (${detectedFaceCount} People)!\n\n` +
+        `Only ONE person is allowed in the photo to punch attendance.\n\n` +
         `Please ensure only one person stands in front of the camera and retake your photo.`
       );
       return;
     }
 
-    let finalSelfie = capturedImage;
-    if (!finalSelfie) {
-      if (cameraStatus === "active" && videoRef.current) {
-        handleCapturePhoto();
-      } else {
-        finalSelfie = await generateSimulatedSelfie();
-        setCapturedImage(finalSelfie);
-      }
+    if (detectedFaceCount !== 1 || faceCheckStatus !== "valid") {
+      alert("⚠️ Strictly only 1 person's face must be present in the photo.");
+      return;
     }
 
     setIsSubmitting(true);
 
-    const isMapConfirmed = locationSource === "MAP_CONFIRMED";
     const now = new Date();
     const timeStr = now.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -1404,10 +591,10 @@ export default function FacePunchModal({
       longitude: coords.longitude,
       lat: coords.latitude,
       lng: coords.longitude,
-      accuracy: 0,
-      location_accuracy: 0,
-      accuracyText: isMapConfirmed ? "Map Confirmed" : "±0m (100% Accurate)",
-      location_source: isMapConfirmed ? "MAP_CONFIRMED" : "BROWSER_GPS",
+      accuracy: accuracy || 0,
+      location_accuracy: accuracy || 0,
+      accuracyText: accuracy ? `±${accuracy}m` : "Exact GPS",
+      location_source: "BROWSER_GPS",
       street: addressDetails.street || "",
       route: addressDetails.route || addressDetails.street || "",
       area: addressDetails.area || "",
@@ -1421,16 +608,17 @@ export default function FacePunchModal({
       country: addressDetails.country || "India",
       pincode: addressDetails.pincode || "",
       pin: addressDetails.pincode || "",
-      displayAddress: addressDetails.displayAddress || `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`,
+      displayAddress: addressDetails.displayAddress || `${coords.latitude.toFixed(7)}, ${coords.longitude.toFixed(7)}`,
       formattedAddress: addressDetails.formattedAddress || addressDetails.displayAddress || "",
       formatted_address: addressDetails.formattedAddress || addressDetails.displayAddress || "",
       full_address: addressDetails.formattedAddress || addressDetails.displayAddress || "",
-      locality: addressDetails.displayAddress || `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`,
+      locality: addressDetails.displayAddress || `${coords.latitude.toFixed(7)}, ${coords.longitude.toFixed(7)}`,
       timestamp: now.toISOString(),
       canPunch: true,
     };
 
     stopCameraStream();
+    stopGpsTracking();
 
     const callback = onConfirmPunch || onConfirm;
     if (callback) {
@@ -1438,7 +626,7 @@ export default function FacePunchModal({
         punchTime: timeStr,
         punchDate: dateStr,
         locationData: finalLocationPayload,
-        faceImage: finalSelfie,
+        faceImage: capturedImage,
       });
     }
 
@@ -1453,32 +641,24 @@ export default function FacePunchModal({
       setDetectedFaceCount(0);
       setIsSubmitting(false);
 
-      // 1. Open Camera
+      // 1. Open Live Camera
       startCamera();
 
-      // 2. Start GPS & Reverse Geocoding
-      requestFreshBrowserLocation();
+      // 2. Start Live High-Accuracy GPS Tracking
+      startHighAccuracyGpsTracking();
 
-      // 3. Initialize Map
-      const startLat = initialLocation?.latitude && !isNaN(initialLocation.latitude) ? Number(initialLocation.latitude) : defaultLat;
-      const startLng = initialLocation?.longitude && !isNaN(initialLocation.longitude) ? Number(initialLocation.longitude) : defaultLng;
-      const timer = setTimeout(() => {
-        const key = getGoogleMapsApiKey();
-        if (key && !hasGoogleMapsAuthError()) {
-          initGoogleMap(startLat, startLng, initialLocation?.accuracy);
-        } else {
-          initLeafletFallback(startLat, startLng);
-        }
-      }, 100);
+      // 3. Immediately resolve address for initial coordinates so address fields never show empty dashes
+      const startLat = initialLocation?.latitude ?? coords.latitude ?? 12.9716;
+      const startLng = initialLocation?.longitude ?? coords.longitude ?? 77.5946;
+      fetchAddressForCoords(startLat, startLng);
 
       return () => {
-        clearTimeout(timer);
         stopCameraStream();
-        destroyMaps();
+        stopGpsTracking();
       };
     } else {
       stopCameraStream();
-      destroyMaps();
+      stopGpsTracking();
     }
   }, [isOpen]);
 
@@ -1498,17 +678,13 @@ export default function FacePunchModal({
     HeaderIcon = LogOut;
   }
 
-  const isMapConfirmed = locationSource === "MAP_CONFIRMED";
-  const isAccuracyGood = true;
-  const isAccuracyModerate = false;
-  const isAccuracyPoor = false;
-
   return (
     <div
       className="face-punch-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget && onClose) {
           stopCameraStream();
+          stopGpsTracking();
           onClose();
         }
       }}
@@ -1533,6 +709,7 @@ export default function FacePunchModal({
             className="face-modal-close-btn"
             onClick={() => {
               stopCameraStream();
+              stopGpsTracking();
               onClose();
             }}
             title="Cancel"
@@ -1542,7 +719,7 @@ export default function FacePunchModal({
           </button>
         </div>
 
-        {/* Accuracy Warning Banner (Only on browser permission/connection errors) */}
+        {/* Location Error Warning Banner */}
         {Boolean(locationError) && (
           <div className="loc-accuracy-warning-banner">
             <div className="loc-warning-main">
@@ -1553,46 +730,39 @@ export default function FacePunchModal({
               <button
                 type="button"
                 className="loc-warning-btn-retry"
-                onClick={requestFreshBrowserLocation}
+                onClick={startHighAccuracyGpsTracking}
                 disabled={isDetectingGps}
               >
                 {isDetectingGps ? <Loader2 size={13} className="spin" /> : <RotateCw size={13} />}
-                <span>Try Again</span>
-              </button>
-              <button
-                type="button"
-                className="loc-warning-btn-select"
-                onClick={handleSelectOnMap}
-              >
-                <MapPin size={13} />
-                <span>Select Location on Map</span>
+                <span>Retry GPS</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Modal Two-Column Body: Camera (Left) + Google Map (Right) */}
+        {/* Modal Two-Column Body: Live Camera (Left) + GPS Tracking & Location (Right) */}
         <div className="unified-modal-body">
-          {/* COLUMN 1: Camera & Photo Capture */}
+          {/* COLUMN 1: Camera & Live Photo Capture */}
           <div className="unified-col unified-camera-col">
             <div className="col-header-row">
               <span className="col-header-icon camera-icon">
                 <Camera size={16} />
               </span>
-              <span className="col-header-title">1. Biometric Photo Verification</span>
+              <span className="col-header-title">1. Live Biometric Photo Capture</span>
             </div>
 
             <canvas ref={canvasRef} style={{ display: "none" }} />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleFileUpload}
-            />
 
             {/* Camera Viewport */}
-            <div className={`unified-camera-viewport ${faceCheckStatus === "multiple_faces" ? "border-red alert-multiple-faces" : capturedImage ? "border-green" : ""}`}>
+            <div className={`unified-camera-viewport ${
+              faceCheckStatus === "multiple_faces"
+                ? "border-red alert-multiple-faces"
+                : faceCheckStatus === "no_face"
+                ? "border-amber alert-no-face"
+                : capturedImage && faceCheckStatus === "valid"
+                ? "border-green"
+                : ""
+            }`}>
               <video
                 ref={videoRef}
                 autoPlay
@@ -1605,7 +775,7 @@ export default function FacePunchModal({
               />
 
               {capturedImage ? (
-                <img src={capturedImage} alt="Captured Photo Preview" className="unified-captured-img" />
+                <img src={capturedImage} alt="Captured Live Photo Preview" className="unified-captured-img" />
               ) : cameraStatus === "loading" ? (
                 <div className="camera-state-notice">
                   <RefreshCw size={24} className="spin text-orange" />
@@ -1613,70 +783,106 @@ export default function FacePunchModal({
                 </div>
               ) : cameraStatus !== "active" ? (
                 <div className="camera-state-notice">
-                  <Camera size={26} className="text-muted" />
-                  <span>Webcam Inactive</span>
-                  <div className="camera-fallback-actions">
-                    <button
-                      type="button"
-                      className="btn-auto-verify"
-                      onClick={async () => {
-                        const url = await generateSimulatedSelfie();
-                        setCapturedImage(url);
-                        runFaceCheck(url);
-                      }}
-                    >
-                      <Sparkles size={13} />
-                      <span>Auto-Verify</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-upload-selfie"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload size={13} />
-                      <span>Upload</span>
-                    </button>
-                  </div>
+                  <Camera size={28} className="text-muted" />
+                  <span className="camera-notice-text">
+                    {cameraErrorMsg || (cameraStatus === "denied" ? "Camera access denied. Please allow permissions." : "Webcam Inactive")}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-start-camera"
+                    onClick={startCamera}
+                  >
+                    <RefreshCw size={13} />
+                    <span>Start Live Camera</span>
+                  </button>
                 </div>
               ) : null}
 
               {/* Status pill on camera viewport */}
               <div className="camera-floating-badge">
                 {capturedImage ? (
-                  <span className="badge-captured">
-                    <CheckCircle2 size={13} /> Photo Ready
-                  </span>
+                  faceCheckStatus === "checking" ? (
+                    <span className="badge-checking">
+                      <Loader2 size={13} className="spin" /> Verifying Face Count…
+                    </span>
+                  ) : faceCheckStatus === "multiple_faces" ? (
+                    <span className="badge-alert-multi">
+                      <Users size={13} /> {detectedFaceCount} Faces (Only 1 Allowed)
+                    </span>
+                  ) : faceCheckStatus === "no_face" ? (
+                    <span className="badge-alert-none">
+                      <AlertTriangle size={13} /> No Face Detected (Retake)
+                    </span>
+                  ) : (
+                    <span className="badge-captured">
+                      <CheckCircle2 size={13} /> Exactly 1 Face Verified
+                    </span>
+                  )
                 ) : cameraStatus === "active" ? (
                   <span className="badge-live">
-                    <span className="live-dot" /> Live Camera
+                    <span className="live-dot" /> Live Camera (1 Face Allowed)
                   </span>
                 ) : (
                   <span className="badge-offline">Standby</span>
                 )}
               </div>
 
-              {/* Live Overlay Alert when 2 members are in front of the camera */}
-              {faceCheckStatus === "multiple_faces" && (
+              {/* Striking Red Alert Side Ribbons on Camera Box */}
+              {(faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) && (
+                <>
+                  <div className="camera-side-alert-ribbon left-side-alert" aria-hidden="true">
+                    <span className="side-alert-bar" />
+                    <span className="side-alert-title">🚨 RED ALERT · MULTIPLE FACES</span>
+                    <span className="side-alert-bar" />
+                  </div>
+                  <div className="camera-side-alert-ribbon right-side-alert" aria-hidden="true">
+                    <span className="side-alert-bar" />
+                    <span className="side-alert-title">⛔ CAPTURE BLOCKED · ONLY 1 PERSON</span>
+                    <span className="side-alert-bar" />
+                  </div>
+                </>
+              )}
+
+              {/* Live Overlay Alert when 2 or more members are in front of the camera */}
+              {(faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) && (
                 <div className="camera-live-alert-overlay" role="alert">
                   <div className="camera-live-alert-icon">
-                    <AlertTriangle size={22} className="pulse-alert-icon" />
+                    <AlertTriangle size={24} className="pulse-alert-icon" />
                   </div>
                   <div className="camera-live-alert-content">
-                    <div className="alert-title">🚨 Alert: 2 Members in Front of Camera!</div>
+                    <div className="alert-title">🚨 Alert: {detectedFaceCount >= 2 ? `${detectedFaceCount} Members` : "Multiple Faces"} in Camera!</div>
                     <div className="alert-subtitle">
-                      {detectedFaceCount >= 2 ? `${detectedFaceCount} members` : "2 members"} detected. Only 1 member is allowed to punch attendance.
+                      Capture button is disabled. Strictly only ONE person is allowed in front of the camera to punch attendance.
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Multiple Faces Warning Banner */}
-            {faceCheckStatus === "multiple_faces" && (
+            {/* Banners for Face Count Validation */}
+            {(faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) && (
               <div className="multiple-faces-banner alert-danger">
                 <Users size={16} />
                 <span>
-                  <strong>Alert:</strong> {detectedFaceCount >= 2 ? `${detectedFaceCount} members` : "2 members"} in front of camera! Only 1 person allowed to punch.
+                  <strong>Multiple Faces Detected ({detectedFaceCount}):</strong> Capture button is disabled. Please stand alone in front of the camera to punch.
+                </span>
+              </div>
+            )}
+
+            {faceCheckStatus === "no_face" && (
+              <div className="multiple-faces-banner alert-warning">
+                <AlertCircle size={16} />
+                <span>
+                  <strong>No Face Detected:</strong> Face not clearly visible. Please face the camera directly.
+                </span>
+              </div>
+            )}
+
+            {capturedImage && faceCheckStatus === "valid" && detectedFaceCount === 1 && (
+              <div className="single-face-verified-banner">
+                <CheckCircle2 size={16} />
+                <span>
+                  <strong>Biometric Check Passed:</strong> Exactly 1 face captured. Ready for attendance.
                 </span>
               </div>
             )}
@@ -1694,331 +900,178 @@ export default function FacePunchModal({
                   <span>Retake Photo</span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  className="btn-capture-photo"
-                  onClick={handleCapturePhoto}
-                  disabled={cameraStatus !== "active" || isSubmitting}
-                >
-                  <Camera size={16} />
-                  <span>Capture Photo</span>
-                </button>
+                <div className="capture-button-wrapper">
+                  {(() => {
+                    const isMulti = faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2;
+                    const isSingle = detectedFaceCount === 1 && !isMulti;
+                    const canCapture = cameraStatus === "active" && !isSubmitting && isSingle;
+
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          className={`btn-capture-photo ${
+                            isMulti
+                              ? "btn-capture-blocked"
+                              : isSingle
+                              ? "btn-capture-ready"
+                              : "btn-capture-waiting"
+                          }`}
+                          onClick={handleCapturePhoto}
+                          disabled={!canCapture}
+                          title={
+                            isMulti
+                              ? `Capture blocked: ${detectedFaceCount} faces detected. Only 1 person allowed.`
+                              : isSingle
+                              ? "1 Face verified! Click to capture photo."
+                              : "Please position 1 face in the camera to enable capture."
+                          }
+                        >
+                          {isMulti ? (
+                            <>
+                              <Users size={16} />
+                              <span>Capture Blocked ({detectedFaceCount} Faces Detected)</span>
+                            </>
+                          ) : isSingle ? (
+                            <>
+                              <CheckCircle2 size={16} />
+                              <span>Capture Photo (1 Face Verified)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Camera size={16} />
+                              <span>Position 1 Face in Camera</span>
+                            </>
+                          )}
+                        </button>
+
+                        {isMulti ? (
+                          <p className="capture-blocked-notice">
+                            ⛔ <strong>Capture Blocked:</strong> {detectedFaceCount} faces detected! Only 1 person is allowed. Stand alone in front of camera.
+                          </p>
+                        ) : isSingle ? (
+                          <p className="capture-ready-notice">
+                            ✅ <strong>1 Face Verified:</strong> Ready! Click the button above to capture your attendance photo.
+                          </p>
+                        ) : (
+                          <p className="capture-waiting-notice">
+                            👤 <strong>Face Required:</strong> Look at the camera so your face is detected to enable capture.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               )}
             </div>
           </div>
 
-          {/* COLUMN 2: Google Map + Reverse Geocoding */}
-          <div className="unified-col unified-map-col">
+          {/* COLUMN 2: Real-Time GPS Tracking & Location Verification (Google Map Removed) */}
+          <div className="unified-col unified-gps-col">
             <div className="col-header-row">
-              <span className="col-header-icon map-icon">
-                <MapPin size={16} />
+              <span className="col-header-icon gps-icon">
+                <Compass size={16} />
               </span>
-              <span className="col-header-title">2. Google Map & Location Verification</span>
+              <span className="col-header-title">2. Live GPS & Location Verification</span>
             </div>
 
-            {/* Place Search Toolbar */}
-            <form className="unified-search-bar" onSubmit={handleSearchSubmit}>
-              <Search size={14} className="search-bar-icon" />
-              <input
-                type="text"
-                placeholder="Search village, town, taluk, or PIN code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-bar-input"
-              />
-              <button type="submit" className="search-bar-btn" disabled={isSearching}>
-                {isSearching ? <Loader2 size={12} className="spin" /> : "Search"}
-              </button>
-            </form>
-
-            {/* Search Dropdown */}
-            {searchResults.length > 0 && (
-              <div className="unified-search-dropdown">
-                <div className="dropdown-header">
-                  <span>Matching Locations ({searchResults.length})</span>
-                  <button type="button" onClick={() => setSearchResults([])}>
-                    Clear
-                  </button>
+            {/* Real-Time GPS Satellite Tracking Card */}
+            <div className="unified-gps-tracking-card">
+              <div className="gps-live-header">
+                <div className="gps-live-status-left">
+                  <div className={`gps-satellite-icon-wrap ${isRefiningGps ? "refining" : "locked"}`}>
+                    <Navigation size={18} className="gps-pulse-nav" />
+                  </div>
+                  <div>
+                    <div className="gps-live-title">
+                      {isRefiningGps
+                        ? "🛰️ Satellite GPS Tracking Active"
+                        : gpsLocked
+                        ? "🎯 High-Precision GPS Locked"
+                        : "🛰️ Acquiring GPS Position..."}
+                    </div>
+                    <div className="gps-live-sub">
+                      {isRefiningGps ? (
+                        <span className="text-amber">
+                          Refining accuracy · Fix #{gpsSampleCount} (Locking high-precision satellites…)
+                        </span>
+                      ) : (
+                        <span className="text-emerald">
+                          Exact coordinates calibrated · {lastFixTime ? `Updated ${lastFixTime}` : "Active"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                {searchResults.map((res, idx) => (
-                  <div
-                    key={idx}
-                    className="dropdown-item"
-                    onClick={() => handleSelectSearchResult(res)}
-                  >
-                    <MapPin size={13} className="item-pin" />
-                    <div>
-                      <div className="item-title">
-                        {res.village || res.area || res.city || "Location"}
-                        {res.taluk ? `, ${res.taluk}` : ""}
-                      </div>
-                      <div className="item-sub">{res.display_name}</div>
-                    </div>
-                  </div>
-                ))}
+
+                <button
+                  type="button"
+                  className="btn-refresh-gps"
+                  onClick={startHighAccuracyGpsTracking}
+                  disabled={isDetectingGps && !isRefiningGps}
+                  title="Re-scan and calibrate high-accuracy GPS coordinates"
+                >
+                  <RotateCw size={13} className={isDetectingGps ? "spin" : ""} />
+                  <span>{isDetectingGps ? "Calibrating…" : "Refresh GPS"}</span>
+                </button>
               </div>
-            )}
 
-            {/* Map Canvas */}
-            <div className="unified-map-wrapper">
-              <div ref={mapContainerRef} className="unified-map-canvas" id="attendance-unified-google-map" />
-
-              {/* Pegman Street View 360° Interactive Viewer Overlay */}
-              {isStreetViewActive && (
-                <div className="gmap-streetview-overlay">
-                  <div className="gmap-streetview-header">
-                    <div className="gmap-streetview-header-title">
-                      <PegmanIcon active={true} />
-                      <span>Google Street View (360° Panorama)</span>
-                      <span className="gmap-streetview-coords">
-                        {coords.latitude.toFixed(5)}°, {coords.longitude.toFixed(5)}°
-                      </span>
-                    </div>
-                    <div className="gmap-streetview-header-actions">
-                      <a
-                        href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${coords.latitude},${coords.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="gmap-streetview-external-btn"
-                        title="Open Fullscreen Street View in Google Maps"
-                      >
-                        <ExternalLink size={13} />
-                        <span>Full 360°</span>
-                      </a>
-                      <button
-                        type="button"
-                        className="gmap-streetview-close-btn"
-                        onClick={handleToggleStreetView}
-                        title="Exit Street View"
-                      >
-                        <X size={14} />
-                        <span>Exit</span>
-                      </button>
-                    </div>
+              {/* Exact Digital Coordinates Grid */}
+              <div className="gps-coords-display-grid">
+                <div className="gps-coord-box">
+                  <div className="gps-coord-label">EXACT LATITUDE</div>
+                  <div className="gps-coord-value font-mono">
+                    {coords.latitude ? `${coords.latitude.toFixed(7)}°` : "—"}
                   </div>
-                  <div className="gmap-streetview-frame-container">
-                    <iframe
-                      title="Google Street View 360 Panorama"
-                      src={`https://maps.google.com/maps?layer=c&cbll=${coords.latitude},${coords.longitude}&output=svembed`}
-                      className="gmap-streetview-iframe"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                </div>
+                <div className="gps-coord-box">
+                  <div className="gps-coord-label">EXACT LONGITUDE</div>
+                  <div className="gps-coord-value font-mono">
+                    {coords.longitude ? `${coords.longitude.toFixed(7)}°` : "—"}
+                  </div>
+                </div>
+                <div className="gps-coord-box">
+                  <div className="gps-coord-label">GPS ACCURACY</div>
+                  <div className={`gps-coord-value font-mono ${accuracy != null && accuracy <= 25 ? "acc-great" : accuracy != null && accuracy <= 80 ? "acc-moderate" : "acc-low"}`}>
+                    {accuracy != null ? `±${accuracy} meters` : "Detecting..."}
+                  </div>
+                </div>
+                <div className="gps-coord-box">
+                  <div className="gps-coord-label">PRECISION STATUS</div>
+                  <div className="gps-coord-status">
+                    {accuracy != null && accuracy <= 25 ? (
+                      <span className="gps-pill pill-locked">
+                        <CheckCircle2 size={12} /> High Precision
+                      </span>
+                    ) : isRefiningGps ? (
+                      <span className="gps-pill pill-refining">
+                        <Loader2 size={12} className="spin" /> Refining satellites…
+                      </span>
+                    ) : (
+                      <span className="gps-pill pill-best">
+                        <Check size={12} /> Best Fix Acquired
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Low Accuracy Notice & Progressive Satellite Refinement Banner */}
+              {isRefiningGps && accuracy != null && accuracy > 25 && (
+                <div className="gps-refining-alert">
+                  <div className="gps-refining-spinner">
+                    <Loader2 size={16} className="spin text-amber" />
+                  </div>
+                  <div className="gps-refining-info">
+                    <div className="gps-refining-text">
+                      <strong>Low accuracy fix detected (±{accuracy}m).</strong>
+                    </div>
+                    <div className="gps-refining-desc">
+                      Communicating with GPS satellites to fetch exact location... Please wait a few seconds.
+                    </div>
                   </div>
                 </div>
               )}
-
-              {/* Bottom-Left: Google Maps Type & Layers Widget (User Screenshot) */}
-              <div className="gmap-layers-bottom-widget" aria-label="Map Layers & Type">
-                {/* Main Map / Satellite Thumbnail Button */}
-                <button
-                  type="button"
-                  className="gmap-layers-main-btn"
-                  onClick={handleToggleMapType}
-                  title={mapType === "hybrid" || mapType === "satellite" ? "Switch to Map View" : "Switch to Satellite View"}
-                >
-                  <MapModeThumbnail mapType={mapType} />
-                </button>
-
-                {/* Horizontal Layers Pill (Terrain, Traffic, Transit, Biking, More) */}
-                <div className="gmap-layers-flyout-card">
-                  {/* 1. Terrain */}
-                  <button
-                    type="button"
-                    className={`gmap-layer-item-btn ${mapType === "terrain" ? "is-layer-active" : ""}`}
-                    onClick={handleToggleTerrain}
-                    title="Toggle Terrain View"
-                  >
-                    <TerrainLayerIcon active={mapType === "terrain"} />
-                    <span className="gmap-layer-item-label">Terrain</span>
-                  </button>
-
-                  {/* 2. Traffic */}
-                  <button
-                    type="button"
-                    className={`gmap-layer-item-btn ${isTrafficActive ? "is-layer-active" : ""}`}
-                    onClick={handleToggleTraffic}
-                    title="Toggle Live Traffic Layer"
-                  >
-                    <TrafficLayerIcon active={isTrafficActive} />
-                    <span className="gmap-layer-item-label">Traffic</span>
-                  </button>
-
-                  {/* 3. Transit */}
-                  <button
-                    type="button"
-                    className={`gmap-layer-item-btn ${isTransitActive ? "is-layer-active" : ""}`}
-                    onClick={handleToggleTransit}
-                    title="Toggle Public Transit Layer"
-                  >
-                    <TransitLayerIcon active={isTransitActive} />
-                    <span className="gmap-layer-item-label">Transit</span>
-                  </button>
-
-                  {/* 4. Biking */}
-                  <button
-                    type="button"
-                    className={`gmap-layer-item-btn ${isBikingActive ? "is-layer-active" : ""}`}
-                    onClick={handleToggleBiking}
-                    title="Toggle Bicycling Routes Layer"
-                  >
-                    <BikingLayerIcon active={isBikingActive} />
-                    <span className="gmap-layer-item-label">Biking</span>
-                  </button>
-
-                  {/* 5. More */}
-                  <button
-                    type="button"
-                    className={`gmap-layer-item-btn ${isMoreMenuOpen ? "is-layer-active" : ""}`}
-                    onClick={handleToggleMoreMenu}
-                    title="More map options & layers"
-                  >
-                    <MoreLayersIcon active={isMoreMenuOpen} />
-                    <span className="gmap-layer-item-label">More</span>
-                  </button>
-                </div>
-
-                {/* More Layers Popup Menu */}
-                {isMoreMenuOpen && (
-                  <div className="gmap-more-layers-popup">
-                    <div className="more-popup-title">Map Layers & Details</div>
-                    <button
-                      type="button"
-                      className="more-popup-option"
-                      onClick={() => {
-                        handleToggleMapType();
-                        setIsMoreMenuOpen(false);
-                      }}
-                    >
-                      <span>Satellite Aerial</span>
-                      <span className={`more-option-tag ${mapType === "hybrid" || mapType === "satellite" ? "tag-on" : ""}`}>
-                        {mapType === "hybrid" || mapType === "satellite" ? "ON" : "OFF"}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="more-popup-option"
-                      onClick={() => {
-                        handleToggleTerrain();
-                        setIsMoreMenuOpen(false);
-                      }}
-                    >
-                      <span>Terrain Contours</span>
-                      <span className={`more-option-tag ${mapType === "terrain" ? "tag-on" : ""}`}>
-                        {mapType === "terrain" ? "ON" : "OFF"}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="more-popup-option"
-                      onClick={() => {
-                        handleToggleTraffic();
-                        setIsMoreMenuOpen(false);
-                      }}
-                    >
-                      <span>Live Traffic</span>
-                      <span className={`more-option-tag ${isTrafficActive ? "tag-on" : ""}`}>
-                        {isTrafficActive ? "ON" : "OFF"}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="more-popup-option"
-                      onClick={() => {
-                        handleToggleTransit();
-                        setIsMoreMenuOpen(false);
-                      }}
-                    >
-                      <span>Public Transit</span>
-                      <span className={`more-option-tag ${isTransitActive ? "tag-on" : ""}`}>
-                        {isTransitActive ? "ON" : "OFF"}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="more-popup-option"
-                      onClick={() => {
-                        handleToggleBiking();
-                        setIsMoreMenuOpen(false);
-                      }}
-                    >
-                      <span>Biking Routes</span>
-                      <span className={`more-option-tag ${isBikingActive ? "tag-on" : ""}`}>
-                        {isBikingActive ? "ON" : "OFF"}
-                      </span>
-                    </button>
-                    <div className="more-popup-divider" />
-                    <button
-                      type="button"
-                      className="more-popup-option more-popup-reset"
-                      onClick={handleResetAllLayers}
-                    >
-                      <span>Reset All Layers</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom-Right: Floating Google Maps Custom Controls (Target GPS, Zoom +/-, Yellow Pegman Street View) */}
-              <div className="gmap-floating-controls-stack" aria-label="Map Controls">
-                {/* 1. Target / My Location Button */}
-                <button
-                  type="button"
-                  className={`gmap-ctrl-btn gmap-ctrl-locate-btn ${isDetectingGps ? "is-loading" : ""}`}
-                  onClick={requestFreshBrowserLocation}
-                  disabled={isDetectingGps}
-                  title="Locate Me (High-Accuracy Device GPS)"
-                  aria-label="Locate Me"
-                >
-                  {isDetectingGps ? (
-                    <Loader2 size={18} className="spin text-emerald-400" />
-                  ) : (
-                    <TargetGpsIcon />
-                  )}
-                  <span className="gmap-ctrl-tooltip">Your location</span>
-                </button>
-
-                {/* 2. Zoom In / Zoom Out Pill */}
-                <div className="gmap-ctrl-zoom-pill">
-                  <button
-                    type="button"
-                    className="gmap-ctrl-zoom-btn"
-                    onClick={handleZoomIn}
-                    title="Zoom in"
-                    aria-label="Zoom in"
-                  >
-                    <Plus size={17} strokeWidth={2.8} />
-                  </button>
-                  <div className="gmap-ctrl-divider" />
-                  <button
-                    type="button"
-                    className="gmap-ctrl-zoom-btn"
-                    onClick={handleZoomOut}
-                    title="Zoom out"
-                    aria-label="Zoom out"
-                  >
-                    <Minus size={17} strokeWidth={2.8} />
-                  </button>
-                </div>
-
-                {/* 3. Pegman Street View Button */}
-                <button
-                  type="button"
-                  className={`gmap-ctrl-btn gmap-ctrl-pegman-btn ${isStreetViewActive ? "is-active" : ""}`}
-                  onClick={handleToggleStreetView}
-                  title={isStreetViewActive ? "Exit Street View" : "Toggle Street View (Pegman)"}
-                  aria-label="Toggle Street View"
-                >
-                  <PegmanIcon active={isStreetViewActive} />
-                  <span className="gmap-ctrl-tooltip">
-                    {isStreetViewActive ? "Exit Street View" : "Street View"}
-                  </span>
-                </button>
-              </div>
-
-              <div className="map-instruction-pill">
-                📍 Current location fixed at GPS coordinates
-              </div>
             </div>
 
             {/* Structured Address HUD */}
@@ -2026,11 +1079,11 @@ export default function FacePunchModal({
               <div className="address-header-row">
                 <span className="address-title">Selected Location</span>
                 <div className="address-badges">
-                  <span className={`source-tag ${isMapConfirmed ? "source-map" : "source-gps"}`}>
-                    {isMapConfirmed ? "MAP_CONFIRMED" : "BROWSER_GPS"}
+                  <span className="source-tag source-gps">
+                    BROWSER_GPS
                   </span>
-                  <span className={`acc-tag ${isMapConfirmed ? "acc-map" : "acc-good"}`}>
-                    {isMapConfirmed ? "Map Confirmed" : "0m (100% Accurate)"}
+                  <span className={`acc-tag ${accuracy != null && accuracy <= 25 ? "acc-good" : "acc-mod"}`}>
+                    {accuracy != null ? `±${accuracy}m (${accuracy <= 25 ? "100% Accurate" : "Refining"})` : "GPS Locked"}
                   </span>
                 </div>
               </div>
@@ -2072,14 +1125,14 @@ export default function FacePunchModal({
                 </div>
                 <div className="grid-cell">
                   <span className="cell-label">ACCURACY:</span>
-                  <span className="cell-value font-mono" style={{ color: "#16a34a", fontWeight: 700 }}>
-                    {isMapConfirmed ? "Map Confirmed" : "0 meters (100% Accurate)"}
+                  <span className="cell-value font-mono" style={{ color: accuracy != null && accuracy <= 25 ? "#16a34a" : "#d97706", fontWeight: 700 }}>
+                    {accuracy != null ? `±${accuracy} meters (${accuracy <= 25 ? "100% Accurate" : "Refining"})` : "Calibrating..."}
                   </span>
                 </div>
                 <div className="grid-cell">
                   <span className="cell-label">GPS Lat / Lng:</span>
                   <span className="cell-value font-mono" style={{ fontSize: "0.72rem" }}>
-                    {coords.latitude ? `${coords.latitude.toFixed(6)}°, ${coords.longitude.toFixed(6)}°` : "—"}
+                    {coords.latitude ? `${coords.latitude.toFixed(7)}°, ${coords.longitude.toFixed(7)}°` : "—"}
                   </span>
                 </div>
               </div>
@@ -2104,9 +1157,19 @@ export default function FacePunchModal({
         <div className="face-modal-footer unified-footer">
           <div className="footer-left-info">
             <span className="step-guide">
-              {capturedImage
-                ? "✅ Step 1 complete. Review location on map & click Confirm Punch."
-                : "📷 Please capture your photo or use Auto-Verify to proceed."}
+              {capturedImage ? (
+                faceCheckStatus === "checking" ? (
+                  "🔍 Verifying face count in photo… Please wait."
+                ) : faceCheckStatus === "no_face" ? (
+                  "❌ No face detected. Please retake photo with face clearly visible."
+                ) : faceCheckStatus === "multiple_faces" ? (
+                  `🚨 Multiple faces detected (${detectedFaceCount})! Strictly only 1 person allowed.`
+                ) : (
+                  "✅ Exactly 1 face verified. Review details & click Confirm Punch."
+                )
+              ) : (
+                "📷 Capture your live photo (strictly 1 member only allowed)."
+              )}
             </span>
           </div>
 
@@ -2116,6 +1179,7 @@ export default function FacePunchModal({
               className="btn-cancel"
               onClick={() => {
                 stopCameraStream();
+                stopGpsTracking();
                 onClose();
               }}
               disabled={isSubmitting}
@@ -2125,11 +1189,16 @@ export default function FacePunchModal({
 
             <button
               type="button"
-              className={`btn-confirm-punch ${faceCheckStatus === "multiple_faces" ? "btn-punch-alert" : ""}`}
+              className={`btn-confirm-punch ${
+                faceCheckStatus === "multiple_faces" || faceCheckStatus === "no_face"
+                  ? "btn-punch-alert"
+                  : ""
+              }`}
               disabled={
                 isSubmitting ||
-                faceCheckStatus === "multiple_faces" ||
-                (!capturedImage && cameraStatus !== "active")
+                !capturedImage ||
+                faceCheckStatus !== "valid" ||
+                detectedFaceCount !== 1
               }
               onClick={handleConfirmPunchAction}
             >

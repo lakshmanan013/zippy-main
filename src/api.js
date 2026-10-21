@@ -1,8 +1,8 @@
 // Connects the Zenve Zippy CRM to the FastAPI + MySQL backend.
 export const API_BASE =
-  typeof window !== "undefined" && window.location.hostname && window.location.hostname !== "localhost"
+  typeof window !== "undefined" && window.location.hostname
     ? `http://${window.location.hostname}:8000`
-    : "http://127.0.0.1:8000";
+    : "http://localhost:8000";
 
 /**
  * TABLE_CONFIG maps every dashboard key (from data.js / NAV_GROUPS) to:

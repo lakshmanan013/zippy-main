@@ -8,11 +8,21 @@ import {
   loginWithMobileOtp,
 } from "../api.js";
 import { getFreshExecutiveLocation } from "../geoUtils.js";
-import heroImg from "../assets/zenve-sales-hero.jpg";
+import execHeroImg from "../assets/sales-exec-perfect.jpg";
+import managerHeroImg from "../assets/manager-hero-clear.png";
+import regionalHeroImg from "../assets/regional-hero.jpg";
+import managerMascotImg from "../assets/manager-mascot-perfect.png";
+import salesManagerLeftFullImg from "../assets/sales-manager-left-full.png";
+import regionalLeftFullImg from "../assets/regional-left-full.jpg";
+import zenveZippyLogoImg from "../assets/zenve-zippy-logo.png";
 import {
   Users,
   TrendingUp,
   Target,
+  FileText,
+  MapPin,
+  ArrowRight,
+  ChevronRight,
   Smartphone,
   Mail,
   Lock,
@@ -21,6 +31,7 @@ import {
   ShieldCheck,
   ChevronDown,
   Check,
+  Search,
   KeyRound,
   Briefcase,
   UserCheck,
@@ -49,71 +60,201 @@ function PawIcon({ size = 26, color = "#0077e6", className = "" }) {
   );
 }
 
+function ExecTeamIcon({ size = 24, color = "#0077e6" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Central user */}
+      <circle cx="12" cy="7" r="3.2" fill={color} />
+      <path d="M6.5 18c0-3 2.5-5.2 5.5-5.2s5.5 2.2 5.5 5.2" fill={color} />
+      {/* Left user */}
+      <circle cx="5.5" cy="9.5" r="2.2" fill={color} opacity="0.9" />
+      <path d="M1.5 17.5c0-2.2 1.8-3.8 4-3.8.7 0 1.4.2 2 .5-.5 1-.8 2.2-.8 3.3H1.5z" fill={color} opacity="0.9" />
+      {/* Right user */}
+      <circle cx="18.5" cy="9.5" r="2.2" fill={color} opacity="0.9" />
+      <path d="M22.5 17.5c0-2.2-1.8-3.8-4-3.8-.7 0-1.4.2-2 .5.5 1 .8 2.2.8 3.3h5.2z" fill={color} opacity="0.9" />
+    </svg>
+  );
+}
+
+function ExecChartIcon({ size = 24, color = "#0077e6" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* 3 Growth Bar Columns */}
+      <rect x="3.5" y="14" width="3.8" height="6.5" rx="1" fill={color} />
+      <rect x="10" y="10" width="3.8" height="10.5" rx="1" fill={color} />
+      <rect x="16.5" y="6" width="3.8" height="14.5" rx="1" fill={color} />
+      {/* Trend Arrow Up Right */}
+      <path d="M4 10.5L10 6L14 9L20 3.5" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16.5 3.5H20V7" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExecTargetIcon({ size = 24, color = "#0077e6" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Outer target ring */}
+      <circle cx="12" cy="12" r="8.5" stroke={color} strokeWidth="2.4" />
+      {/* Middle ring */}
+      <circle cx="12" cy="12" r="4.8" stroke={color} strokeWidth="2.2" />
+      {/* Center bullseye dot */}
+      <circle cx="12" cy="12" r="2.2" fill={color} />
+      {/* Diagonal Dart hitting bullseye */}
+      <path d="M13.5 10.5L19.5 4.5" stroke={color} strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M17 4H20V7" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExecDocIcon({ size = 24, color = "#0077e6" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Document page with folded/notched bottom corner */}
+      <path
+        d="M6 3.5h12a2 2 0 012 2v11l-4 4H6a2 2 0 01-2-2v-13a2 2 0 012-2z"
+        fill={color}
+      />
+      {/* 3 Text lines */}
+      <rect x="7.5" y="7.5" width="9" height="1.8" rx="0.9" fill="#ffffff" />
+      <rect x="7.5" y="11" width="9" height="1.8" rx="0.9" fill="#ffffff" />
+      <rect x="7.5" y="14.5" width="5.5" height="1.8" rx="0.9" fill="#ffffff" />
+    </svg>
+  );
+}
+
 const ROLES_INFO = {
   executive: {
     key: "executive",
+    theme: "theme-blue",
     title: "Sales Executive",
     portalTitle: "Sales Executive Portal",
     subBadge: "Field Sales & Territory OS",
     welcomeTitle: "Welcome Sales Executive",
-    subtitle: "Sign in to manage your field leads, doctor visits, and schedule.",
+    welcomeBack: "Welcome Back!",
+    subtitle: "",
+    rightSubtitle: "",
     headlinePart1: "Drive Sales.",
     headlinePart2: "Build Relationships.",
     headlineAccent: "For a Healthier\nTomorrow.",
     pillars: [
-      { icon: Users, title: "Track Leads", desc: "Manage and convert doctor opportunities" },
-      { icon: TrendingUp, title: "Stay Productive", desc: "Plan daily visits and meet targets" },
-      { icon: Target, title: "Achieve More", desc: "Real-time territory GPS tracking" },
+      { icon: ExecTeamIcon, title: "Track Leads", desc: "", colorTheme: "mint" },
+      { icon: ExecChartIcon, title: "Stay Productive", desc: "", colorTheme: "lavender" },
+      { icon: ExecTargetIcon, title: "Achieve More", desc: "", colorTheme: "amber" },
     ],
+    chips: [],
     quote: "“Together for\nHappier, Healthier Pets.”",
     footerText: "Secure Field Operations Management",
     tableKey: "sales_executives",
     accentColor: "#0077e6",
+    heroImg: execHeroImg,
     icon: Briefcase,
   },
   manager: {
     key: "manager",
+    theme: "theme-green",
     title: "Sales Manager",
     portalTitle: "Sales Manager Portal",
     subBadge: "Team Leadership & Approvals OS",
-    welcomeTitle: "Welcome Sales Manager",
-    subtitle: "Sign in to manage your sales team, approvals, and performance.",
-    headlinePart1: "Empower Teams.",
-    headlinePart2: "Drive Performance.",
-    headlineAccent: "For a Healthier\nTomorrow.",
+    welcomeTitle: "Sales Manager Portal",
+    welcomeBack: "Welcome Back!",
+    subtitle: "",
+    rightSubtitle: "",
+    headlinePart1: "Lead Teams.",
+    headlinePart2: "Drive Growth.",
+    headlineAccent: "Make a Bigger\nImpact.",
+    accentColor: "#059669",
     pillars: [
-      { icon: UserCheck, title: "Team Approvals", desc: "Review daily logs and visit schedules" },
-      { icon: TrendingUp, title: "Target Tracking", desc: "Monitor team quotas and conversions" },
-      { icon: Target, title: "Doctor Reach", desc: "Optimize territory doctor coverage" },
+      { icon: ExecTeamIcon, title: "Team Leadership", desc: "" },
+      { icon: ExecChartIcon, title: "Performance & Growth", desc: "" },
+      { icon: ExecTargetIcon, title: "Target & Opportunities", desc: "" },
+      { icon: ExecDocIcon, title: "Reports & Approvals", desc: "" },
     ],
-    quote: "“Guiding Teams Towards\nHealthier Pets.”",
-    footerText: "Secure Sales Team Operations Management",
+    chips: [],
+    quote: "“Empowering Teams for\nHealthier Pets Nationwide.”",
+    footerText: "Secure and convenient login with OTP.",
     tableKey: "sales_managers",
-    accentColor: "#2563eb",
+    heroImg: managerHeroImg,
     icon: UserCheck,
   },
   regional: {
     key: "regional",
+    theme: "theme-purple",
     title: "Regional Manager",
     portalTitle: "Regional Manager Portal",
     subBadge: "Strategic Command & Territory OS",
-    welcomeTitle: "Welcome Regional Manager",
-    subtitle: "Sign in to oversee your territory, regional targets, and branches.",
-    headlinePart1: "Expand Horizons.",
-    headlinePart2: "Lead Regions.",
-    headlineAccent: "For a Healthier\nTomorrow.",
+    welcomeTitle: "Regional Manager Portal",
+    welcomeBack: "Welcome Back!",
+    subtitle: "",
+    rightSubtitle: "",
+    headlinePart1: "Manage Regions.",
+    headlinePart2: "Empower",
+    headlineAccent: "Pet Care.",
     pillars: [
-      { icon: Globe, title: "Regional Command", desc: "Comprehensive city & state overviews" },
-      { icon: TrendingUp, title: "Strategic Growth", desc: "Territory expansion & doctor networks" },
-      { icon: Target, title: "Executive Leadership", desc: "Multi-tier team performance KPIs" },
+      { icon: ExecChartIcon, title: "", desc: "" },
+      { icon: ExecTeamIcon, title: "", desc: "" },
+      { icon: MapPin, title: "", desc: "" },
     ],
-    quote: "“Leading The Future of\nPet Healthcare.”",
-    footerText: "Secure Regional Territory Command Management",
+    chips: [],
+    quote: "",
+    footerText: "Secure Access for Regional Managers",
     tableKey: "regional_managers",
-    accentColor: "#7c3aed",
+    accentColor: "#a855f7",
+    heroImg: regionalHeroImg,
     icon: Globe,
   },
 };
+
+const COUNTRY_CODES = [
+  { code: "IN", name: "India", dialCode: "+91", flag: "🇮🇳", maxLen: 10 },
+  { code: "US", name: "United States", dialCode: "+1", flag: "🇺🇸", maxLen: 10 },
+  { code: "GB", name: "United Kingdom", dialCode: "+44", flag: "🇬🇧", maxLen: 10 },
+  { code: "AE", name: "United Arab Emirates", dialCode: "+971", flag: "🇦🇪", maxLen: 9 },
+  { code: "SA", name: "Saudi Arabia", dialCode: "+966", flag: "🇸🇦", maxLen: 9 },
+  { code: "CA", name: "Canada", dialCode: "+1", flag: "🇨🇦", maxLen: 10 },
+  { code: "AU", name: "Australia", dialCode: "+61", flag: "🇦🇺", maxLen: 9 },
+  { code: "SG", name: "Singapore", dialCode: "+65", flag: "🇸🇬", maxLen: 8 },
+  { code: "MY", name: "Malaysia", dialCode: "+60", flag: "🇲🇾", maxLen: 10 },
+  { code: "QA", name: "Qatar", dialCode: "+974", flag: "🇶🇦", maxLen: 8 },
+  { code: "KW", name: "Kuwait", dialCode: "+965", flag: "🇰🇼", maxLen: 8 },
+  { code: "OM", name: "Oman", dialCode: "+968", flag: "🇴🇲", maxLen: 8 },
+  { code: "BH", name: "Bahrain", dialCode: "+973", flag: "🇧🇭", maxLen: 8 },
+  { code: "DE", name: "Germany", dialCode: "+49", flag: "🇩🇪", maxLen: 11 },
+  { code: "FR", name: "France", dialCode: "+33", flag: "🇫🇷", maxLen: 9 },
+  { code: "IT", name: "Italy", dialCode: "+39", flag: "🇮🇹", maxLen: 10 },
+  { code: "ES", name: "Spain", dialCode: "+34", flag: "🇪🇸", maxLen: 9 },
+  { code: "NL", name: "Netherlands", dialCode: "+31", flag: "🇳🇱", maxLen: 9 },
+  { code: "RU", name: "Russia", dialCode: "+7", flag: "🇷🇺", maxLen: 10 },
+  { code: "CN", name: "China", dialCode: "+86", flag: "🇨🇳", maxLen: 11 },
+  { code: "JP", name: "Japan", dialCode: "+81", flag: "🇯🇵", maxLen: 10 },
+  { code: "KR", name: "South Korea", dialCode: "+82", flag: "🇰🇷", maxLen: 10 },
+  { code: "BR", name: "Brazil", dialCode: "+55", flag: "🇧🇷", maxLen: 11 },
+  { code: "ZA", name: "South Africa", dialCode: "+27", flag: "🇿🇦", maxLen: 9 },
+  { code: "NZ", name: "New Zealand", dialCode: "+64", flag: "🇳🇿", maxLen: 9 },
+  { code: "BD", name: "Bangladesh", dialCode: "+880", flag: "🇧🇩", maxLen: 10 },
+  { code: "LK", name: "Sri Lanka", dialCode: "+94", flag: "🇱🇰", maxLen: 9 },
+  { code: "NP", name: "Nepal", dialCode: "+977", flag: "🇳🇵", maxLen: 10 },
+  { code: "PK", name: "Pakistan", dialCode: "+92", flag: "🇵🇰", maxLen: 10 },
+  { code: "PH", name: "Philippines", dialCode: "+63", flag: "🇵🇭", maxLen: 10 },
+  { code: "ID", name: "Indonesia", dialCode: "+62", flag: "🇮🇩", maxLen: 11 },
+  { code: "TH", name: "Thailand", dialCode: "+66", flag: "🇹🇭", maxLen: 9 },
+  { code: "VN", name: "Vietnam", dialCode: "+84", flag: "🇻🇳", maxLen: 9 },
+  { code: "NG", name: "Nigeria", dialCode: "+234", flag: "🇳🇬", maxLen: 10 },
+  { code: "KE", name: "Kenya", dialCode: "+254", flag: "🇰🇪", maxLen: 9 },
+  { code: "EG", name: "Egypt", dialCode: "+20", flag: "🇪🇬", maxLen: 10 },
+  { code: "IE", name: "Ireland", dialCode: "+353", flag: "🇮🇪", maxLen: 9 },
+  { code: "CH", name: "Switzerland", dialCode: "+41", flag: "🇨🇭", maxLen: 9 },
+  { code: "SE", name: "Sweden", dialCode: "+46", flag: "🇸🇪", maxLen: 9 },
+  { code: "NO", name: "Norway", dialCode: "+47", flag: "🇳🇴", maxLen: 8 },
+  { code: "DK", name: "Denmark", dialCode: "+45", flag: "🇩🇰", maxLen: 8 },
+  { code: "FI", name: "Finland", dialCode: "+358", flag: "🇫🇮", maxLen: 9 },
+  { code: "PL", name: "Poland", dialCode: "+48", flag: "🇵🇱", maxLen: 9 },
+  { code: "MX", name: "Mexico", dialCode: "+52", flag: "🇲🇽", maxLen: 10 },
+  { code: "AR", name: "Argentina", dialCode: "+54", flag: "🇦🇷", maxLen: 10 },
+  { code: "CL", name: "Chile", dialCode: "+56", flag: "🇨🇱", maxLen: 9 },
+  { code: "CO", name: "Colombia", dialCode: "+57", flag: "🇨🇴", maxLen: 10 },
+  { code: "TR", name: "Turkey", dialCode: "+90", flag: "🇹🇷", maxLen: 10 },
+  { code: "IL", name: "Israel", dialCode: "+972", flag: "🇮🇱", maxLen: 9 },
+];
 
 export default function SalesCrmLoginModal({
   isOpen,
@@ -121,7 +262,36 @@ export default function SalesCrmLoginModal({
   onClose,
   onLoginSuccess,
 }) {
-  const currentRole = (initialRole && ROLES_INFO[initialRole]) ? initialRole : "executive";
+  const [activeRole, setActiveRole] = useState(
+    initialRole && ROLES_INFO[initialRole] ? initialRole : "executive"
+  );
+
+  // Sync if initialRole changes and always reset inputs so no old credentials persist
+  useEffect(() => {
+    if (initialRole && ROLES_INFO[initialRole]) {
+      setActiveRole(initialRole);
+    }
+    setUsername("");
+    setPassword("");
+    setPhone("");
+    setOtp("");
+    setOtpSent(false);
+    setError("");
+    setSuccessMsg("");
+  }, [initialRole, isOpen]);
+
+  // Reset inputs when active role tab is switched
+  useEffect(() => {
+    setUsername("");
+    setPassword("");
+    setPhone("");
+    setOtp("");
+    setOtpSent(false);
+    setError("");
+    setSuccessMsg("");
+  }, [activeRole]);
+
+  const currentRole = activeRole;
 
   // Auth Mode: "email" (Email / Password) or "mobile" (Mobile OTP)
   const [authMode, setAuthMode] = useState("email");
@@ -129,7 +299,12 @@ export default function SalesCrmLoginModal({
 
   // Mobile OTP states
   const [phone, setPhone] = useState("");
-  const countryCode = "+91";
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const countryPickerRef = useRef(null);
+  const countrySearchInputRef = useRef(null);
+  const countryCode = selectedCountry.dialCode;
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
@@ -151,26 +326,60 @@ export default function SalesCrmLoginModal({
   const emailInputRef = useRef(null);
   const leftPanelRef = useRef(null);
 
+  // Close country dropdown on click outside
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      if (countryPickerRef.current && !countryPickerRef.current.contains(e.target)) {
+        setIsCountryDropdownOpen(false);
+        setCountrySearch("");
+      }
+    }
+    if (isCountryDropdownOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [isCountryDropdownOpen]);
+
+  // Focus search input when country dropdown opens
+  useEffect(() => {
+    if (isCountryDropdownOpen && countrySearchInputRef.current) {
+      countrySearchInputRef.current.focus();
+    }
+  }, [isCountryDropdownOpen]);
+
+  // Wheel scrolling directly on country prefix badge to cycle through countries
+  function handleCountryWheel(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dir = e.deltaY > 0 ? 1 : -1;
+    const currentIndex = COUNTRY_CODES.findIndex((c) => c.code === selectedCountry.code);
+    const nextIndex = (currentIndex + dir + COUNTRY_CODES.length) % COUNTRY_CODES.length;
+    setSelectedCountry(COUNTRY_CODES[nextIndex]);
+  }
+
+  const filteredCountries = COUNTRY_CODES.filter((c) => {
+    if (!countrySearch.trim()) return true;
+    const q = countrySearch.toLowerCase().trim();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.dialCode.toLowerCase().includes(q) ||
+      c.code.toLowerCase().includes(q)
+    );
+  });
+
   // Interactive Parallax, Dynamic Light Spotlight & Paw Ripples
   const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0, px: 50, py: 50 });
   const [activeBadge, setActiveBadge] = useState(null);
   const [pawsRipples, setPawsRipples] = useState([]);
 
   function handleLeftMouseMove(e) {
-    if (!leftPanelRef.current) return;
-    const rect = leftPanelRef.current.getBoundingClientRect();
-    const relX = (e.clientX - rect.left) / rect.width;
-    const relY = (e.clientY - rect.top) / rect.height;
-    setMouseCoords({
-      x: (relX - 0.5) * 16,
-      y: (relY - 0.5) * 14,
-      px: Math.round(relX * 100),
-      py: Math.round(relY * 100),
-    });
+    // Parallax disabled to keep image perfectly still and stable without shaking
   }
 
   function handleLeftMouseLeave() {
-    setMouseCoords({ x: 0, y: 0, px: 50, py: 50 });
+    // Keep still
   }
 
   function handleLeftClick(e) {
@@ -186,6 +395,8 @@ export default function SalesCrmLoginModal({
   }
 
   const roleConfig = ROLES_INFO[currentRole] || ROLES_INFO.executive;
+  const isManagerRole = currentRole === "manager";
+  const isRegionalRole = currentRole === "regional";
 
   // Load registered users for the active role
   useEffect(() => {
@@ -225,8 +436,14 @@ export default function SalesCrmLoginModal({
     setError("");
     setSuccessMsg("");
     const cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number.");
+    const minLen = selectedCountry.code === "IN" ? 10 : 7;
+    const maxLen = selectedCountry.code === "IN" ? 10 : 15;
+    if (cleanPhone.length < minLen || cleanPhone.length > maxLen) {
+      setError(
+        selectedCountry.code === "IN"
+          ? "Please enter a valid 10-digit mobile number."
+          : `Please enter a valid mobile number for ${selectedCountry.name}.`
+      );
       return;
     }
 
@@ -253,8 +470,14 @@ export default function SalesCrmLoginModal({
     setError("");
     setSuccessMsg("");
     const cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number.");
+    const minLen = selectedCountry.code === "IN" ? 10 : 7;
+    const maxLen = selectedCountry.code === "IN" ? 10 : 15;
+    if (cleanPhone.length < minLen || cleanPhone.length > maxLen) {
+      setError(
+        selectedCountry.code === "IN"
+          ? "Please enter a valid 10-digit mobile number."
+          : `Please enter a valid mobile number for ${selectedCountry.name}.`
+      );
       return;
     }
 
@@ -413,7 +636,7 @@ export default function SalesCrmLoginModal({
 
 
   return (
-    <div className="zenve-portal-page">
+    <div className={`zenve-portal-page ${roleConfig.theme}`}>
       {/* Return to Admin Button */}
       {onClose && (
         <button
@@ -422,7 +645,7 @@ export default function SalesCrmLoginModal({
           onClick={onClose}
           title="Return to Admin CRM"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={15} />
           <span>Back to Admin CRM</span>
         </button>
       )}
@@ -438,93 +661,186 @@ export default function SalesCrmLoginModal({
         onClick={handleLeftClick}
       >
         {/* Dynamic Interactive Spotlight Glow Following Cursor */}
-        <div
-          className="zenve-interactive-spotlight"
-          style={{
-            background: `radial-gradient(circle 420px at ${mouseCoords.px}% ${mouseCoords.py}%, rgba(56, 189, 248, 0.24) 0%, rgba(0, 119, 230, 0.08) 50%, transparent 75%)`,
-          }}
-        />
-
-        {/* Zenve Hero Image as Integrated Left-Panel Background with Parallax */}
-        <div
-          className="zenve-portal-bg-img-wrap"
-          style={{
-            transform: `translate3d(${mouseCoords.x}px, ${mouseCoords.y}px, 0) scale(1.03)`,
-          }}
-        >
-          <img
-            src={heroImg}
-            alt="Zenve Pet Care Sales Executive"
-            className="zenve-portal-bg-img"
+        {!isRegionalRole && !isManagerRole && (
+          <div
+            className="zenve-interactive-spotlight"
+            style={{
+              background: `radial-gradient(circle 420px at ${mouseCoords.px}% ${mouseCoords.py}%, rgba(56, 189, 248, 0.24) 0%, rgba(0, 119, 230, 0.08) 50%, transparent 75%)`,
+            }}
           />
-          <div className="zenve-bg-img-overlay-blend" />
+        )}
 
-          {/* Interactive Floating Live Zenve Feature Chips */}
-          <div
-            className={`zenve-interactive-chip chip-top ${activeBadge === "top" ? "active" : ""}`}
-            onMouseEnter={() => setActiveBadge("top")}
-            onMouseLeave={() => setActiveBadge(null)}
-          >
-            <div className="zenve-chip-dot pulse" />
-            <span className="zenve-chip-icon">🐾</span>
-            <div className="zenve-chip-text">
-              <strong>Zenve Pet Health</strong>
-              <small>Verified Partner Clinics</small>
-            </div>
-          </div>
+        {/* Hero Image as Integrated Left-Panel Background (Executive role only) */}
+        {!isRegionalRole && !isManagerRole && (
+          <div className="zenve-portal-bg-img-wrap">
+            <img
+              src={roleConfig.heroImg}
+              alt={roleConfig.portalTitle}
+              className="zenve-portal-bg-img"
+            />
+            <div className="zenve-bg-img-overlay-blend" />
 
-          <div
-            className={`zenve-interactive-chip chip-bottom ${activeBadge === "bottom" ? "active" : ""}`}
-            onMouseEnter={() => setActiveBadge("bottom")}
-            onMouseLeave={() => setActiveBadge(null)}
-          >
-            <div className="zenve-chip-dot pulse-blue" />
-            <span className="zenve-chip-icon">🩺</span>
-            <div className="zenve-chip-text">
-              <strong>Field CRM Live</strong>
-              <small>Doctor Visits &amp; Attendance</small>
-            </div>
-          </div>
-        </div>
+            {/* Interactive Floating Live Zenve Feature Chips */}
+            {roleConfig.chips && roleConfig.chips[0] && (
+              <div
+                className={`zenve-interactive-chip chip-top ${activeBadge === "top" ? "active" : ""}`}
+                onMouseEnter={() => setActiveBadge("top")}
+                onMouseLeave={() => setActiveBadge(null)}
+              >
+                <div className="zenve-chip-dot pulse" />
+                <span className="zenve-chip-icon">{roleConfig.chips[0].icon}</span>
+                <div className="zenve-chip-text">
+                  <strong>{roleConfig.chips[0].title}</strong>
+                  <small>{roleConfig.chips[0].sub}</small>
+                </div>
+              </div>
+            )}
 
-        {/* Interactive Click Ripples */}
-        {pawsRipples.map((r) => (
-          <div
-            key={r.id}
-            className="zenve-click-ripple"
-            style={{ left: r.x, top: r.y }}
-          >
-            <PawIcon size={24} color="#0077e6" />
+            {roleConfig.chips && roleConfig.chips[1] && (
+              <div
+                className={`zenve-interactive-chip chip-bottom ${activeBadge === "bottom" ? "active" : ""}`}
+                onMouseEnter={() => setActiveBadge("bottom")}
+                onMouseLeave={() => setActiveBadge(null)}
+              >
+                <div className="zenve-chip-dot pulse-blue" />
+                <span className="zenve-chip-icon">{roleConfig.chips[1].icon}</span>
+                <div className="zenve-chip-text">
+                  <strong>{roleConfig.chips[1].title}</strong>
+                  <small>{roleConfig.chips[1].sub}</small>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+        )}
 
         {/* Ambient Fluid Wave Swooshes */}
-        <div className="zenve-ambient-wave wave-1" />
-        <div className="zenve-ambient-wave wave-2" />
-        <div className="zenve-floating-paw paw-1">
-          <PawIcon size={72} color="rgba(0, 119, 230, 0.12)" />
-        </div>
-        <div className="zenve-floating-paw paw-2">
-          <PawIcon size={48} color="rgba(0, 119, 230, 0.08)" />
-        </div>
+        {isRegionalRole ? (
+          <>
+            <div className="zenve-ambient-wave wave-1" />
+            <div className="zenve-ambient-wave wave-2" />
+            <div className="zenve-floating-paw paw-1">
+              <PawIcon size={72} color={roleConfig.accentColor} />
+            </div>
+            <div className="zenve-floating-paw paw-2">
+              <PawIcon size={48} color={roleConfig.accentColor} />
+            </div>
+          </>
+        ) : !isManagerRole ? (
+          <div className="zenve-exec-ambient-curves" aria-hidden="true">
+            {/* Top right light blue curve accent */}
+            <svg
+              className="zenve-exec-top-curve"
+              viewBox="0 0 500 350"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M 120 0 C 260 120 400 180 500 140 L 500 0 Z"
+                fill="url(#execTopGrad)"
+                opacity="0.8"
+              />
+              <path
+                d="M 220 0 C 320 80 430 110 500 80 L 500 0 Z"
+                fill="#38bdf8"
+                opacity="0.35"
+              />
+              <defs>
+                <linearGradient id="execTopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#0077e6" stopOpacity="0.45" />
+                  <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.8" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            {/* Bottom prominent curved deep blue swoop */}
+            <svg
+              className="zenve-exec-bottom-swoop"
+              viewBox="0 0 800 400"
+              preserveAspectRatio="none"
+            >
+              {/* Soft cyan/sky back wave */}
+              <path
+                d="M 0 260 C 220 220 540 280 800 380 L 800 400 L 0 400 Z"
+                fill="#38bdf8"
+                opacity="0.5"
+              />
+              {/* Middle royal blue wave */}
+              <path
+                d="M 0 200 C 200 170 480 250 800 395 L 800 400 L 0 400 Z"
+                fill="url(#execMidGrad)"
+              />
+              {/* Deep solid royal/navy blue front ribbon */}
+              <path
+                d="M 0 240 C 180 230 380 310 650 400 L 0 400 Z"
+                fill="url(#execFrontGrad)"
+              />
+              <defs>
+                <linearGradient id="execMidGrad" x1="0%" y1="0%" x2="100%" y2="80%">
+                  <stop offset="0%" stopColor="#0284c7" />
+                  <stop offset="60%" stopColor="#0066cc" />
+                  <stop offset="100%" stopColor="#0052a3" />
+                </linearGradient>
+                <linearGradient id="execFrontGrad" x1="0%" y1="0%" x2="80%" y2="100%">
+                  <stop offset="0%" stopColor="#0056b3" />
+                  <stop offset="50%" stopColor="#00479e" />
+                  <stop offset="100%" stopColor="#00387a" />
+                </linearGradient>
+              </defs>
+            </svg>
+
+            {/* Decorative Paw Prints */}
+            <div className="zenve-exec-paw-accent paw-top">
+              <PawIcon size={58} color="#60a5fa" />
+            </div>
+            <div className="zenve-exec-paw-accent paw-bottom-right">
+              <PawIcon size={64} color="#0077e6" />
+            </div>
+          </div>
+        ) : null}
 
         <div className="zenve-left-content">
           {/* Top Brand Header */}
           <div className="zenve-brand-badge-row">
-            <div className="zenve-brand-icon-box">
-              <PawIcon size={28} color="#0077e6" />
-            </div>
+            <img
+              src={zenveZippyLogoImg}
+              alt="Zenve Zippy"
+              className="zenve-brand-left-mascot-logo"
+            />
             <div>
               <h1 className="zenve-brand-logo-text">Zenve</h1>
               <span className="zenve-brand-sub-badge">{roleConfig.portalTitle}</span>
+              {isManagerRole && (
+                <div className="zenve-manager-dot-dash" aria-hidden="true">
+                  <span className="zenve-dash" />
+                  <span className="zenve-dot" />
+                  <span className="zenve-dot" />
+                </div>
+              )}
             </div>
           </div>
 
           {/* Hero Main Headline */}
           <div className="zenve-hero-headlines">
             <h2 className="zenve-hero-title-dark">{roleConfig.headlinePart1}</h2>
-            <h2 className="zenve-hero-title-dark">{roleConfig.headlinePart2}</h2>
-            <h2 className="zenve-hero-title-accent">
+            <h2
+              className={
+                isRegionalRole
+                  ? "zenve-hero-title-purple"
+                  : isManagerRole
+                    ? "zenve-hero-title-green"
+                    : "zenve-hero-title-dark"
+              }
+            >
+              {roleConfig.headlinePart2}
+            </h2>
+            <h2
+              className={
+                isRegionalRole
+                  ? "zenve-hero-title-orange"
+                  : isManagerRole
+                    ? "zenve-hero-title-dark"
+                    : "zenve-hero-title-accent"
+              }
+            >
               {roleConfig.headlineAccent.split("\n").map((line, idx) => (
                 <span key={idx}>
                   {line}
@@ -532,298 +848,403 @@ export default function SalesCrmLoginModal({
                 </span>
               ))}
             </h2>
+            {roleConfig.subtitle && (
+              <p className="zenve-hero-sub-description">
+                {roleConfig.subtitle}
+              </p>
+            )}
+            {!isManagerRole && !isRegionalRole && <div className="zenve-headline-accent-line" />}
           </div>
 
-          {/* Value Pillars List (Stacked vertically on the left over background) */}
-          <div className="zenve-value-pillars-stack">
-            {roleConfig.pillars.map((pillar, pIdx) => {
-              const PillarIcon = pillar.icon;
-              return (
-                <div key={pIdx} className="zenve-pillar-item">
-                  <div className="zenve-pillar-icon-wrap">
-                    <PillarIcon size={18} />
+          {/* Value Pillars List / Circular Icons Stack */}
+          {roleConfig.pillars && (
+            <div className={`zenve-value-pillars-stack ${isRegionalRole ? "regional-pillars" : isManagerRole ? "manager-pillars" : ""}`}>
+              {roleConfig.pillars.map((pillar, pIdx) => {
+                const PillarIcon = pillar.icon;
+                const cardThemeClass = pillar.colorTheme ? `zenve-card-${pillar.colorTheme}` : (pIdx === 0 ? "zenve-card-mint" : pIdx === 1 ? "zenve-card-lavender" : "zenve-card-amber");
+                const iconThemeClass = pIdx === 0 ? "zenve-icon-teal" : pIdx === 1 ? "zenve-icon-purple" : "zenve-icon-amber";
+                return (
+                  <div key={pIdx} className={`zenve-pillar-item ${cardThemeClass}`}>
+                    <div className={`zenve-pillar-icon-wrap ${iconThemeClass}`}>
+                      <PillarIcon
+                        size={24}
+                        color={
+                          currentRole === "executive"
+                            ? "#0062d2"
+                            : currentRole === "regional"
+                              ? "#6d28d9"
+                              : "#ffffff"
+                        }
+                        fill={
+                          currentRole === "regional" && (pillar.title === "Growth Opportunities" || pIdx === 2)
+                            ? "#6d28d9"
+                            : "none"
+                        }
+                      />
+                    </div>
+                    {pillar.title && (
+                      <div className="zenve-pillar-content">
+                        <h4 className="zenve-pillar-title">{pillar.title}</h4>
+                        {pillar.desc && (
+                          <p className="zenve-pillar-sub">
+                            {pillar.desc.split("\n").map((line, lIdx) => (
+                              <span key={lIdx}>
+                                {line}
+                                {lIdx < pillar.desc.split("\n").length - 1 && <br />}
+                              </span>
+                            ))}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div className="zenve-pillar-arrow-circle">
+                      <ArrowRight size={17} />
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="zenve-pillar-title">{pillar.title}</h4>
-                    <p className="zenve-pillar-sub">{pillar.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Bottom Quote Banner */}
-          <div className="zenve-bottom-quote-banner">
-            <span className="zenve-quote-text">
-              {roleConfig.quote.split("\n").map((line, qIdx) => (
-                <span key={qIdx}>
-                  {line}
-                  {qIdx === 0 && <br />}
-                </span>
-              ))}
-            </span>
-            <div className="zenve-quote-accent-bar" />
-          </div>
+          {!isRegionalRole && !isManagerRole && roleConfig.quote && (
+            <div className="zenve-bottom-quote-banner">
+              <span className="zenve-quote-text">
+                {roleConfig.quote.split("\n").map((line, qIdx) => (
+                  <span key={qIdx}>
+                    {line}
+                    {qIdx === 0 && <br />}
+                  </span>
+                ))}
+              </span>
+              <div className="zenve-quote-accent-bar" />
+            </div>
+          )}
         </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          RIGHT PANEL: AUTHENTICATION FORM WITH TWO OPTIONS
+          RIGHT PANEL: AUTHENTICATION SECTION (SIDE-BY-SIDE CARDS)
          ══════════════════════════════════════════════════════ */}
       <div className="zenve-portal-right">
         <div className="zenve-auth-card-box">
 
+          {/* AUTHENTICATION SECTION: UNIFIED TABBED CARD for ALL ROLES (Executive, Manager, Regional) */}
+          <div className="zenve-unified-auth-card">
 
-
-          {/* Welcome Avatar & Header */}
-          <div className="zenve-welcome-header">
-            <div className="zenve-welcome-avatar">
-              <PawIcon size={30} color="#0077e6" />
-            </div>
-            <h2 className="zenve-welcome-title">{roleConfig.welcomeTitle}</h2>
-            <p className="zenve-welcome-subtitle">{roleConfig.subtitle}</p>
-          </div>
-
-          {/* Segmented Pill Tab Switcher: [Email / Password] [Mobile OTP] */}
-          <div className="zenve-auth-pill-switcher" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={authMode === "email"}
-              className={`zenve-pill-tab-btn ${authMode === "email" ? "active" : ""}`}
-              onClick={() => {
-                setAuthMode("email");
-                setError("");
-              }}
-            >
-              <Mail size={16} />
-              <span>Email / Password</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={authMode === "mobile"}
-              className={`zenve-pill-tab-btn ${authMode === "mobile" ? "active" : ""}`}
-              onClick={() => {
-                setAuthMode("mobile");
-                setError("");
-              }}
-            >
-              <Smartphone size={16} />
-              <span>Mobile OTP</span>
-            </button>
-          </div>
-
-          {/* Feedback Alerts */}
-          {error && (
-            <div className="zenve-auth-alert alert-error">
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="zenve-auth-alert alert-success">
-              <Check size={16} />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────
-              TAB 1: EMAIL & PASSWORD LOGIN
-             ──────────────────────────────────────────────── */}
-          {authMode === "email" && (
-            <form onSubmit={handlePasswordSubmit} className="zenve-auth-form" noValidate>
-              <div className="zenve-field-group">
-                <label className="zenve-field-label">
-                  Email or Mobile number <span className="zenve-required-asterisk">*</span>
-                </label>
-                <div className="zenve-input-wrap">
-                  <Mail size={17} className="zenve-field-left-icon" />
-                  <input
-                    ref={emailInputRef}
-                    type="text"
-                    className="zenve-input-text zenve-input-with-icon"
-                    placeholder={`${currentRole}@example.com`}
-                    value={username}
-                    onChange={(e) => {
-                      setUsername(e.target.value);
-                      setError("");
-                    }}
-                    autoComplete="username"
-                    required
-                  />
+            {/* Welcome Avatar & Header (Inside Card) */}
+            <div className="zenve-welcome-header">
+              <div className="zenve-brand-right-row">
+                <img
+                  src={zenveZippyLogoImg}
+                  alt="Zenve Zippy"
+                  className="zenve-welcome-full-logo"
+                />
+                <div className="zenve-brand-right-col">
+                  <span className="zenve-brand-subtitle-right">{roleConfig.portalTitle}</span>
                 </div>
               </div>
+              <h2 className="zenve-welcome-title">{roleConfig.welcomeBack || "Welcome Back!"}</h2>
+              {roleConfig.rightSubtitle ? (
+                <p className="zenve-welcome-subtitle">{roleConfig.rightSubtitle}</p>
+              ) : null}
+              <div className="zenve-welcome-accent-line" />
+            </div>
 
-              <div className="zenve-field-group">
-                <label className="zenve-field-label">
-                  Password <span className="zenve-required-asterisk">*</span>
-                </label>
-                <div className="zenve-input-wrap">
-                  <Lock size={17} className="zenve-field-left-icon" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    className="zenve-input-text zenve-input-with-icon zenve-input-with-eye"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setError("");
-                    }}
-                    autoComplete="current-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="zenve-eye-toggle-btn"
-                    onClick={() => setShowPassword((p) => !p)}
-                    title={showPassword ? "Hide password" : "Show password"}
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+            {/* Feedback Alerts */}
+            {error && (
+              <div className="zenve-auth-alert alert-error">
+                <AlertCircle size={16} />
+                <span>{error}</span>
               </div>
+            )}
 
-              <div className="zenve-form-options-row">
-                <label className="zenve-remember-label">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="zenve-checkbox"
-                  />
-                  <span>Remember me</span>
-                </label>
-                <button
-                  type="button"
-                  className="zenve-forgot-link"
-                  onClick={() => {
-                    setError("To reset your password, contact your Zenve Portal Administrator.");
-                  }}
-                >
-                  Forgot password?
-                </button>
+            {successMsg && (
+              <div className="zenve-auth-alert alert-success">
+                <Check size={16} />
+                <span>{successMsg}</span>
               </div>
+            )}
 
+            <div className="zenve-unified-mode-tabs" role="tablist">
               <button
-                type="submit"
-                className="zenve-action-btn btn-primary"
-                disabled={passwordLoading || !username.trim() || !password.trim()}
+                type="button"
+                role="tab"
+                aria-selected={authMode === "email"}
+                className={`zenve-unified-tab-btn ${authMode === "email" ? "active" : ""}`}
+                onClick={() => {
+                  setAuthMode("email");
+                  setError("");
+                }}
               >
-                {passwordLoading ? <span>Signing in...</span> : <span>Sign in</span>}
+                <Mail size={16} />
+                <span>Email &amp; Password</span>
               </button>
-            </form>
-          )}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === "mobile"}
+                className={`zenve-unified-tab-btn ${authMode === "mobile" ? "active" : ""}`}
+                onClick={() => {
+                  setAuthMode("mobile");
+                  setError("");
+                }}
+              >
+                <Smartphone size={16} />
+                <span>Phone &amp; OTP</span>
+              </button>
+            </div>
 
-          {/* ────────────────────────────────────────────────
-              TAB 2: MOBILE WITH OTP LOGIN
-             ──────────────────────────────────────────────── */}
-          {authMode === "mobile" && (
-            <form onSubmit={handleMobileSubmit} className="zenve-auth-form" noValidate>
-              <div className="zenve-field-group">
-                <label className="zenve-field-label">
-                  Mobile number <span className="zenve-required-asterisk">*</span>
-                </label>
-                <div className="zenve-phone-input-row">
-                  <div className="zenve-country-prefix">
-                    <Smartphone size={15} className="zenve-phone-prefix-icon" />
-                    <span>{countryCode}</span>
-                    <ChevronDown size={12} className="zenve-prefix-chevron" />
-                  </div>
-                  <input
-                    ref={phoneInputRef}
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={10}
-                    className="zenve-phone-input"
-                    placeholder="Enter 10-digit mobile number"
-                    value={phone}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      if (digits.length <= 10) setPhone(digits);
-                      setError("");
-                    }}
-                    required
-                  />
-                </div>
-              </div>
+            {authMode === "email" && (
+              <form onSubmit={handlePasswordSubmit} className="zenve-card-form" noValidate autoComplete="off">
+                <input type="text" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+                <input type="password" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
 
-              {otpSent ? (
-                <div className="zenve-field-group zenve-otp-reveal-box">
-                  <div className="zenve-otp-label-row">
-                    <label className="zenve-field-label">
-                      One-Time Password (OTP) <span className="zenve-required-asterisk">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      className="zenve-resend-btn"
-                      onClick={handleSendOtp}
-                      disabled={otpCountdown > 0 || otpLoading}
-                    >
-                      {otpCountdown > 0 ? `Resend code in ${otpCountdown}s` : "Resend OTP"}
-                    </button>
-                  </div>
+                <div className="zenve-field-group">
+                  <label className="zenve-card-field-label">
+                    Email address <span className="zenve-required-asterisk">*</span>
+                  </label>
                   <div className="zenve-input-wrap">
-                    <KeyRound size={17} className="zenve-field-left-icon" />
+                    <Mail size={17} className="zenve-field-left-icon" />
                     <input
+                      ref={emailInputRef}
                       type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      className="zenve-input-text zenve-input-with-icon zenve-otp-digits"
-                      placeholder="Enter 6-digit OTP"
-                      value={otp}
+                      name="zenve_auth_user_field"
+                      id="zenve-auth-user"
+                      className="zenve-input-text zenve-input-with-icon"
+                      placeholder="Enter your email address"
+                      value={username}
                       onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "");
-                        if (digits.length <= 6) setOtp(digits);
+                        setUsername(e.target.value);
                         setError("");
                       }}
-                      autoFocus
+                      autoComplete="off"
+                      spellCheck="false"
+                      required
                     />
                   </div>
                 </div>
-              ) : (
-                <p className="zenve-mobile-hint-text">
-                  A 6-digit verification code will be sent to your registered number via SMS.
-                </p>
-              )}
 
-              <button
-                type="submit"
-                className="zenve-action-btn btn-primary"
-                disabled={
-                  mobileLoading ||
-                  otpLoading ||
-                  phone.replace(/\D/g, "").length !== 10 ||
-                  (otpSent && otp.length < 4)
-                }
-              >
-                {mobileLoading ? (
-                  <span>Verifying OTP...</span>
-                ) : otpLoading ? (
-                  <span>Sending OTP...</span>
-                ) : otpSent ? (
-                  <span>Verify &amp; Sign in</span>
-                ) : (
-                  <span>Send OTP</span>
+                <div className="zenve-field-group">
+                  <label className="zenve-card-field-label">
+                    Password <span className="zenve-required-asterisk">*</span>
+                  </label>
+                  <div className="zenve-input-wrap">
+                    <Lock size={17} className="zenve-field-left-icon" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="zenve_auth_pass_field"
+                      id="zenve-auth-pass"
+                      className="zenve-input-text zenve-input-with-icon zenve-input-with-eye"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setError("");
+                      }}
+                      autoComplete="new-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="zenve-eye-toggle-btn"
+                      onClick={() => setShowPassword((p) => !p)}
+                      title={showPassword ? "Hide password" : "Show password"}
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+
+                  <div className="zenve-forgot-row">
+                    <button
+                      type="button"
+                      className="zenve-forgot-link"
+                      onClick={() => {
+                        setError("To reset your password, contact your Zenve Portal Administrator.");
+                      }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="zenve-card-submit-btn"
+                  disabled={passwordLoading}
+                >
+                  {passwordLoading ? (
+                    <span>Logging in...</span>
+                  ) : (
+                    <>
+                      <span>Login</span>
+                      <ChevronRight size={18} strokeWidth={2.4} />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {authMode === "mobile" && (
+              <form onSubmit={handleMobileSubmit} className="zenve-card-form" noValidate>
+                <div className="zenve-field-group">
+                  <label className="zenve-card-field-label">
+                    Mobile Number <span className="zenve-required-asterisk">*</span>
+                  </label>
+                  <div className="zenve-phone-input-row">
+                    <div className="zenve-country-prefix-container" ref={countryPickerRef}>
+                      <button
+                        type="button"
+                        className={`zenve-country-prefix ${isCountryDropdownOpen ? "active" : ""}`}
+                        onClick={() => setIsCountryDropdownOpen((prev) => !prev)}
+                        onWheel={handleCountryWheel}
+                        title="Click to choose country or scroll mouse wheel to change"
+                        aria-label="Select country code"
+                        aria-expanded={isCountryDropdownOpen}
+                      >
+                        <Smartphone size={15} className="zenve-phone-prefix-icon" />
+                        <span className="zenve-prefix-num">{countryCode}</span>
+                        <ChevronDown
+                          size={12}
+                          className={`zenve-prefix-chevron ${isCountryDropdownOpen ? "open" : ""}`}
+                        />
+                      </button>
+
+                      {isCountryDropdownOpen && (
+                        <div className="zenve-country-dropdown-menu">
+                          <div className="zenve-country-search-wrap">
+                            <Search size={14} className="zenve-country-search-icon" />
+                            <input
+                              ref={countrySearchInputRef}
+                              type="text"
+                              className="zenve-country-search-input"
+                              placeholder="Search country or code..."
+                              value={countrySearch}
+                              onChange={(e) => setCountrySearch(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                  setIsCountryDropdownOpen(false);
+                                  setCountrySearch("");
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="zenve-country-list">
+                            {filteredCountries.length === 0 ? (
+                              <div className="zenve-country-empty">No matching countries</div>
+                            ) : (
+                              filteredCountries.map((c) => {
+                                const isSelected = c.code === selectedCountry.code;
+                                return (
+                                  <button
+                                    key={c.code}
+                                    type="button"
+                                    className={`zenve-country-item ${isSelected ? "selected" : ""}`}
+                                    onClick={() => {
+                                      setSelectedCountry(c);
+                                      setIsCountryDropdownOpen(false);
+                                      setCountrySearch("");
+                                      if (phoneInputRef.current) {
+                                        phoneInputRef.current.focus();
+                                      }
+                                    }}
+                                  >
+                                    <span className="zenve-item-flag">{c.flag}</span>
+                                    <span className="zenve-item-name">{c.name}</span>
+                                    <span className="zenve-item-code">{c.dialCode}</span>
+                                    {isSelected && <Check size={14} className="zenve-item-check" />}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={phoneInputRef}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={selectedCountry.code === "IN" ? 10 : 15}
+                      className="zenve-phone-input"
+                      placeholder={
+                        selectedCountry.code === "IN"
+                          ? "Enter 10-digit mobile number"
+                          : `Enter mobile number (${selectedCountry.name})`
+                      }
+                      value={phone}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        const maxL = selectedCountry.code === "IN" ? 10 : 15;
+                        if (digits.length <= maxL) setPhone(digits);
+                        setError("");
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {otpSent && (
+                  <div className="zenve-field-group zenve-otp-reveal-box">
+                    <div className="zenve-otp-label-row">
+                      <label className="zenve-card-field-label">
+                        Enter OTP <span className="zenve-required-asterisk">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        className="zenve-resend-btn"
+                        onClick={handleSendOtp}
+                        disabled={otpCountdown > 0 || otpLoading}
+                      >
+                        {otpCountdown > 0 ? `Resend in ${otpCountdown}s` : "Resend OTP"}
+                      </button>
+                    </div>
+                    <div className="zenve-input-wrap">
+                      <KeyRound size={17} className="zenve-field-left-icon" />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        className="zenve-input-text zenve-input-with-icon zenve-otp-digits"
+                        placeholder="Enter 6-digit OTP"
+                        value={otp}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "");
+                          if (digits.length <= 6) setOtp(digits);
+                          setError("");
+                        }}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
                 )}
-              </button>
-            </form>
-          )}
 
-          {/* Bottom Security Footer */}
-          <div className="zenve-single-card-footer">
-            <div className="zenve-secure-divider">
-              <span className="zenve-divider-line" />
-              <div className="zenve-secure-badge">
-                <ShieldCheck size={14} className="zenve-shield-icon" />
-                <span>{roleConfig.footerText}</span>
-              </div>
-              <span className="zenve-divider-line" />
-            </div>
+                <button
+                  type="submit"
+                  className="zenve-card-submit-btn"
+                  disabled={mobileLoading || otpLoading}
+                >
+                  {mobileLoading ? (
+                    <span>Verifying OTP...</span>
+                  ) : otpLoading ? (
+                    <span>Sending OTP...</span>
+                  ) : otpSent ? (
+                    <>
+                      <span>Verify &amp; Sign in</span>
+                      <ChevronRight size={18} strokeWidth={2.4} />
+                    </>
+                  ) : (
+                    <>
+                      <span>Send OTP</span>
+                      <ChevronRight size={18} strokeWidth={2.4} />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
           </div>
-
         </div>
       </div>
     </div>

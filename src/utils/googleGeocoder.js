@@ -200,30 +200,144 @@ export async function reverseGeocodeCoordinates(lat, lng) {
     console.warn("[Reverse Geocode] Backend fetch error, trying client geocoder:", backendErr?.message);
   }
 
-  // 2. Fallback: Google Maps Geocoder if Google Maps SDK is loaded in window
-  if (window.google?.maps?.Geocoder) {
-    try {
-      const parsed = await new Promise((resolve, reject) => {
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode(
-          { location: { lat: numericLat, lng: numericLng } },
-          (results, status) => {
-            if (status === "OK" && results && results.length > 0) {
-              const res = parseGoogleGeocodeResult(results);
-              resolve(res);
-            } else {
-              reject(new Error(`Google Geocoder status: ${status}`));
-            }
-          }
-        );
-      });
-
-      if (parsed) {
-        return parsed;
+  // 2. Direct Client-Side Fallback: OpenStreetMap Nominatim Reverse Geocoder (Rich detailed street, area, taluk)
+  try {
+    const osmRes = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${numericLat}&lon=${numericLng}&format=jsonv2&addressdetails=1`,
+      {
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "en",
+        },
       }
-    } catch (googleErr) {
-      console.warn("[Reverse Geocode] Google Geocoder notice:", googleErr?.message);
+    );
+    if (osmRes.ok) {
+      const osmData = await osmRes.json();
+      const addr = osmData.address || {};
+      const street = addr.road || addr.street || addr.footway || addr.path || addr.pedestrian || "";
+      const village = addr.village || addr.hamlet || "";
+      const suburb = addr.suburb || addr.quarter || addr.neighbourhood || addr.residential || "";
+      const taluk = addr.county || addr.subdistrict || addr.tehsil || addr.taluk || addr.mandal || "";
+      const city = addr.city || addr.town || addr.municipality || "";
+      const district = (addr.state_district || addr.district || "").replace(/\s+District$/i, "").trim();
+      const state = addr.state || "";
+      const pincode = addr.postcode || "";
+      const country = addr.country || "India";
+
+      let area = suburb || village || "";
+      if (city && area && area.toLowerCase() === city.toLowerCase()) {
+        area = "";
+      }
+
+      const areaStreet = area && street && area.toLowerCase() !== street.toLowerCase()
+        ? `${area}, ${street}`
+        : area || street || village || "";
+
+      const parts = [area || village, street, taluk, city || district, state ? `${state} - ${pincode}` : pincode, country].filter(Boolean);
+      const displayAddress = parts.join(", ");
+
+      if (city || district || state || area || village || pincode) {
+        return {
+          street,
+          route: street,
+          area: area || village,
+          areaStreet,
+          area_street: areaStreet,
+          village,
+          taluk: taluk !== city ? taluk : "",
+          city: city || district,
+          district: district || city,
+          state,
+          country,
+          pincode,
+          pin: pincode,
+          formattedAddress: displayAddress,
+          displayAddress,
+          fullAddress: displayAddress,
+        };
+      }
     }
+  } catch (osmErr) {
+    console.warn("[Reverse Geocode] Direct Nominatim fallback notice:", osmErr?.message);
+  }
+
+  // 3. Direct Client-Side Fallback: BigDataCloud Reverse Geocoder API (CORS enabled, highly reliable)
+  try {
+    const bdcRes = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${numericLat}&longitude=${numericLng}&localityLanguage=en`
+    );
+    if (bdcRes.ok) {
+      const bdcData = await bdcRes.json();
+      const city = (bdcData.city || "").trim();
+      const locality = (bdcData.locality || "").trim();
+      let area = "";
+      if (locality && city && locality.toLowerCase() !== city.toLowerCase()) {
+        area = locality;
+      }
+      let district = "";
+      let taluk = "";
+      let village = "";
+      let street = "";
+
+      for (const item of bdcData.localityInfo?.administrative || []) {
+        const name = (item.name || "").trim();
+        const desc = (item.description || "").toLowerCase();
+        if (!district && (desc.includes("district") || desc.includes("county"))) {
+          district = name.replace(/\s+district$/i, "").replace(/\s+county$/i, "").trim();
+        }
+        if (!taluk && (desc.includes("taluk") || desc.includes("tehsil") || desc.includes("subdistrict") || desc.includes("mandal"))) {
+          taluk = name.replace(/\s+taluk$/i, "").trim();
+        }
+        if (!village && (desc.includes("village") || desc.includes("hamlet"))) {
+          village = name;
+        }
+      }
+
+      for (const item of bdcData.localityInfo?.informative || []) {
+        const name = (item.name || "").trim();
+        const desc = (item.description || "").toLowerCase();
+        if (!street && (desc.includes("road") || desc.includes("street") || desc.includes("way") || desc.includes("avenue"))) {
+          street = name;
+        }
+        if (!area && (desc.includes("neighbourhood") || desc.includes("suburb") || desc.includes("locality") || desc.includes("quarter"))) {
+          area = name;
+        }
+      }
+
+      const state = (bdcData.principalSubdivision || "").trim();
+      const pincode = (bdcData.postcode || "").trim();
+      const country = bdcData.countryName || "India";
+      const resolvedArea = area || village || (locality !== city ? locality : "");
+      const areaStreet = resolvedArea && street && resolvedArea.toLowerCase() !== street.toLowerCase()
+        ? `${resolvedArea}, ${street}`
+        : resolvedArea || street || "";
+
+      const parts = [resolvedArea, street, taluk, city || district, state ? `${state} - ${pincode}` : pincode, country].filter(Boolean);
+      const displayAddress = parts.join(", ");
+
+      if (city || district || state || pincode) {
+        return {
+          street,
+          route: street,
+          area: resolvedArea,
+          areaStreet,
+          area_street: areaStreet,
+          village,
+          taluk,
+          city: city || locality || district,
+          district: district || city,
+          state,
+          pincode,
+          pin: pincode,
+          country,
+          displayAddress,
+          formattedAddress: displayAddress,
+          fullAddress: displayAddress,
+        };
+      }
+    }
+  } catch (bdcErr) {
+    console.warn("[Reverse Geocode] Direct BigDataCloud fallback notice:", bdcErr?.message);
   }
 
   const coordStr = `${numericLat.toFixed(6)}, ${numericLng.toFixed(6)}`;

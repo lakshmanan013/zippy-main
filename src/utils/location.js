@@ -257,7 +257,57 @@ export async function reverseGeocodeLocation(lat, lng) {
     console.warn("[Location] Backend reverse geocode fetch failed, trying direct provider:", err);
   }
 
-  // 2. Direct Fallback: BigDataCloud Client API
+  // 2. Direct Fallback: OpenStreetMap Nominatim Client API
+  try {
+    const osmRes = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&addressdetails=1`,
+      {
+        headers: { Accept: "application/json", "Accept-Language": "en" },
+      }
+    );
+    if (osmRes.ok) {
+      const osmData = await osmRes.json();
+      const addr = osmData.address || {};
+      const street = addr.road || addr.street || "";
+      const village = addr.village || addr.hamlet || "";
+      const suburb = addr.suburb || addr.quarter || addr.neighbourhood || "";
+      const taluk = addr.county || addr.subdistrict || addr.tehsil || addr.taluk || "";
+      const city = addr.city || addr.town || addr.municipality || "";
+      const district = (addr.state_district || addr.district || "").replace(/\s+District$/i, "").trim();
+      const state = addr.state || "";
+      const pincode = addr.postcode || "";
+      const country = addr.country || "India";
+      let area = suburb || village || "";
+      if (city && area && area.toLowerCase() === city.toLowerCase()) area = "";
+      const areaStreet = area && street && area.toLowerCase() !== street.toLowerCase() ? `${area}, ${street}` : area || street || village;
+      const parts = [area || village, street, taluk, city || district, state ? `${state} - ${pincode}` : pincode, country].filter(Boolean);
+      const displayAddress = parts.join(", ");
+
+      if (city || district || state || area || village || pincode) {
+        return {
+          street,
+          route: street,
+          area: area || village,
+          areaStreet,
+          area_street: areaStreet,
+          village,
+          taluk: taluk !== city ? taluk : "",
+          city: city || district,
+          district: district || city,
+          state,
+          pincode,
+          pin: pincode,
+          country,
+          displayAddress,
+          formattedAddress: displayAddress,
+        };
+      }
+    }
+  } catch (osmErr) {
+    console.warn("[Location] Direct Nominatim fallback notice:", osmErr);
+  }
+
+  // 3. Direct Fallback: BigDataCloud Client API
   try {
     const res = await fetch(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
@@ -270,20 +320,52 @@ export async function reverseGeocodeLocation(lat, lng) {
       if (locality && city && locality.toLowerCase() !== city.toLowerCase()) {
         area = locality;
       }
+      let district = "";
+      let taluk = "";
+      let village = "";
+      let street = "";
+
+      for (const item of data.localityInfo?.administrative || []) {
+        const name = (item.name || "").trim();
+        const desc = (item.description || "").toLowerCase();
+        if (!district && (desc.includes("district") || desc.includes("county"))) {
+          district = name.replace(/\s+district$/i, "").replace(/\s+county$/i, "").trim();
+        }
+        if (!taluk && (desc.includes("taluk") || desc.includes("tehsil") || desc.includes("subdistrict") || desc.includes("mandal"))) {
+          taluk = name.replace(/\s+taluk$/i, "").trim();
+        }
+        if (!village && (desc.includes("village") || desc.includes("hamlet"))) {
+          village = name;
+        }
+      }
+
+      for (const item of data.localityInfo?.informative || []) {
+        const name = (item.name || "").trim();
+        const desc = (item.description || "").toLowerCase();
+        if (!street && (desc.includes("road") || desc.includes("street") || desc.includes("way") || desc.includes("avenue"))) {
+          street = name;
+        }
+        if (!area && (desc.includes("neighbourhood") || desc.includes("suburb") || desc.includes("locality") || desc.includes("quarter"))) {
+          area = name;
+        }
+      }
+
       const state = data.principalSubdivision || "";
       const pincode = data.postcode || "";
-      const parts = [area, city, state].filter(Boolean);
+      const resolvedArea = area || village || (locality !== city ? locality : "");
+      const areaStreet = resolvedArea && street && resolvedArea.toLowerCase() !== street.toLowerCase() ? `${resolvedArea}, ${street}` : resolvedArea || street || "";
+      const parts = [resolvedArea, street, taluk, city || district, state ? `${state} - ${pincode}` : pincode, data.countryName || "India"].filter(Boolean);
       const displayAddress = parts.length > 0 ? parts.join(", ") : `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       return {
-        street: "",
-        route: "",
-        area,
-        areaStreet: area,
-        area_street: area,
-        village: "",
-        taluk: "",
-        city: city || locality || "",
-        district: "",
+        street,
+        route: street,
+        area: resolvedArea,
+        areaStreet,
+        area_street: areaStreet,
+        village,
+        taluk,
+        city: city || locality || district || "",
+        district: district || city || "",
         state,
         pincode,
         pin: pincode,

@@ -24,7 +24,8 @@ from sqlalchemy.orm import declarative_base,sessionmaker,Session
 from typing import Optional, Any
 from datetime import datetime,date,time,timedelta,timezone
 from zoneinfo import ZoneInfo
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@127.0.0.1:3306/pets-ms")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:Zenve%402005@127.0.0.1:3306/pets_ms")
+
 engine = create_engine( DATABASE_URL,echo=True,pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
 Base = declarative_base()
@@ -5710,8 +5711,8 @@ def check_face_route(req: CheckFaceRequest):
     if not req.image:
         return {"face_count": 0, "status": "no_image"}
     try:
+        import os
         import cv2
-        import cv2.data
         import numpy as np
         b64 = req.image
         if "," in b64:
@@ -5721,46 +5722,100 @@ def check_face_route(req: CheckFaceRequest):
         img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         if img is None:
             return {"face_count": 1, "status": "decode_fallback"}
+
+        h, w = img.shape[:2]
+        all_boxes = []
+
+        # 1. Primary High-Accuracy Neural Detector: YuNet (Detects frontal, angled, side-profile faces)
+        cascades_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cascades")
+        yunet_path = os.path.join(cascades_dir, "face_detection_yunet.onnx")
+
+        if hasattr(cv2, "FaceDetectorYN") and os.path.exists(yunet_path):
+            try:
+                detector = cv2.FaceDetectorYN.create(yunet_path, "", (w, h), 0.35, 0.3, 5000)
+                _, yunet_faces = detector.detect(img)
+                if yunet_faces is not None:
+                    for f in yunet_faces:
+                        fx, fy, fw, fh = int(f[0]), int(f[1]), int(f[2]), int(f[3])
+                        conf = float(f[-1])
+                        if conf >= 0.35 and fw >= 24 and fh >= 24:
+                            all_boxes.append((fx, fy, fw, fh))
+            except Exception as e_yn:
+                print("[Check Face] YuNet error:", e_yn)
+
+        # 2. Secondary Detector: Haar Cascades (Frontal + Profile in normal & flipped)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         classifier_builder = getattr(cv2, "CascadeClassifier", None)
-        if not classifier_builder:
-            return {"face_count": 1, "status": "ok", "primary_face": True}
-        face_cascade = classifier_builder(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        # Detect faces with tuned precision
-        raw_faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(45, 45))
-        
-        if len(raw_faces) == 0:
-            # Fallback check with smaller minSize for lower-res webcams
-            raw_faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(35, 35))
+        if classifier_builder:
+            cascade_paths = [
+                os.path.join(cascades_dir, "haarcascade_frontalface_default.xml"),
+                os.path.join(cascades_dir, "haarcascade_frontalface_alt2.xml"),
+                os.path.join(cascades_dir, "haarcascade_profileface.xml"),
+            ]
+            for c_path in cascade_paths:
+                if os.path.exists(c_path):
+                    try:
+                        cc = classifier_builder(c_path)
+                        # Normal orientation
+                        f_normal = cc.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(32, 32))
+                        for (bx, by, bw, bh) in f_normal:
+                            all_boxes.append((int(bx), int(by), int(bw), int(bh)))
+                        # Flipped horizontally for profile cascade (to catch both left and right turning faces)
+                        if "profile" in c_path:
+                            gray_flipped = cv2.flip(gray, 1)
+                            f_flipped = cc.detectMultiScale(gray_flipped, scaleFactor=1.1, minNeighbors=3, minSize=(32, 32))
+                            for (bx, by, bw, bh) in f_flipped:
+                                # unflip coordinates
+                                orig_x = w - (bx + bw)
+                                all_boxes.append((int(orig_x), int(by), int(bw), int(bh)))
+                    except Exception as e_cc:
+                        print("[Check Face] Cascade error:", e_cc)
 
-        if len(raw_faces) <= 1:
-            return {"face_count": len(raw_faces), "status": "ok", "primary_face": True}
+        # 3. Deduplicate overlapping boxes with IoU suppression
+        def compute_iou(b1, b2):
+            x1 = max(b1[0], b2[0])
+            y1 = max(b1[1], b2[1])
+            x2 = min(b1[0] + b1[2], b2[0] + b2[2])
+            y2 = min(b1[1] + b1[3], b2[1] + b2[3])
+            inter = max(0, x2 - x1) * max(0, y2 - y1)
+            area1 = b1[2] * b1[3]
+            area2 = b2[2] * b2[3]
+            union = area1 + area2 - inter
+            return inter / union if union > 0 else 0
 
-        # If multiple faces detected, check if 2 or more members are in front of the camera
-        faces_by_area = sorted(raw_faces, key=lambda f: f[2] * f[3], reverse=True)
-        primary_w, primary_h = faces_by_area[0][2], faces_by_area[0][3]
-        primary_area = primary_w * primary_h
+        unique_faces = []
+        for box in sorted(all_boxes, key=lambda b: b[2] * b[3], reverse=True):
+            if not any(compute_iou(box, u) > 0.3 for u in unique_faces):
+                unique_faces.append(box)
 
-        # A member in front of the camera must have significant face size (>= 20% of primary face area and >= 45px)
-        significant_faces = [
-            f for f in faces_by_area
-            if (f[2] * f[3]) >= 0.20 * primary_area and f[2] >= 45 and f[3] >= 45
-        ]
+        total_faces = len(unique_faces)
+        print(f"[Check Face] Evaluated image ({w}x{h}): {total_faces} faces detected.")
 
-        if len(significant_faces) >= 2:
+        if total_faces == 0:
             return {
-                "face_count": len(significant_faces),
-                "total_detected": len(raw_faces),
-                "status": "multiple_faces",
-                "message": f"Alert: {len(significant_faces)} members detected in front of the camera!",
+                "face_count": 0,
+                "total_detected": 0,
+                "status": "no_face",
+                "message": "No face detected in photo. Please ensure face is clearly visible.",
                 "primary_face": False
             }
 
+        if total_faces == 1:
+            return {
+                "face_count": 1,
+                "total_detected": 1,
+                "status": "ok",
+                "message": "Exactly 1 face verified.",
+                "primary_face": True
+            }
+
+        # 2 or more faces detected!
         return {
-            "face_count": 1,
-            "total_detected": len(raw_faces),
-            "status": "ok",
-            "primary_face": True
+            "face_count": total_faces,
+            "total_detected": total_faces,
+            "status": "multiple_faces",
+            "message": f"Alert: {total_faces} faces detected in front of camera! Only 1 person allowed.",
+            "primary_face": False
         }
     except Exception as e:
         print("[Check Face] Error:", e)
