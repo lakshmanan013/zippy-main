@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import text
-from pets import engine
-
+from database import engine
+ 
 def migrate():
     cols = [
     ('login_village', 'VARCHAR(150)'),
@@ -24,6 +24,6 @@ def migrate():
                 print(f'Added column {col_name}')
         conn.commit()
     print('Migration complete!')
-
+ 
 if __name__ == '__main__':
     migrate()
