@@ -13,7 +13,7 @@ if (_root_dir / ".env").exists():
     load_dotenv(_root_dir / ".env", override=True)
 load_dotenv(override=False)
 
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:Zenve%402005@127.0.0.1:3306/pets_ms")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:Vasanth%40zenve@127.0.0.1:3306/pets_ms")
 engine = create_engine(DATABASE_URL, echo=True, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
 Base = declarative_base()
