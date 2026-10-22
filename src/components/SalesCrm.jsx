@@ -2519,7 +2519,7 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
       .then((data) => {
         if (Array.isArray(data)) setExistingClinics(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const [saving, setSaving] = useState(false);
@@ -4920,39 +4920,7 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
           </div>
 
           <div className="header-right">
-            {role === ROLES.MANAGER && data.salesManagers.length > 0 && (
-              <div className="role-switch">
-                <label>MANAGER</label>
-                <select value={managerId ?? ""} onChange={(e) => setManagerId(Number(e.target.value))}>
-                  {data.salesManagers.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
-            {role === ROLES.REGIONAL && data.regionalManagers.length > 0 && (
-              <div className="role-switch">
-                <label>REGIONAL MANAGER</label>
-                <select value={regionalId ?? ""} onChange={(e) => setRegionalId(Number(e.target.value))}>
-                  {data.regionalManagers.map((r) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {(role === ROLES.MANAGER || role === ROLES.REGIONAL) && (
-              <div className="role-switch">
-                <label>REGION FILTER</label>
-                <select value={region} onChange={(e) => setRegion(e.target.value)}>
-                  <option value="">All</option>
-                  {regions.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             <div className="role-switch">
               <label>MONTH</label>

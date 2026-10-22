@@ -107,6 +107,60 @@
   color: #0f172a;
 }
 
+/* Chrome-Style Dropdown Popup Alert Directly Under Tab Header */
+.chrome-under-tab-alert {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+@keyframes chromeAlertDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chrome-alert-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.chrome-alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.chrome-alert-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #991b1b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: -0.01em;
+}
+
+.chrome-alert-desc {
+  font-size: 0.88rem;
+  color: #991b1b;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
 /* Accuracy Warning Banner */
 .loc-accuracy-warning-banner {
   background: #fffbeb;
@@ -328,7 +382,49 @@
   }
 }
 
-/* Floating Live Overlay Alert on Camera */
+/* Alert Tab Directly Under Camera Box */
+.camera-under-tab-alert {
+  margin-top: 10px;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
+  border: 1px solid rgba(254, 202, 202, 0.4);
+  animation: alertSlideDown 0.22s ease-out;
+}
+
+.camera-under-tab-alert .camera-live-alert-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.camera-under-tab-alert .alert-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.camera-under-tab-alert .alert-subtitle {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #fee2e2;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* Floating Live Overlay Alert on Camera (fallback) */
 .camera-live-alert-overlay {
   position: absolute;
   top: 10px;

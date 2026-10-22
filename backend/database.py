@@ -13,7 +13,24 @@ if (_root_dir / ".env").exists():
     load_dotenv(_root_dir / ".env", override=True)
 load_dotenv(override=False)
 
+from sqlalchemy.engine import make_url
+
 DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:Vasanth%40zenve@127.0.0.1:3306/pet_management")
+
+def _ensure_database_exists(db_url: str):
+    try:
+        url = make_url(db_url)
+        if url.database and "mysql" in url.drivername:
+            server_url = url.set(database=None)
+            temp_engine = create_engine(server_url, isolation_level="AUTOCOMMIT")
+            with temp_engine.connect() as conn:
+                conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{url.database}` CHARACTER SET utf8mb4"))
+            temp_engine.dispose()
+    except Exception as e:
+        print(f"[DB Setup] Warning: Could not auto-create database: {e}")
+
+_ensure_database_exists(DATABASE_URL)
+
 engine = create_engine(DATABASE_URL, echo=True, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
 Base = declarative_base()
