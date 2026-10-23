@@ -4,6 +4,7 @@ import {
   Building2,
   Calendar,
   Check,
+  ChevronDown,
   Clock,
   Eye,
   EyeOff,
@@ -14,30 +15,34 @@ import {
   MapPin,
   Phone,
   Save,
-  ShieldCheck,
-  Target,
-  Tag,
-  User,
-  UserPlus,
-  X,
   ShieldAlert,
+  ShieldCheck,
+  Tag,
+  Target,
+  User,
+  X,
 } from "lucide-react";
-import NavIcon from "./NavIcon.jsx";
 import { findLabel } from "../data.js";
 import { sendMobileOtp, verifyMobileOtp } from "../api.js";
+import modalPetHeaderImg from "../assets/modal-pet-header.png";
 import "./RecordModal.css";
 
-function RegionDatalist() {
+function PawIcon({ size = 20, color = "currentColor", className = "" }) {
   return (
-    <datalist id="zzc-region-options">
-      <option value="Karnataka" />
-      <option value="Tamil Nadu" />
-      <option value="Assam" />
-      <option value="Kerala" />
-      <option value="Andhra Pradesh" />
-      <option value="Maharashtra" />
-      <option value="Delhi" />
-    </datalist>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 11c-2.2 0-4.3 1.6-4.3 4.1 0 2.1 1.7 3.5 4.3 3.5s4.3-1.4 4.3-3.5c0-2.5-2.1-4.1-4.3-4.1z" />
+      <circle cx="5.6" cy="10.2" r="1.9" />
+      <circle cx="9.3" cy="6.2" r="1.9" />
+      <circle cx="14.7" cy="6.2" r="1.9" />
+      <circle cx="18.4" cy="10.2" r="1.9" />
+    </svg>
   );
 }
 
@@ -98,71 +103,158 @@ function getRecordTitle(key) {
   return "Record";
 }
 
-function getFieldIcon(key, type) {
+/* 6 distinct color themes matching the reference Add Pet UI mockup */
+function getFieldTheme(key, type, index) {
   const k = (key || "").toLowerCase();
+  if (
+    k === "parent_id" ||
+    k === "id" ||
+    k === "code" ||
+    k === "user_id" ||
+    k === "pet_id" ||
+    k === "doctor_id" ||
+    k.endsWith("_id")
+  ) {
+    return "theme-green";
+  }
+  if (k === "name" || k.includes("name") || k === "title") {
+    return "theme-teal";
+  }
+  if (
+    k === "species" ||
+    k === "category" ||
+    k === "type" ||
+    k === "role" ||
+    k === "department" ||
+    k === "specialization" ||
+    k === "qualification"
+  ) {
+    return "theme-purple";
+  }
+  if (
+    k === "breed" ||
+    k === "city" ||
+    k === "region" ||
+    k === "state" ||
+    k === "address" ||
+    k === "pincode" ||
+    k === "location" ||
+    k === "line1"
+  ) {
+    return "theme-blue";
+  }
+  if (
+    k === "gender" ||
+    k === "sex" ||
+    k.includes("phone") ||
+    k.includes("mobile") ||
+    k === "email" ||
+    k === "contact"
+  ) {
+    return "theme-pink";
+  }
+  if (
+    k.includes("weight") ||
+    k.includes("target") ||
+    k.includes("fee") ||
+    k.includes("price") ||
+    k.includes("cost") ||
+    k.includes("amount") ||
+    type === "number"
+  ) {
+    return "theme-amber";
+  }
+
+  // Fallback: alternate nicely across all 6 themes
+  const colorThemes = [
+    "theme-green",
+    "theme-teal",
+    "theme-purple",
+    "theme-blue",
+    "theme-pink",
+    "theme-amber",
+  ];
+  return colorThemes[index % colorThemes.length];
+}
+
+/* Field label icons matching the reference Add Pet mockup */
+function getFieldLabelIcon(key) {
+  const k = (key || "").toLowerCase();
+  if (k === "name" || k === "species" || k === "breed" || k.includes("pet")) {
+    return PawIcon;
+  }
+  if (k === "gender" || k === "sex") {
+    return Tag;
+  }
+  if (
+    k.includes("weight") ||
+    k.includes("target") ||
+    k.includes("fee") ||
+    k.includes("amount")
+  ) {
+    return Target;
+  }
+  if (
+    k.includes("id") ||
+    k.includes("code") ||
+    k.includes("user") ||
+    k.includes("doctor") ||
+    k.includes("parent")
+  ) {
+    return User;
+  }
+  if (k.includes("phone") || k.includes("mobile")) return Phone;
+  if (k.includes("email")) return Mail;
+  if (k.includes("password")) return LockKeyhole;
+  if (k.includes("region") || k.includes("city") || k.includes("address")) return MapPin;
+  if (k.includes("active") || k.includes("status")) return ShieldCheck;
+  return Tag;
+}
+
+/* Left shell icons inside the input */
+function getFieldShellIcon(key, type) {
+  const k = (key || "").toLowerCase();
+  if (
+    k === "parent_id" ||
+    k === "user_id" ||
+    k === "doctor_id" ||
+    k === "id" ||
+    k === "name" ||
+    k.includes("name")
+  ) {
+    return User;
+  }
+  if (k === "species" || k === "breed" || k === "gender" || k === "category") {
+    return Tag;
+  }
+  if (
+    k.includes("weight") ||
+    k.includes("target") ||
+    k.includes("fee") ||
+    k.includes("price") ||
+    k.includes("cost") ||
+    k.includes("amount") ||
+    type === "number"
+  ) {
+    return Target;
+  }
   if (k.includes("phone") || k.includes("mobile") || k.includes("contact")) return Phone;
   if (k.includes("email") || type === "email") return Mail;
   if (k.includes("password") || type === "password") return LockKeyhole;
   if (
     k.includes("region") ||
+    k.includes("city") ||
     k.includes("address") ||
     k.includes("pincode") ||
-    k.includes("postal") ||
-    k.includes("location") ||
     k.includes("state")
   ) {
     return MapPin;
   }
-  if (
-    k.includes("city") ||
-    k.includes("clinic") ||
-    k.includes("hospital") ||
-    k.includes("company") ||
-    k.includes("warehouse") ||
-    k.includes("store")
-  ) {
-    return Building2;
-  }
-  if (
-    k.includes("name") ||
-    k.includes("doctor") ||
-    k.includes("parent") ||
-    k.includes("patient") ||
-    k.includes("customer") ||
-    k.includes("user")
-  ) {
-    return User;
-  }
-  if (k.includes("target") || k.includes("goal")) return Target;
-  if (
-    k.includes("code") ||
-    k.includes("id") ||
-    k.includes("sku") ||
-    k.includes("license") ||
-    k.includes("reg_no")
-  ) {
-    return IdCard;
-  }
-  if (
-    k.includes("active") ||
-    k.includes("status") ||
-    type === "bool" ||
-    type === "yesno"
-  ) {
-    return ShieldCheck;
-  }
-  if (k.includes("date") || type === "date" || type === "datetime") return Calendar;
+  if (k.includes("clinic") || k.includes("hospital") || k.includes("store")) return Building2;
+  if (k.includes("date") || type === "date") return Calendar;
   if (k.includes("time") || type === "time") return Clock;
-  if (
-    k.includes("price") ||
-    k.includes("amount") ||
-    k.includes("cost") ||
-    k.includes("fee") ||
-    k.includes("total") ||
-    k.includes("payout") ||
-    type === "number"
-  ) {
-    return Target;
+  if (k.includes("active") || k.includes("status") || type === "bool" || type === "yesno") {
+    return ShieldCheck;
   }
   return Tag;
 }
@@ -182,6 +274,7 @@ function getFieldPlaceholder(field) {
 
 function groupColumnsIntoSections(columns, tableKey) {
   const cleanColumns = (columns || []).filter((c) => c.key !== "is_phone_verified");
+
   if (
     tableKey === "sales_executives" ||
     tableKey === "sales_managers" ||
@@ -238,19 +331,7 @@ function groupColumnsIntoSections(columns, tableKey) {
     return sections;
   }
 
-  // Small table (<= 4 fields)
-  if (columns.length <= 4) {
-    return [
-      {
-        id: "details",
-        title: "Record Information",
-        Icon: FileText,
-        columns,
-      },
-    ];
-  }
-
-  // Generic tables: partition into Status, Location/Contact/Account, and General
+  // Generic tables partition into Status and Basic Information
   const statusKeys = ["is_active", "status", "is_verified", "verified"];
   const locationKeys = [
     "password",
@@ -265,11 +346,9 @@ function groupColumnsIntoSections(columns, tableKey) {
     "postal_code",
     "latitude",
     "longitude",
-    "location",
-    "website",
   ];
 
-  const statusCols = columns.filter(
+  const statusCols = cleanColumns.filter(
     (c) =>
       statusKeys.includes(c.key.toLowerCase()) ||
       c.type === "yesno" ||
@@ -277,14 +356,14 @@ function groupColumnsIntoSections(columns, tableKey) {
   );
   const statusKeySet = new Set(statusCols.map((c) => c.key));
 
-  const locationCols = columns.filter(
+  const locationCols = cleanColumns.filter(
     (c) =>
       !statusKeySet.has(c.key) &&
       locationKeys.some((lk) => c.key.toLowerCase().includes(lk))
   );
   const locationKeySet = new Set(locationCols.map((c) => c.key));
 
-  const basicCols = columns.filter(
+  const basicCols = cleanColumns.filter(
     (c) => !statusKeySet.has(c.key) && !locationKeySet.has(c.key)
   );
 
@@ -293,9 +372,7 @@ function groupColumnsIntoSections(columns, tableKey) {
     sections.push({
       id: "basic",
       title: "Basic Information",
-      Icon: basicCols.some((c) => c.key.toLowerCase().includes("name"))
-        ? User
-        : FileText,
+      Icon: User,
       columns: basicCols,
     });
   }
@@ -323,10 +400,20 @@ function groupColumnsIntoSections(columns, tableKey) {
 
   return sections.length > 0
     ? sections
-    : [{ id: "details", title: "Record Information", Icon: FileText, columns }];
+    : [{ id: "details", title: "Basic Information", Icon: User, columns: cleanColumns }];
 }
 
-export default function RecordModal({ mode, tableKey, columns, values, onChange, onSave, onCancel, saving, saveError }) {
+export default function RecordModal({
+  mode,
+  tableKey,
+  columns,
+  values,
+  onChange,
+  onSave,
+  onCancel,
+  saving,
+  saveError,
+}) {
   useEffect(() => {
     if (!mode) return;
     const prevOverflow = document.body.style.overflow;
@@ -421,7 +508,7 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
     }
   }
 
-  // If region was previously populated with "Bengaluru", normalize to "Karnataka"
+  // Normalize region "Bengaluru" to "Karnataka"
   useEffect(() => {
     if (values.region === "Bengaluru") {
       onChange("region", "Karnataka");
@@ -465,214 +552,6 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
     );
   }
 
-  if (!mode) return null;
-
-  function renderInput(field, placeholder) {
-    const value = values[field.key];
-    const id = "field_" + field.key;
-
-    if (field.readOnly) {
-      return <input id={id} value={value ?? ""} disabled />;
-    }
-
-    if (field.type === "password") {
-      const isEdit = mode === "edit";
-      return (
-        <div style={{ position: "relative" }}>
-          <input
-            id={id}
-            type={showPassword ? "text" : "password"}
-            value={value ?? ""}
-            required={field.required && !isEdit}
-            minLength={value ? 6 : undefined}
-            autoComplete="new-password"
-            placeholder={placeholder || (isEdit ? "Leave blank to keep current password" : "Min 6 characters")}
-            style={{ width: "100%", paddingRight: 40, boxSizing: "border-box" }}
-            onChange={(e) => {
-              if (e.target.value.length > 10) {
-                setInputError("Password cannot exceed 10 characters.");
-                return;
-              }
-              setInputError("");
-              onChange(field.key, e.target.value);
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            title={showPassword ? "Hide password" : "Show password"}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            style={{
-              position: "absolute",
-              right: 8,
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: 28,
-              height: 28,
-              display: "grid",
-              placeItems: "center",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--primary, #046a60)",
-            }}
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
-      );
-    }
-
-    if (field.type === "bool") {
-      return (
-        <input
-          id={id}
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(e) => onChange(field.key, e.target.checked)}
-        />
-      );
-    }
-
-    if (field.type === "yesno") {
-      return (
-        <select
-          id={id}
-          value={value === true || value === "Yes" ? "Yes" : "No"}
-          onChange={(e) => onChange(field.key, e.target.value)}
-        >
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
-        </select>
-      );
-    }
-
-      if (field.type === "select") {
-        return (
-          <select
-            id={id}
-            value={value ?? ""}
-            onChange={(e) => onChange(field.key, e.target.value)}
-          >
-            <option value="" disabled>— select —</option>
-            {(field.options || []).map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        );
-      }
-    if (field.type === "number") {
-      return (
-        <input
-          id={id}
-          type="number"
-          step="any"
-          value={value ?? ""}
-          required={field.required}
-          placeholder={placeholder}
-          onChange={(e) => onChange(field.key, e.target.value)}
-        />
-      );
-    }
-
-    if (field.type === "date") {
-      return (
-        <input
-          id={id}
-          type="date"
-          value={value ?? ""}
-          required={field.required}
-          onChange={(e) => onChange(field.key, e.target.value)}
-        />
-      );
-    }
-
-    if (field.type === "time") {
-      return (
-        <input
-          id={id}
-          type="time"
-          value={value ?? ""}
-          required={field.required}
-          onChange={(e) => onChange(field.key, e.target.value)}
-        />
-      );
-    }
-
-    if (field.type === "datetime") {
-      return (
-        <input
-          id={id}
-          type="datetime-local"
-          value={value ?? ""}
-          onChange={(e) => onChange(field.key, e.target.value)}
-        />
-      );
-    }
-
-    if (field.key.toLowerCase().includes("phone")) {
-      return (
-        <input
-          id={id}
-          type="tel"
-          inputMode="numeric"
-          value={value ?? ""}
-          required={field.required}
-          placeholder={placeholder}
-          onChange={(e) => {
-            const rawValue = e.target.value;
-            const digits = rawValue.replace(/\D/g, "");
-            if (digits.length > 10) {
-              setInputError("Phone number cannot exceed 10 digits.");
-              return;
-            }
-            if (rawValue !== digits) {
-              setInputError("Phone number can contain digits only.");
-            } else {
-              setInputError("");
-            }
-            onChange(field.key, digits);
-          }}
-        />
-      );
-    }
-
-    if (field.key === "region") {
-      return (
-        <div className="zzc-region-field-wrapper">
-          <RegionDatalist />
-          <div className="zzc-region-input-row">
-            <input
-              id={id}
-              type="text"
-              list="zzc-region-options"
-              value={value ?? ""}
-              required={field.required}
-              placeholder={placeholder || "Enter region"}
-              autoComplete="off"
-              onChange={(e) => onChange(field.key, e.target.value)}
-            />
-          </div>
-          {renderRegionQuickPills(value)}
-        </div>
-      );
-    }
-
-    return (
-      <input
-        id={id}
-        type={field.type === "email" ? "email" : "text"}
-        value={value ?? ""}
-        required={field.required}
-        placeholder={placeholder}
-        autoComplete={field.type === "email" ? "email" : undefined}
-        onChange={(e) => onChange(field.key, e.target.value)}
-      />
-    );
-  }
-
   function handleModalSubmit(event) {
     if (inputError) {
       event.preventDefault();
@@ -685,16 +564,19 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
 
     if (mode === "new" && isExecOrManager && !values.is_phone_verified) {
       event.preventDefault();
-      setInputError("Mobile number verification is required. Please verify the mobile number via OTP before creating this profile.");
+      setInputError(
+        "Mobile number verification is required. Please verify the mobile number via OTP before creating this profile."
+      );
       return;
     }
     onSave(event);
   }
 
-  function renderExecutiveField(key, Icon, placeholder) {
-    const field = columns.find((item) => item.key === key);
+  function renderExecutiveField(key, index) {
+    const field = (columns || []).find((item) => item.key === key);
     if (!field) return null;
-    const executiveLabels = {
+
+    const labelMap = {
       name: "Name",
       code: "Code",
       phone: "Phone",
@@ -704,26 +586,40 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
       city: "City",
       monthly_target: "Monthly Target",
       is_active: "Status",
+      weight_kg: "weight_kg",
+      parent_id: "parent_id",
+      species: "species",
+      breed: "breed",
+      gender: "gender",
     };
-    const label = executiveLabels[key] || field.label || key;
+    const label = labelMap[key] || field.label || key;
+    const value = values[key];
+    const themeClass = getFieldTheme(key, field.type, index);
+    const LabelIcon = getFieldLabelIcon(key);
+    const ShellIcon = getFieldShellIcon(key, field.type);
+    const placeholder = getFieldPlaceholder(field);
+    const id = `field_${key}`;
 
+    // Handle Region Field
     if (key === "region") {
       return (
-        <div className="zzc-exec-field zzc-exec-field-region" key={key}>
-          <RegionDatalist />
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
           <div className="zzc-exec-field-header">
-            <label htmlFor={`field_${key}`}>
-              {label}{field.required ? <span className="zzc-exec-required"> *</span> : ""}
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required ? <span className="zzc-exec-required"> *</span> : ""}
             </label>
           </div>
-          <div className="zzc-exec-input-shell zzc-exec-input-shell-region">
-            <Icon size={15} aria-hidden="true" />
+          <div className="zzc-exec-input-shell">
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
             <div className="zzc-exec-input-control">
               <input
-                id={`field_${key}`}
+                id={id}
                 type="text"
-                list="zzc-region-options"
-                value={values[key] ?? ""}
+                value={value ?? ""}
                 required={field.required}
                 placeholder={placeholder || "Enter region"}
                 autoComplete="off"
@@ -731,11 +627,12 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
               />
             </div>
           </div>
-          {renderRegionQuickPills(values[key])}
+          {renderRegionQuickPills(value)}
         </div>
       );
     }
 
+    // Handle Phone Field with OTP
     if (key === "phone") {
       const isVerified = Boolean(values.is_phone_verified);
       const cleanPhone = String(values.phone || "").replace(/\D/g, "");
@@ -745,35 +642,68 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
         tableKey === "regional_managers";
 
       return (
-        <div className="zzc-exec-field zzc-exec-field-full" key={key}>
-          <div className="zzc-exec-field-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <label htmlFor={`field_${key}`}>
-              {label}{field.required ? <span className="zzc-exec-required"> *</span> : ""}
-            </label>
-            {isExecOrManager && (
-              isVerified ? (
-                <span style={{ fontSize: "0.74rem", fontWeight: 700, color: "#16a34a", background: "#dcfce7", padding: "2px 8px", borderRadius: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+        <div className={`zzc-exec-field zzc-exec-field-full ${themeClass}`} key={key}>
+          <div
+            className="zzc-exec-field-header"
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span className="zzc-field-label-icon">
+                <LabelIcon size={14} />
+              </span>
+              <label htmlFor={id}>
+                {label}
+                {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+              </label>
+            </div>
+            {isExecOrManager &&
+              (isVerified ? (
+                <span
+                  style={{
+                    fontSize: "0.74rem",
+                    fontWeight: 700,
+                    color: "#16a34a",
+                    background: "#dcfce7",
+                    padding: "2px 8px",
+                    borderRadius: "12px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
                   <Check size={12} strokeWidth={3} /> Mobile Verified
                 </span>
               ) : (
-                <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#d97706", background: "#fef3c7", padding: "2px 8px", borderRadius: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <span
+                  style={{
+                    fontSize: "0.74rem",
+                    fontWeight: 600,
+                    color: "#d97706",
+                    background: "#fef3c7",
+                    padding: "2px 8px",
+                    borderRadius: "12px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
                   <ShieldAlert size={12} /> Verification Required
                 </span>
-              )
-            )}
+              ))}
           </div>
 
           <div className="zzc-exec-input-shell">
-            <Icon size={15} aria-hidden="true" />
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
             <div className="zzc-exec-input-control">
               <input
-                id={`field_${key}`}
+                id={id}
                 type="tel"
                 inputMode="numeric"
                 maxLength={10}
-                value={values[key] ?? ""}
+                value={value ?? ""}
                 required={field.required}
                 placeholder="10-digit mobile number"
+                autoComplete="off"
                 onChange={(e) => {
                   const raw = e.target.value;
                   const digits = raw.replace(/\D/g, "");
@@ -789,13 +719,30 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
           </div>
 
           {isExecOrManager && !isVerified && (
-            <div style={{ marginTop: "8px", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "10px", padding: "10px 12px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
-                <span style={{ fontSize: "0.76rem", fontWeight: 600, color: "#334155" }}>
+            <div
+              style={{
+                marginTop: "8px",
+                background: "#f8fafc",
+                border: "1px dashed #cbd5e1",
+                borderRadius: "12px",
+                padding: "10px 14px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "8px",
+                  flexWrap: "wrap",
+                  gap: "6px",
+                }}
+              >
+                <span style={{ fontSize: "0.76rem", fontWeight: 700, color: "#334155" }}>
                   Mobile Number Verification
                 </span>
                 {phoneOtpMsg && (
-                  <span style={{ fontSize: "0.72rem", color: "var(--primary, #046a60)", fontWeight: 500 }}>
+                  <span style={{ fontSize: "0.72rem", color: "#0d8b7b", fontWeight: 600 }}>
                     {phoneOtpMsg}
                   </span>
                 )}
@@ -806,13 +753,13 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
                   <button
                     type="button"
                     style={{
-                      padding: "5px 12px",
+                      padding: "6px 14px",
                       fontSize: "0.78rem",
-                      fontWeight: 600,
-                      borderRadius: "6px",
+                      fontWeight: 700,
+                      borderRadius: "8px",
                       border: "none",
-                      background: "var(--primary, #046a60)",
-                      color: "var(--primary-foreground, #ffffff)",
+                      background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                      color: "#ffffff",
                       cursor: "pointer",
                       opacity: cleanPhone.length === 10 ? 1 : 0.6,
                     }}
@@ -822,7 +769,9 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
                     {phoneOtpLoading ? "Sending OTP..." : "Send Verification OTP"}
                   </button>
                   <span style={{ fontSize: "0.74rem", color: "#64748b" }}>
-                    {cleanPhone.length === 10 ? "Click to send verification code" : "Enter 10-digit number first"}
+                    {cleanPhone.length === 10
+                      ? "Click to send verification code"
+                      : "Enter 10-digit number first"}
                   </span>
                 </div>
               ) : (
@@ -833,6 +782,7 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
                     maxLength={6}
                     placeholder="6-digit OTP"
                     value={phoneOtp}
+                    autoComplete="off"
                     onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, ""))}
                     style={{
                       width: "140px",
@@ -841,8 +791,9 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
                       fontWeight: 700,
                       letterSpacing: "0.2em",
                       textAlign: "center",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "6px",
+                      border: "1.5px solid #cbd5e1",
+                      borderRadius: "8px",
+                      background: "#ffffff",
                     }}
                   />
                   <button
@@ -851,7 +802,7 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
                       padding: "6px 14px",
                       fontSize: "0.78rem",
                       fontWeight: 700,
-                      borderRadius: "6px",
+                      borderRadius: "8px",
                       border: "none",
                       background: "#16a34a",
                       color: "#ffffff",
@@ -867,9 +818,9 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
                     style={{
                       background: "none",
                       border: "none",
-                      color: "var(--primary, #046a60)",
+                      color: "#0d8b7b",
                       fontSize: "0.74rem",
-                      fontWeight: 600,
+                      fontWeight: 700,
                       cursor: phoneOtpCountdown > 0 ? "not-allowed" : "pointer",
                       textDecoration: "underline",
                     }}
@@ -886,32 +837,345 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
       );
     }
 
-    const isFullWidth =
-      field.type === "textarea" ||
-      key.toLowerCase().includes("address") ||
-      key.toLowerCase().includes("description") ||
-      key === "email";
+    // Handle Password Field
+    if (field.type === "password") {
+      const isEdit = mode === "edit";
+      return (
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required && !isEdit ? <span className="zzc-exec-required"> *</span> : ""}
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell" style={{ position: "relative" }}>
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <input
+                id={id}
+                type={showPassword ? "text" : "password"}
+                value={value ?? ""}
+                required={field.required && !isEdit}
+                minLength={value ? 6 : undefined}
+                autoComplete="off"
+                placeholder={
+                  placeholder ||
+                  (isEdit ? "Leave blank to keep password" : "Min 6 characters")
+                }
+                onChange={(e) => {
+                  if (e.target.value.length > 10) {
+                    setInputError("Password cannot exceed 10 characters.");
+                    return;
+                  }
+                  setInputError("");
+                  onChange(field.key, e.target.value);
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              title={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              style={{
+                width: 28,
+                height: 28,
+                display: "grid",
+                placeItems: "center",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#64748b",
+                marginLeft: 4,
+              }}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+      );
+    }
 
-    return (
-      <div className={`zzc-exec-field ${isFullWidth ? "zzc-exec-field-full" : ""}`} key={key}>
-        <label htmlFor={`field_${key}`}>
-          {label}{field.required ? <span className="zzc-exec-required"> *</span> : ""}
-        </label>
-        <div className="zzc-exec-input-shell">
-          <Icon size={15} aria-hidden="true" />
-          <div className="zzc-exec-input-control">
-            {(key === "is_active" || key === "status") && (field.type === "yesno" || !field.options) ? (
+    // Handle Status / is_active Field
+    if (key === "is_active" || key === "status") {
+      return (
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
               <select
-                id={`field_${key}`}
-                value={values[key] === "No" || values[key] === false ? "No" : "Yes"}
+                id={id}
+                value={value === "No" || value === false ? "No" : "Yes"}
                 onChange={(event) => onChange(key, event.target.value)}
               >
                 <option value="Yes">Active</option>
                 <option value="No">Inactive</option>
               </select>
-            ) : (
-              renderInput(field, placeholder)
-            )}
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle species dropdown (matching reference image)
+    if (key === "species") {
+      const speciesOptions = ["Dog", "Cat", "Bird", "Rabbit", "Fish", "Other"];
+      const hasValue = value && !speciesOptions.includes(value);
+      return (
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value ?? ""}
+                onChange={(e) => onChange(key, e.target.value)}
+              >
+                <option value="" disabled>
+                  Enter species
+                </option>
+                {hasValue && <option value={value}>{value}</option>}
+                {speciesOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle gender dropdown (matching reference image)
+    if (key === "gender" || key === "sex") {
+      const genderOptions = ["Male", "Female", "Unknown"];
+      const hasValue = value && !genderOptions.includes(value);
+      return (
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value ?? ""}
+                onChange={(e) => onChange(key, e.target.value)}
+              >
+                <option value="" disabled>
+                  Enter gender
+                </option>
+                {hasValue && <option value={value}>{value}</option>}
+                {genderOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle breed dropdown (matching reference image)
+    if (key === "breed") {
+      const breedOptions = [
+        "Golden Retriever",
+        "German Shepherd",
+        "Labrador Retriever",
+        "French Bulldog",
+        "Beagle",
+        "Persian Cat",
+        "Siamese Cat",
+        "Indie / Mixed Breed",
+        "Other",
+      ];
+      const hasValue = value && !breedOptions.includes(value);
+      return (
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value ?? ""}
+                onChange={(e) => onChange(key, e.target.value)}
+              >
+                <option value="" disabled>
+                  Enter breed
+                </option>
+                {hasValue && <option value={value}>{value}</option>}
+                {breedOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle Generic Select
+    if (field.type === "select" || (field.options && field.options.length > 0)) {
+      return (
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value ?? ""}
+                required={field.required}
+                onChange={(e) => onChange(key, e.target.value)}
+              >
+                <option value="" disabled>
+                  Enter {label.toLowerCase()}
+                </option>
+                {(field.options || []).map((opt) => (
+                  <option key={opt.value ?? opt} value={opt.value ?? opt}>
+                    {opt.label ?? opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle Checkbox
+    if (field.type === "bool") {
+      return (
+        <div className={`zzc-exec-field ${themeClass}`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <LabelIcon size={14} />
+            </span>
+            <label htmlFor={id}>
+              {label}
+              {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <div className="zzc-exec-input-control" style={{ gap: "10px" }}>
+              <input
+                id={id}
+                type="checkbox"
+                checked={Boolean(value)}
+                onChange={(e) => onChange(key, e.target.checked)}
+              />
+              <span style={{ fontSize: "0.85rem", color: "#334155", fontWeight: 600 }}>
+                {Boolean(value) ? "Enabled" : "Disabled"}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Full width for address, descriptions, textareas
+    const isFullWidth =
+      field.type === "textarea" ||
+      key.toLowerCase().includes("address") ||
+      key.toLowerCase().includes("description");
+
+    const inputType =
+      field.type === "number" || key === "weight_kg" || key === "monthly_target"
+        ? "number"
+        : field.type === "email"
+        ? "email"
+        : field.type === "date"
+        ? "date"
+        : field.type === "time"
+        ? "time"
+        : field.type === "datetime"
+        ? "datetime-local"
+        : "text";
+
+    return (
+      <div
+        className={`zzc-exec-field ${themeClass} ${isFullWidth ? "zzc-exec-field-full" : ""}`}
+        key={key}
+      >
+        <div className="zzc-exec-field-header">
+          <span className="zzc-field-label-icon">
+            <LabelIcon size={14} />
+          </span>
+          <label htmlFor={id}>
+            {label}
+            {field.required ? <span className="zzc-exec-required"> *</span> : ""}
+          </label>
+        </div>
+        <div className="zzc-exec-input-shell">
+          <ShellIcon size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+          <div className="zzc-exec-input-control">
+            <input
+              id={id}
+              type={inputType}
+              step={inputType === "number" ? "any" : undefined}
+              value={value ?? ""}
+              required={field.required}
+              placeholder={placeholder}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
+              onChange={(e) => onChange(key, e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -932,18 +1196,39 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
       }}
     >
       <section className="zzc-exec-modal" aria-labelledby="zzc-exec-title">
+        {/* Header with Mint Theme & Pet Illustration */}
         <header className="zzc-exec-header">
-          <span className="zzc-exec-header-icon">
-            <NavIcon name={tableKey} size={21} />
-          </span>
-          <div>
-            <h2 id="zzc-exec-title">{isEdit ? `Edit ${recordTitle}` : `Add ${recordTitle}`}</h2>
-            <p>
-              {isEdit
-                ? `Update existing ${recordTitle.toLowerCase()} record`
-                : `Create a new ${recordTitle.toLowerCase()} profile`}
-            </p>
+          <div className="zzc-exec-header-paws-bg" aria-hidden="true">
+            <PawIcon size={26} color="#0d8b7b" className="zzc-paw-bg-1" />
+            <PawIcon size={18} color="#0d8b7b" className="zzc-paw-bg-2" />
+            <PawIcon size={32} color="#0d8b7b" className="zzc-paw-bg-3" />
           </div>
+
+          <div className="zzc-exec-header-content">
+            <span className="zzc-exec-header-badge">
+              <PawIcon size={24} color="#ffffff" />
+            </span>
+            <div className="zzc-exec-header-text">
+              <h2 id="zzc-exec-title">
+                {isEdit ? `Edit ${recordTitle}` : `Add ${recordTitle}`}
+              </h2>
+              <p>
+                {isEdit
+                  ? `Update existing ${recordTitle.toLowerCase()} record`
+                  : `Create a new ${recordTitle.toLowerCase()} profile`}
+              </p>
+            </div>
+          </div>
+
+          {/* Dog + Cat pet illustration */}
+          <img
+            src={modalPetHeaderImg}
+            alt="Cute pets banner"
+            className="zzc-modal-header-art"
+            aria-hidden="true"
+          />
+
+          {/* Circular Close Button */}
           <button
             type="button"
             className="zzc-exec-close"
@@ -951,30 +1236,67 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
             aria-label="Close"
             title="Close"
           >
-            <X size={17} />
+            <X size={17} strokeWidth={2.4} />
           </button>
         </header>
 
+        {/* Modal Scrollable Body */}
         <div className="zzc-exec-layout">
-          <form id="zzcModalForm" className="zzc-exec-form" onSubmit={handleModalSubmit}>
-            {saveError && <div className="zzc-modal-error" role="alert">{saveError}</div>}
-            {inputError && <div className="zzc-modal-error" role="alert">{inputError}</div>}
+          <form
+            id="zzcModalForm"
+            className="zzc-exec-form"
+            onSubmit={handleModalSubmit}
+            autoComplete="off"
+          >
+            {saveError && (
+              <div className="zzc-modal-error" role="alert">
+                <ShieldAlert size={16} />
+                <span>{saveError}</span>
+              </div>
+            )}
+            {inputError && (
+              <div className="zzc-modal-error" role="alert">
+                <ShieldAlert size={16} />
+                <span>{inputError}</span>
+              </div>
+            )}
 
             {sections.map((section) => {
               const SectionIcon = section.Icon;
               return (
-                <section className="zzc-exec-section" key={section.id}>
-                  <h3>
-                    <SectionIcon size={16} />
-                    {section.title}
-                  </h3>
+                <section
+                  className={`zzc-exec-section ${
+                    section.id === "status" ? "zzc-exec-section-status" : ""
+                  }`}
+                  key={section.id}
+                >
+                  <div className="zzc-exec-section-header">
+                    <div className="zzc-exec-section-title-wrap">
+                      <span className="zzc-exec-section-badge">
+                        <SectionIcon size={15} />
+                      </span>
+                      <h3>{section.title}</h3>
+                    </div>
+                    <span className="zzc-exec-section-subtitle">
+                      {section.id === "basic" ? (
+                        tableKey === "pets" ? (
+                          "Tell us about your pet 🐾"
+                        ) : (
+                          `Tell us about this ${recordTitle.toLowerCase()} 🐾`
+                        )
+                      ) : section.id === "status" ? (
+                        <span className="zzc-status-badge-pill">Profile Status</span>
+                      ) : null}
+                    </span>
+                  </div>
+
                   <div
                     className={`zzc-exec-fields ${
                       section.isSingle ? "zzc-exec-fields-single" : ""
                     }`}
                   >
-                    {section.columns.map((field) =>
-                      renderExecutiveField(field.key, getFieldIcon(field.key, field.type), getFieldPlaceholder(field))
+                    {section.columns.map((field, idx) =>
+                      renderExecutiveField(field.key, idx)
                     )}
                   </div>
                 </section>
@@ -983,30 +1305,43 @@ export default function RecordModal({ mode, tableKey, columns, values, onChange,
           </form>
         </div>
 
+        {/* Footer with Paw watermark & Create button */}
         <footer className="zzc-exec-footer">
-          <button
-            type="button"
-            className="zzc-btn zzc-btn-outline"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="zzcModalForm"
-            className="zzc-btn zzc-btn-primary"
-            disabled={saving}
-          >
-            {isEdit ? <Save size={15} /> : <UserPlus size={15} />}
-            {saving
-              ? isEdit
-                ? "Saving…"
-                : "Creating…"
-              : isEdit
-              ? "Save Changes"
-              : `Create ${recordTitle}`}
-          </button>
+          <div className="zzc-exec-footer-paws" aria-hidden="true">
+            <PawIcon size={24} color="#0d8b7b" />
+            <PawIcon size={16} color="#0d8b7b" />
+          </div>
+
+          <div className="zzc-exec-footer-actions">
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-cancel"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="zzcModalForm"
+              className="zzc-btn zzc-btn-create"
+              disabled={saving}
+            >
+              <PawIcon size={16} color="#ffffff" />
+              <span>
+                {saving
+                  ? isEdit
+                    ? "Saving…"
+                    : "Creating…"
+                  : isEdit
+                  ? "Save Changes"
+                  : `Create ${recordTitle}`}
+              </span>
+              <span className="zzc-btn-sparkle" aria-hidden="true">
+                ✨
+              </span>
+            </button>
+          </div>
         </footer>
       </section>
     </div>,

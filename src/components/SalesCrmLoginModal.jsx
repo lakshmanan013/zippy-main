@@ -912,7 +912,9 @@ export default function SalesCrmLoginModal({
                     {line}
                     {qIdx === 0 && <br />}
                     {qIdx === 1 && currentRole === "executive" && (
-                      <PawIcon size={17} color="#ffffff" className="zenve-quote-paw-inline" />
+                      <span className="zenve-quote-paw-badge" title="Zenve Pets">
+                        <PawIcon size={22} color="#ffffff" className="zenve-quote-paw-inline" />
+                      </span>
                     )}
                   </span>
                 ))}

@@ -401,7 +401,32 @@
 .zenve-quote-line-2 {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+}
+
+.zenve-quote-paw-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 2px 10px rgba(0, 45, 120, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  flex-shrink: 0 !important;
+  margin-left: 2px !important;
+}
+
+.zenve-quote-paw-badge:hover {
+  transform: scale(1.12) rotate(6deg) !important;
+  background: rgba(255, 255, 255, 0.28) !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 45, 120, 0.45), inset 0 1px 3px rgba(255, 255, 255, 0.7) !important;
 }
 
 .zenve-quote-paw-inline {
@@ -412,12 +437,12 @@
 
 .theme-blue .zenve-quote-accent-bar {
   display: block !important;
-  width: 40px !important;
+  width: 42px !important;
   height: 3.5px !important;
   background: #ffffff !important;
   border-radius: 999px !important;
-  margin-top: 8px !important;
-  box-shadow: 0 1px 5px rgba(0, 30, 80, 0.3) !important;
+  margin-top: 9px !important;
+  box-shadow: 0 2px 6px rgba(0, 30, 80, 0.35) !important;
 }
 
 /* ══════════════════════════════════════════════════════════

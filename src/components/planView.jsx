@@ -35,6 +35,25 @@ import {
 import "./Plan.css";
 import { VscSearch } from "react-icons/vsc";
 
+function PawIcon({ size = 16, color = "currentColor", className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 11c-2.2 0-4.3 1.6-4.3 4.1 0 2.1 1.7 3.5 4.3 3.5s4.3-1.4 4.3-3.5c0-2.5-2.1-4.1-4.3-4.1z" />
+      <circle cx="5.6" cy="10.2" r="1.9" />
+      <circle cx="9.3" cy="6.2" r="1.9" />
+      <circle cx="14.7" cy="6.2" r="1.9" />
+      <circle cx="18.4" cy="10.2" r="1.9" />
+    </svg>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────
    Convert a real API doctor (from useSalesData) into the
    shape planView components expect.
@@ -117,11 +136,26 @@ function OverviewTab({ store, stats, execName, monthLabel, onCreatePlan, onReset
         {isExecutive ? (
           <button
             type="button"
-            className="zzc-btn zzc-btn-primary"
+            className="zzc-btn zzc-btn-create"
             onClick={onCreatePlan}
-            style={{ marginTop: 12 }}
+            style={{
+              marginTop: 12,
+              padding: "10px 22px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+              color: "#ffffff",
+              border: "none",
+              fontWeight: 700,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              boxShadow: "0 4px 14px rgba(13, 139, 123, 0.35)",
+              cursor: "pointer",
+            }}
           >
-            + Create Monthly Plan
+            <PawIcon size={16} color="#ffffff" />
+            <span>Create Monthly Plan</span>
+            <span style={{ fontSize: "0.9rem" }}>✨</span>
           </button>
         ) : (
           <p className="pln-hint" style={{ marginTop: 12 }}>
@@ -1393,11 +1427,27 @@ export default function PlanView({
           {!isManager && !store.monthlyPlan && (
             <button
               type="button"
-              className="zzc-btn zzc-btn-primary"
-              style={{ height: 32, fontSize: ".75rem", whiteSpace: "nowrap" }}
+              className="zzc-btn zzc-btn-create"
+              style={{
+                height: 36,
+                padding: "0 16px",
+                fontSize: ".82rem",
+                whiteSpace: "nowrap",
+                borderRadius: "10px",
+                background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                color: "#ffffff",
+                border: "none",
+                fontWeight: 700,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: "0 3px 10px rgba(13, 139, 123, 0.3)",
+                cursor: "pointer",
+              }}
               onClick={() => setCreating(true)}
             >
-              + Create Monthly Plan
+              <PawIcon size={14} color="#ffffff" />
+              <span>+ Create Monthly Plan</span>
             </button>
           )}
         </div>
