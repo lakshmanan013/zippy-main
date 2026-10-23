@@ -35,24 +35,6 @@ import {
 import "./Plan.css";
 import { VscSearch } from "react-icons/vsc";
 
-function PawIcon({ size = 16, color = "currentColor", className = "" }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={color}
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M12 11c-2.2 0-4.3 1.6-4.3 4.1 0 2.1 1.7 3.5 4.3 3.5s4.3-1.4 4.3-3.5c0-2.5-2.1-4.1-4.3-4.1z" />
-      <circle cx="5.6" cy="10.2" r="1.9" />
-      <circle cx="9.3" cy="6.2" r="1.9" />
-      <circle cx="14.7" cy="6.2" r="1.9" />
-      <circle cx="18.4" cy="10.2" r="1.9" />
-    </svg>
-  );
-}
 
 /* ─────────────────────────────────────────────────────────
    Convert a real API doctor (from useSalesData) into the
@@ -153,7 +135,6 @@ function OverviewTab({ store, stats, execName, monthLabel, onCreatePlan, onReset
               cursor: "pointer",
             }}
           >
-            <PawIcon size={16} color="#ffffff" />
             <span>Create Monthly Plan</span>
             <span style={{ fontSize: "0.9rem" }}>✨</span>
           </button>
@@ -1446,7 +1427,6 @@ export default function PlanView({
               }}
               onClick={() => setCreating(true)}
             >
-              <PawIcon size={14} color="#ffffff" />
               <span>+ Create Monthly Plan</span>
             </button>
           )}

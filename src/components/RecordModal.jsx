@@ -1327,7 +1327,6 @@ export default function RecordModal({
               className="zzc-btn zzc-btn-create"
               disabled={saving}
             >
-              <PawIcon size={16} color="#ffffff" />
               <span>
                 {saving
                   ? isEdit

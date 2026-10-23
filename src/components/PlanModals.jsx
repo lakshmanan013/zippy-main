@@ -282,7 +282,6 @@ export function CreatePlanModal({ totalAssigned, workingDaysCount, monthLabel, m
                 transition: "all 0.18s ease",
               }}
             >
-              <PawIcon size={16} color="#ffffff" />
               <span>{method === "auto" ? "Generate Plan" : "Create Draft Plan"}</span>
               <span className="zzc-btn-sparkle" aria-hidden="true">✨</span>
             </button>

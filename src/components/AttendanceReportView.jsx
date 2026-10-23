@@ -690,7 +690,6 @@ export default function AttendanceReportView({
                 transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
-              <PawIcon size={16} color="#ffffff" />
               <span>+ New Record</span>
             </button>
           )}
@@ -1835,7 +1834,6 @@ export default function AttendanceReportView({
                     transition: "all 0.18s ease",
                   }}
                 >
-                  <PawIcon size={16} color="#ffffff" />
                   <span>{newRecordSaving ? "Saving…" : "Save Record"}</span>
                   <span className="zzc-btn-sparkle" aria-hidden="true" style={{ fontSize: "0.95rem" }}>
                     ✨

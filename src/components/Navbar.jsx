@@ -2,27 +2,6 @@
 
 import { Search, Plus } from "lucide-react";
 
-function PawIcon({ size = 20, color = "currentColor", className = "" }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      className={className}
-      style={{ display: "inline-block", verticalAlign: "middle" }}
-    >
-      <circle cx="7.5" cy="5.5" r="2.2" fill={color} />
-      <circle cx="16.5" cy="5.5" r="2.2" fill={color} />
-      <circle cx="4" cy="11.5" r="2.2" fill={color} />
-      <circle cx="20" cy="11.5" r="2.2" fill={color} />
-      <path
-        d="M12 9.5c-3.2 0-5.5 2.2-5.5 5 0 2.4 1.8 4.5 5.5 4.5s5.5-2.1 5.5-4.5c0-2.8-2.3-5-5-5z"
-        fill={color}
-      />
-    </svg>
-  );
-}
 
 function Navbar({ activeItem }) {
   return (
@@ -62,7 +41,6 @@ function Navbar({ activeItem }) {
             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          <PawIcon size={15} color="#ffffff" />
           <span>+ New record</span>
         </button>
 

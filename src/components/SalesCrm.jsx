@@ -3458,7 +3458,6 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
                 transition: "all 0.18s ease",
               }}
             >
-              <PawIcon size={16} color="#ffffff" />
               <span>{saving ? "Submitting…" : "Add Doctor Profile"}</span>
               <span className="zzc-btn-sparkle" aria-hidden="true">✨</span>
             </button>
@@ -3948,7 +3947,6 @@ function DoctorsView({ data, execId }) {
             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          <PawIcon size={16} color="#ffffff" />
           <span>+ New Doctor</span>
         </button>
       </div>
