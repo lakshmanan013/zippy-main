@@ -29,4 +29,7 @@ __pycache__/
 *$py.class
 *.pyc
 .env
+.env.*
+api.txt
+backend/api.txt
 
