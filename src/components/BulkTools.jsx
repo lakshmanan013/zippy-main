@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { fetchList, fetchOne, createRecord, updateRecord, TABLE_CONFIG, coerceFieldValue, buildRecordPayload } from "../api.js";
-
+import { isTableAllowed } from "../data.js";
 
 const WORKING_SETS = [
   { key: "products", label: "Medicines & Products" },
@@ -78,8 +78,11 @@ function workingSetHasIsActive(key) {
   return TABLE_CONFIG[key]?.fields.some((f) => f.key === "is_active") ?? false;
 }
 
-export default function BulkTools() {
-  const [workingSet, setWorkingSet] = useState("products");
+export default function BulkTools({ adminUser }) {
+  const allowedSets = WORKING_SETS.filter((ws) => isTableAllowed(ws.key, adminUser));
+  const defaultWs = allowedSets.length > 0 ? allowedSets[0].key : "products";
+
+  const [workingSet, setWorkingSet] = useState(defaultWs);
   const [filterPincode, setFilterPincode] = useState("");
   const [filterSellerId, setFilterSellerId] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
@@ -305,12 +308,25 @@ export default function BulkTools() {
     });
   }
 
+  if (allowedSets.length === 0) {
+    return (
+      <div className="zzc-content">
+        <div style={{ background: "#f8fafc", padding: "32px", borderRadius: "12px", border: "1px dashed #cbd5e1", textAlign: "center", color: "#64748b" }}>
+          <h3 style={{ margin: "0 0 8px 0", color: "#334155" }}>Bulk Tools Not Available For This Role</h3>
+          <p style={{ margin: 0 }}>
+            Bulk operations are restricted to CEO, Commerce, and Doctors departments.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="zzc-content">
       <div className="bulk-tools-page">
         <div className="bulk-working-set">
           <span className="bulk-working-label">Working set:</span>
-          {WORKING_SETS.map((ws) => (
+          {allowedSets.map((ws) => (
             <button
               key={ws.key}
               className={"bulk-tab" + (workingSet === ws.key ? " active" : "")}

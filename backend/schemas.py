@@ -597,11 +597,14 @@ class CheckFaceRequest(BaseModel):
 class AdminLoginRequest(BaseModel):
     email: str
     password: str
+    role: Optional[str] = "ceo"
 
 class AdminSendOtpRequest(BaseModel):
     phone: str
     mode: Optional[str] = "apitxt"  
+    role: Optional[str] = "ceo"
 
 class AdminVerifyOtpRequest(BaseModel):
     phone: str
     otp: str
+    role: Optional[str] = "ceo"
