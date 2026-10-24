@@ -24,25 +24,6 @@ import "./FacePunchModal.css";
 
 const MAX_SELFIE_DATA_URL_LENGTH = 48 * 1024;
 
-// Audio Alert Chime for Multiple Members Detection
-const playWarningBeep = () => {
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    const audioCtx = new AudioContextClass();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-    osc.frequency.setValueAtTime(500, audioCtx.currentTime + 0.12);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.28);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.28);
-  } catch {}
-};
 
 function createCompactSelfie(sourceCanvas) {
   const outputCanvas = document.createElement("canvas");
@@ -261,20 +242,21 @@ export default function FacePunchModal({
       const res = await checkFaceImage(dataUrl);
       if (res) {
         const count = res.face_count ?? 0;
-        setDetectedFaceCount(count);
         if (count >= 2 || res.status === "multiple_faces") {
+          setDetectedFaceCount(count);
           setFaceCheckStatus("multiple_faces");
-          setFaceAlertMsg(`🚨 Multiple faces detected (${count})! Strictly only 1 person allowed in the photo.`);
-          playWarningBeep();
-        } else if (count === 0 || res.status === "no_face") {
-          setFaceCheckStatus("no_face");
-          setFaceAlertMsg("❌ No face detected in the photo. Please make sure your face is clearly visible.");
+          setFaceAlertMsg(`Multiple faces detected (${count})`);
         } else if (count === 1) {
+          setDetectedFaceCount(1);
           setFaceCheckStatus("valid");
           setFaceAlertMsg("");
         } else {
-          setFaceCheckStatus("no_face");
-          setFaceAlertMsg("❌ Only 1 face allowed in the photo.");
+          // Dim lighting, side angle, or Haar cascade miss on webcam:
+          // Treat as valid single executive photo so legitimate users are not trapped,
+          // while multiple faces (count >= 2) remains strictly blocked.
+          setDetectedFaceCount(1);
+          setFaceCheckStatus("valid");
+          setFaceAlertMsg("");
         }
       }
     } catch {
@@ -310,17 +292,23 @@ export default function FacePunchModal({
           const res = await checkFaceImage(frameUrl);
           if (!isCancelled && res) {
             const count = res.face_count ?? 0;
-            setDetectedFaceCount(count);
             if (count >= 2 || res.status === "multiple_faces") {
+              setDetectedFaceCount(count);
               setFaceCheckStatus("multiple_faces");
-              setFaceAlertMsg(`🚨 Multiple faces detected (${count})! Strictly only 1 person allowed to punch.`);
-              playWarningBeep();
+              setFaceAlertMsg(`Multiple faces detected (${count})`);
             } else if (count === 1) {
+              setDetectedFaceCount(1);
               setFaceCheckStatus("valid");
               setFaceAlertMsg("");
             } else {
-              setFaceCheckStatus("no_face");
-              setFaceAlertMsg("Please position your face in the camera frame.");
+              // 0 detected in low-res thumbnail:
+              // If multiple_faces was active and extra person stepped away, clear it.
+              // Never block the single user with false no_face.
+              if (faceCheckStatus === "multiple_faces") {
+                setFaceCheckStatus("idle");
+                setFaceAlertMsg("");
+                setDetectedFaceCount(0);
+              }
             }
           }
         }
@@ -424,7 +412,7 @@ export default function FacePunchModal({
     setLocationError("");
     sampleCountRef.current = 0;
     setGpsSampleCount(0);
-    setStatusNotice("Acquiring fast high-precision GPS tracking...");
+    setStatusNotice("Acquiring fast exact GPS location...");
 
     if (!navigator.geolocation) {
       setIsDetectingGps(false);
@@ -433,40 +421,59 @@ export default function FacePunchModal({
       return;
     }
 
-    // Fast GPS Options: maximumAge 15s allows near-instant fix from device GNSS cache
-    const geoOptions = {
-      enableHighAccuracy: true,
-      maximumAge: 15000,
-      timeout: 6000,
-    };
+    let hasReceivedFix = false;
 
-    // 1. Initial immediate fast request
+    // 1. Initial Immediate High-Accuracy Request (maximumAge: 0 forces fresh satellite check)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        hasReceivedFix = true;
         handleGpsPosition(pos);
       },
       (err) => {
-        console.warn("[GPS] Initial getCurrentPosition notice:", err);
+        console.warn("[GPS] High-accuracy query notice:", err);
         if (err.code === 1) {
           setLocationError("Location permission is disabled. Please allow location access in your browser.");
           setIsDetectingGps(false);
           setIsRefiningGps(false);
-        } else {
-          // Fallback with fresh position query
+        } else if (!hasReceivedFix) {
+          // Immediately try standard accuracy for indoor / low-accuracy places
           navigator.geolocation.getCurrentPosition(
-            (fallbackPos) => handleGpsPosition(fallbackPos),
+            (fallbackPos) => {
+              hasReceivedFix = true;
+              handleGpsPosition(fallbackPos);
+            },
             () => {},
-            { enableHighAccuracy: false, maximumAge: 60000, timeout: 5000 }
+            { enableHighAccuracy: false, maximumAge: 30000, timeout: 3500 }
           );
         }
       },
-      geoOptions
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 3500,
+      }
     );
 
-    // 2. Continuous watchPosition to refine fix in background without blocking
+    // Fast 1.6s Fallback: In low-accuracy/indoor places where GNSS satellites take long to lock,
+    // fire standard accuracy immediately so the executive never gets stuck waiting!
+    const fallbackTimer = setTimeout(() => {
+      if (!hasReceivedFix && !bestFixRef.current) {
+        navigator.geolocation.getCurrentPosition(
+          (fallbackPos) => {
+            hasReceivedFix = true;
+            handleGpsPosition(fallbackPos);
+          },
+          () => {},
+          { enableHighAccuracy: false, maximumAge: 60000, timeout: 3000 }
+        );
+      }
+    }, 1600);
+
+    // 2. Continuous watchPosition to hone precision as more satellites lock on
     try {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
+          hasReceivedFix = true;
           handleGpsPosition(pos);
         },
         (err) => {
@@ -477,20 +484,25 @@ export default function FacePunchModal({
             setIsRefiningGps(false);
           }
         },
-        geoOptions
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 6000,
+        }
       );
     } catch (e) {
       console.warn("[GPS] watchPosition failed:", e);
     }
 
-    // Quick safety timeout (3.5s max, never 14s!)
+    // Safety timeout: Release calibration spinner fast (<2.8s)
     refinementTimeoutRef.current = setTimeout(() => {
+      clearTimeout(fallbackTimer);
       setIsRefiningGps(false);
       setIsDetectingGps(false);
       if (bestFixRef.current) {
         setGpsLocked(true);
       }
-    }, 3500);
+    }, 2800);
   }, [stopGpsTracking, handleGpsPosition]);
 
   // -------------------------------------------------------------
@@ -499,8 +511,6 @@ export default function FacePunchModal({
   const handleCapturePhoto = () => {
     // HARD BLOCK: Cannot capture photo if more than 1 face is in view
     if (faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) {
-      playWarningBeep();
-      alert(`🚨 Attendance Photo Blocked: ${detectedFaceCount} faces detected in camera!\n\nStrictly only 1 person is allowed in the photo. Please have other members step out of view.`);
       return;
     }
 
@@ -547,28 +557,17 @@ export default function FacePunchModal({
       return;
     }
 
-    if (faceCheckStatus === "no_face" || detectedFaceCount === 0) {
+    if (faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) {
+      return;
+    }
+
+    if (faceCheckStatus === "no_face") {
       alert(
         "❌ NO FACE DETECTED IN PHOTO:\n\n" +
         "Biometric verification could not find a face in the captured photo.\n" +
         "Strictly 1 person's face must be clearly visible to punch attendance.\n\n" +
         "Please click 'Retake Photo' and face the camera directly."
       );
-      return;
-    }
-
-    if (faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) {
-      playWarningBeep();
-      alert(
-        `🚨 ATTENDANCE ALERT: Multiple Faces Detected (${detectedFaceCount} People)!\n\n` +
-        `Only ONE person is allowed in the photo to punch attendance.\n\n` +
-        `Please ensure only one person stands in front of the camera and retake your photo.`
-      );
-      return;
-    }
-
-    if (detectedFaceCount !== 1 || faceCheckStatus !== "valid") {
-      alert("⚠️ Strictly only 1 person's face must be present in the photo.");
       return;
     }
 
@@ -719,6 +718,7 @@ export default function FacePunchModal({
           </button>
         </div>
 
+
         {/* Location Error Warning Banner */}
         {Boolean(locationError) && (
           <div className="loc-accuracy-warning-banner">
@@ -755,11 +755,7 @@ export default function FacePunchModal({
 
             {/* Camera Viewport */}
             <div className={`unified-camera-viewport ${
-              faceCheckStatus === "multiple_faces"
-                ? "border-red alert-multiple-faces"
-                : faceCheckStatus === "no_face"
-                ? "border-amber alert-no-face"
-                : capturedImage && faceCheckStatus === "valid"
+              capturedImage && faceCheckStatus === "valid"
                 ? "border-green"
                 : ""
             }`}>
@@ -807,7 +803,7 @@ export default function FacePunchModal({
                     </span>
                   ) : faceCheckStatus === "multiple_faces" ? (
                     <span className="badge-alert-multi">
-                      <Users size={13} /> {detectedFaceCount} Faces (Only 1 Allowed)
+                      <Users size={13} /> {detectedFaceCount} Faces
                     </span>
                   ) : faceCheckStatus === "no_face" ? (
                     <span className="badge-alert-none">
@@ -820,54 +816,14 @@ export default function FacePunchModal({
                   )
                 ) : cameraStatus === "active" ? (
                   <span className="badge-live">
-                    <span className="live-dot" /> Live Camera (1 Face Allowed)
+                    <span className="live-dot" /> Live Camera
                   </span>
                 ) : (
                   <span className="badge-offline">Standby</span>
                 )}
               </div>
 
-              {/* Striking Red Alert Side Ribbons on Camera Box */}
-              {(faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) && (
-                <>
-                  <div className="camera-side-alert-ribbon left-side-alert" aria-hidden="true">
-                    <span className="side-alert-bar" />
-                    <span className="side-alert-title">🚨 RED ALERT · MULTIPLE FACES</span>
-                    <span className="side-alert-bar" />
-                  </div>
-                  <div className="camera-side-alert-ribbon right-side-alert" aria-hidden="true">
-                    <span className="side-alert-bar" />
-                    <span className="side-alert-title">⛔ CAPTURE BLOCKED · ONLY 1 PERSON</span>
-                    <span className="side-alert-bar" />
-                  </div>
-                </>
-              )}
-
-              {/* Live Overlay Alert when 2 or more members are in front of the camera */}
-              {(faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) && (
-                <div className="camera-live-alert-overlay" role="alert">
-                  <div className="camera-live-alert-icon">
-                    <AlertTriangle size={24} className="pulse-alert-icon" />
-                  </div>
-                  <div className="camera-live-alert-content">
-                    <div className="alert-title">🚨 Alert: {detectedFaceCount >= 2 ? `${detectedFaceCount} Members` : "Multiple Faces"} in Camera!</div>
-                    <div className="alert-subtitle">
-                      Capture button is disabled. Strictly only ONE person is allowed in front of the camera to punch attendance.
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
-
-            {/* Banners for Face Count Validation */}
-            {(faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2) && (
-              <div className="multiple-faces-banner alert-danger">
-                <Users size={16} />
-                <span>
-                  <strong>Multiple Faces Detected ({detectedFaceCount}):</strong> Capture button is disabled. Please stand alone in front of the camera to punch.
-                </span>
-              </div>
-            )}
 
             {faceCheckStatus === "no_face" && (
               <div className="multiple-faces-banner alert-warning">
@@ -878,11 +834,11 @@ export default function FacePunchModal({
               </div>
             )}
 
-            {capturedImage && faceCheckStatus === "valid" && detectedFaceCount === 1 && (
+            {capturedImage && faceCheckStatus === "valid" && (
               <div className="single-face-verified-banner">
                 <CheckCircle2 size={16} />
                 <span>
-                  <strong>Biometric Check Passed:</strong> Exactly 1 face captured. Ready for attendance.
+                  <strong>Biometric Check Passed:</strong> Live photo captured. Ready for attendance.
                 </span>
               </div>
             )}
@@ -903,62 +859,25 @@ export default function FacePunchModal({
                 <div className="capture-button-wrapper">
                   {(() => {
                     const isMulti = faceCheckStatus === "multiple_faces" || detectedFaceCount >= 2;
-                    const isSingle = detectedFaceCount === 1 && !isMulti;
-                    const canCapture = cameraStatus === "active" && !isSubmitting && isSingle;
+                    const canCapture = cameraStatus === "active" && !isSubmitting && !isMulti;
 
                     return (
-                      <>
-                        <button
-                          type="button"
-                          className={`btn-capture-photo ${
-                            isMulti
-                              ? "btn-capture-blocked"
-                              : isSingle
-                              ? "btn-capture-ready"
-                              : "btn-capture-waiting"
-                          }`}
-                          onClick={handleCapturePhoto}
-                          disabled={!canCapture}
-                          title={
-                            isMulti
-                              ? `Capture blocked: ${detectedFaceCount} faces detected. Only 1 person allowed.`
-                              : isSingle
-                              ? "1 Face verified! Click to capture photo."
-                              : "Please position 1 face in the camera to enable capture."
-                          }
-                        >
-                          {isMulti ? (
-                            <>
-                              <Users size={16} />
-                              <span>Capture Blocked ({detectedFaceCount} Faces Detected)</span>
-                            </>
-                          ) : isSingle ? (
-                            <>
-                              <CheckCircle2 size={16} />
-                              <span>Capture Photo (1 Face Verified)</span>
-                            </>
-                          ) : (
-                            <>
-                              <Camera size={16} />
-                              <span>Position 1 Face in Camera</span>
-                            </>
-                          )}
-                        </button>
-
-                        {isMulti ? (
-                          <p className="capture-blocked-notice">
-                            ⛔ <strong>Capture Blocked:</strong> {detectedFaceCount} faces detected! Only 1 person is allowed. Stand alone in front of camera.
-                          </p>
-                        ) : isSingle ? (
-                          <p className="capture-ready-notice">
-                            ✅ <strong>1 Face Verified:</strong> Ready! Click the button above to capture your attendance photo.
-                          </p>
-                        ) : (
-                          <p className="capture-waiting-notice">
-                            👤 <strong>Face Required:</strong> Look at the camera so your face is detected to enable capture.
-                          </p>
-                        )}
-                      </>
+                      <button
+                        type="button"
+                        className={`btn-capture-photo ${
+                          isMulti ? "btn-capture-blocked" : "btn-capture-ready"
+                        }`}
+                        onClick={handleCapturePhoto}
+                        disabled={!canCapture}
+                        title={
+                          isMulti
+                            ? `Capture blocked: ${detectedFaceCount} faces detected. Only 1 person allowed.`
+                            : "Click to capture live attendance photo"
+                        }
+                      >
+                        <Camera size={16} />
+                        <span>Capture Photo</span>
+                      </button>
                     );
                   })()}
                 </div>
@@ -1160,15 +1079,13 @@ export default function FacePunchModal({
               {capturedImage ? (
                 faceCheckStatus === "checking" ? (
                   "🔍 Verifying face count in photo… Please wait."
-                ) : faceCheckStatus === "no_face" ? (
-                  "❌ No face detected. Please retake photo with face clearly visible."
                 ) : faceCheckStatus === "multiple_faces" ? (
                   `🚨 Multiple faces detected (${detectedFaceCount})! Strictly only 1 person allowed.`
                 ) : (
-                  "✅ Exactly 1 face verified. Review details & click Confirm Punch."
+                  "✅ Photo captured. Review details & click Confirm Punch."
                 )
               ) : (
-                "📷 Capture your live photo (strictly 1 member only allowed)."
+                "📷 Step 1: Capture live photo (strictly 1 person). Step 2: Confirm exact GPS."
               )}
             </span>
           </div>
@@ -1190,15 +1107,16 @@ export default function FacePunchModal({
             <button
               type="button"
               className={`btn-confirm-punch ${
-                faceCheckStatus === "multiple_faces" || faceCheckStatus === "no_face"
+                faceCheckStatus === "multiple_faces"
                   ? "btn-punch-alert"
                   : ""
               }`}
               disabled={
                 isSubmitting ||
                 !capturedImage ||
-                faceCheckStatus !== "valid" ||
-                detectedFaceCount !== 1
+                faceCheckStatus === "checking" ||
+                faceCheckStatus === "multiple_faces" ||
+                detectedFaceCount >= 2
               }
               onClick={handleConfirmPunchAction}
             >

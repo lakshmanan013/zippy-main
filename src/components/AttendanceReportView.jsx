@@ -20,12 +20,38 @@ import {
   ChevronUp,
   ExternalLink,
   ShieldCheck,
+  User,
+  Sparkles,
 } from "lucide-react";
 import DoctorAvatar from "./DoctorAvatar.jsx";
 import { fetchAttendanceList, punchInAttendance } from "../api.js";
 import { formatAttendanceDateAndDay } from "../dateUtils.js";
 import { formatLocationString, formatExecutiveLocation } from "../geoUtils.js";
+import modalPetHeaderImg from "../assets/modal-pet-header.png";
 import "./AttendanceReportView.css";
+import "./RecordModal.css";
+
+function PawIcon({ size = 20, color = "currentColor", className = "" }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      className={className}
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    >
+      <circle cx="7.5" cy="5.5" r="2.2" fill={color} />
+      <circle cx="16.5" cy="5.5" r="2.2" fill={color} />
+      <circle cx="4" cy="11.5" r="2.2" fill={color} />
+      <circle cx="20" cy="11.5" r="2.2" fill={color} />
+      <path
+        d="M12 9.5c-3.2 0-5.5 2.2-5.5 5 0 2.4 1.8 4.5 5.5 4.5s5.5-2.1 5.5-4.5c0-2.8-2.3-5-5-5z"
+        fill={color}
+      />
+    </svg>
+  );
+}
 
 const STORAGE_KEY = "zenve_crm_attendance_records";
 
@@ -642,21 +668,29 @@ export default function AttendanceReportView({
           </div>
         </div>
 
-        <div className="att-rep-header-actions">
+        <div className="att-rep-header-actions" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           {isManager && (
             <button
               type="button"
-              className="att-rep-btn-export"
               onClick={() => setNewRecordModal(true)}
               title="Manually add a new attendance record"
               style={{
-                background: "linear-gradient(135deg, #0d9488, #059669)",
-                color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                color: "#ffffff",
                 border: "none",
+                borderRadius: "12px",
+                padding: "0.6rem 1.25rem",
+                fontWeight: "700",
+                fontSize: "0.9rem",
+                boxShadow: "0 4px 12px rgba(13, 139, 123, 0.28)",
+                cursor: "pointer",
+                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
-              <PlusCircle size={16} />
-              <span>New Record</span>
+              <span>+ New Record</span>
             </button>
           )}
           <button
@@ -664,6 +698,21 @@ export default function AttendanceReportView({
             className="att-rep-btn-export"
             onClick={handleExportCSV}
             title="Download attendance report as CSV spreadsheet"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#ffffff",
+              color: "#0d8b7b",
+              border: "1.5px solid #0d8b7b",
+              padding: "0.55rem 1.2rem",
+              borderRadius: "12px",
+              fontWeight: "700",
+              fontSize: "0.88rem",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(13, 139, 123, 0.1)",
+              transition: "all 0.2s ease",
+            }}
           >
             <Download size={16} />
             <span>Export CSV</span>
@@ -1371,129 +1420,427 @@ export default function AttendanceReportView({
       {/* ── NEW RECORD MODAL (Manager only) ── */}
       {newRecordModal && (
         <div
-          style={{
-            position: "fixed", inset: 0,
-            background: "rgba(15,23,42,0.65)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 9999, padding: "1rem",
+          className="zzc-modal-overlay zzc-exec-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !newRecordSaving) {
+              setNewRecordModal(false);
+            }
           }}
-          onClick={() => setNewRecordModal(false)}
         >
-          <div
-            style={{
-              background: "var(--bg-card, #fff)",
-              borderRadius: "16px",
-              padding: "1.5rem",
-              width: "100%", maxWidth: 480,
-              boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ background: "linear-gradient(135deg,#0d9488,#059669)", borderRadius: "10px", padding: "8px", display: "flex" }}>
-                  <PlusCircle size={18} color="#fff" />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary, #0f172a)" }}>New Attendance Record</div>
-                  <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Manually add a punch record for an executive</div>
+          <div className="zzc-exec-modal" style={{ maxWidth: 580, maxHeight: "90vh" }}>
+            {/* Header with Mint Theme & Pet Illustration */}
+            <header className="zzc-exec-header">
+              <div className="zzc-exec-header-paws-bg" aria-hidden="true">
+                <PawIcon size={26} color="#0d8b7b" className="zzc-paw-bg-1" />
+                <PawIcon size={18} color="#0d8b7b" className="zzc-paw-bg-2" />
+                <PawIcon size={32} color="#0d8b7b" className="zzc-paw-bg-3" />
+              </div>
+
+              <div className="zzc-exec-header-content">
+                <span className="zzc-exec-header-badge">
+                  <PawIcon size={24} color="#ffffff" />
+                </span>
+                <div className="zzc-exec-header-text">
+                  <h2 id="zzc-exec-title">New Attendance Record</h2>
+                  <p>Manually punch attendance record for field team</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setNewRecordModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: "4px" }}>
-                <X size={20} />
+
+              <img
+                src={modalPetHeaderImg}
+                alt="Pets header"
+                className="zzc-modal-header-art"
+                aria-hidden="true"
+              />
+
+              <button
+                type="button"
+                className="zzc-exec-close"
+                onClick={() => setNewRecordModal(false)}
+                disabled={newRecordSaving}
+                aria-label="Close"
+                title="Close"
+              >
+                <X size={17} strokeWidth={2.4} />
               </button>
-            </div>
+            </header>
 
-            {newRecordError && (
-              <div style={{ background: "#fef2f2", color: "#dc2626", borderRadius: "8px", padding: "10px 14px", marginBottom: "1rem", fontSize: "0.82rem" }}>
-                {newRecordError}
-              </div>
-            )}
-
-            <div style={{ display: "grid", gap: "0.85rem" }}>
-              <div>
-                <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#475569", marginBottom: "4px" }}>Sales Executive *</label>
-                <select
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "var(--bg-card,#fff)", color: "var(--text-primary,#0f172a)" }}
-                  value={newRecordForm.executive_id}
-                  onChange={(e) => setNewRecordForm((f) => ({ ...f, executive_id: e.target.value }))}
+            <div className="zzc-exec-layout">
+              {newRecordError && (
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    color: "#dc2626",
+                    borderRadius: "8px",
+                    padding: "10px 14px",
+                    marginBottom: "1rem",
+                    fontSize: "0.82rem",
+                    border: "1px solid #fecaca",
+                  }}
                 >
-                  <option value="">— Select Executive —</option>
-                  {executives.map((exec) => (
-                    <option key={exec.id} value={exec.id}>
-                      {exec.name} ({exec.employee_code || `SE-00${exec.id}`})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#475569", marginBottom: "4px" }}>Attendance Date *</label>
-                <input type="date" style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "var(--bg-card,#fff)", color: "var(--text-primary,#0f172a)" }}
-                  value={newRecordForm.attendance_date}
-                  onChange={(e) => setNewRecordForm((f) => ({ ...f, attendance_date: e.target.value }))}
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#475569", marginBottom: "4px" }}>Punch In Time *</label>
-                  <input type="time" style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "var(--bg-card,#fff)", color: "var(--text-primary,#0f172a)" }}
-                    value={newRecordForm.login_time}
-                    onChange={(e) => setNewRecordForm((f) => ({ ...f, login_time: e.target.value }))}
-                  />
+                  {newRecordError}
                 </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#475569", marginBottom: "4px" }}>Punch Out Time</label>
-                  <input type="time" style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "var(--bg-card,#fff)", color: "var(--text-primary,#0f172a)" }}
-                    value={newRecordForm.logout_time}
-                    onChange={(e) => setNewRecordForm((f) => ({ ...f, logout_time: e.target.value }))}
-                  />
-                </div>
-              </div>
+              )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#475569", marginBottom: "4px" }}>Punch In Area</label>
-                  <input type="text" placeholder="e.g. Tirupathur, Tamil Nadu" style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "var(--bg-card,#fff)", color: "var(--text-primary,#0f172a)" }}
-                    value={newRecordForm.login_area}
-                    onChange={(e) => setNewRecordForm((f) => ({ ...f, login_area: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#475569", marginBottom: "4px" }}>Punch Out Area</label>
-                  <input type="text" placeholder="e.g. Vellore, Tamil Nadu" style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "var(--bg-card,#fff)", color: "var(--text-primary,#0f172a)" }}
-                    value={newRecordForm.logout_area}
-                    onChange={(e) => setNewRecordForm((f) => ({ ...f, logout_area: e.target.value }))}
-                  />
-                </div>
-              </div>
+              <form
+                className="zzc-exec-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleNewRecordSave();
+                }}
+                autoComplete="off"
+              >
+                {/* ── SECTION 1: EXECUTIVE & ATTENDANCE DATE ── */}
+                <section className="zzc-exec-section">
+                  <div
+                    className="zzc-exec-section-header"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "0.85rem",
+                      paddingBottom: "0.25rem",
+                    }}
+                  >
+                    <div
+                      className="zzc-exec-section-title-wrap"
+                      style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}
+                    >
+                      <span className="zzc-exec-section-badge">
+                        <User size={15} />
+                      </span>
+                      <h3
+                        style={{
+                          margin: 0,
+                          fontSize: "0.86rem",
+                          fontWeight: 800,
+                          color: "#0f2e2b",
+                          letterSpacing: "0.02em",
+                          textTransform: "uppercase",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Executive & Date
+                      </h3>
+                    </div>
+                    <span
+                      className="zzc-exec-section-subtitle"
+                      style={{
+                        fontSize: "0.78rem",
+                        color: "#5b7b75",
+                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Select punch date 🐾
+                    </span>
+                  </div>
 
-              <div>
-                <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#475569", marginBottom: "4px" }}>Status</label>
-                <select
-                  style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "var(--bg-card,#fff)", color: "var(--text-primary,#0f172a)" }}
-                  value={newRecordForm.status}
-                  onChange={(e) => setNewRecordForm((f) => ({ ...f, status: e.target.value }))}
+                  <div className="zzc-exec-fields zzc-exec-fields-single">
+                    {/* Sales Executive: theme-green */}
+                    <div className="zzc-exec-field theme-green zzc-exec-field-full">
+                      <div className="zzc-exec-field-header">
+                        <span className="zzc-field-label-icon">
+                          <User size={14} />
+                        </span>
+                        <label htmlFor="att_exec_id">
+                          Sales Executive <span className="zzc-exec-required">*</span>
+                        </label>
+                      </div>
+                      <div className="zzc-exec-input-shell">
+                        <User size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                        <div className="zzc-exec-input-control">
+                          <select
+                            id="att_exec_id"
+                            value={newRecordForm.executive_id}
+                            onChange={(e) =>
+                              setNewRecordForm((f) => ({ ...f, executive_id: e.target.value }))
+                            }
+                            required
+                          >
+                            <option value="">— Select Executive —</option>
+                            {executives.map((exec) => (
+                              <option key={exec.id} value={exec.id}>
+                                {exec.name} ({exec.employee_code || `SE-00${exec.id}`})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <ChevronDown size={14} className="zzc-shell-right-chevron" aria-hidden="true" />
+                      </div>
+                    </div>
+
+                    {/* Attendance Date: theme-teal */}
+                    <div className="zzc-exec-field theme-teal zzc-exec-field-full">
+                      <div className="zzc-exec-field-header">
+                        <span className="zzc-field-label-icon">
+                          <Calendar size={14} />
+                        </span>
+                        <label htmlFor="att_date">
+                          Attendance Date <span className="zzc-exec-required">*</span>
+                        </label>
+                      </div>
+                      <div className="zzc-exec-input-shell">
+                        <Calendar size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                        <div className="zzc-exec-input-control">
+                          <input
+                            id="att_date"
+                            type="date"
+                            value={newRecordForm.attendance_date}
+                            onChange={(e) =>
+                              setNewRecordForm((f) => ({ ...f, attendance_date: e.target.value }))
+                            }
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* ── SECTION 2: TIMINGS & LOCATIONS ── */}
+                <section className="zzc-exec-section">
+                  <div
+                    className="zzc-exec-section-header"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "0.85rem",
+                      paddingBottom: "0.25rem",
+                    }}
+                  >
+                    <div
+                      className="zzc-exec-section-title-wrap"
+                      style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}
+                    >
+                      <span className="zzc-exec-section-badge">
+                        <Clock size={15} />
+                      </span>
+                      <h3
+                        style={{
+                          margin: 0,
+                          fontSize: "0.86rem",
+                          fontWeight: 800,
+                          color: "#0f2e2b",
+                          letterSpacing: "0.02em",
+                          textTransform: "uppercase",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Timings & Territory
+                      </h3>
+                    </div>
+                    <span
+                      className="zzc-exec-section-subtitle"
+                      style={{
+                        fontSize: "0.78rem",
+                        color: "#5b7b75",
+                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Punch times & areas 🐾
+                    </span>
+                  </div>
+
+                  <div className="zzc-exec-fields">
+                    {/* Punch In Time: theme-purple */}
+                    <div className="zzc-exec-field theme-purple">
+                      <div className="zzc-exec-field-header">
+                        <span className="zzc-field-label-icon">
+                          <Clock size={14} />
+                        </span>
+                        <label htmlFor="att_login_time">
+                          Punch In Time <span className="zzc-exec-required">*</span>
+                        </label>
+                      </div>
+                      <div className="zzc-exec-input-shell">
+                        <Clock size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                        <div className="zzc-exec-input-control">
+                          <input
+                            id="att_login_time"
+                            type="time"
+                            value={newRecordForm.login_time}
+                            onChange={(e) =>
+                              setNewRecordForm((f) => ({ ...f, login_time: e.target.value }))
+                            }
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Punch Out Time: theme-blue */}
+                    <div className="zzc-exec-field theme-blue">
+                      <div className="zzc-exec-field-header">
+                        <span className="zzc-field-label-icon">
+                          <Clock size={14} />
+                        </span>
+                        <label htmlFor="att_logout_time">Punch Out Time</label>
+                      </div>
+                      <div className="zzc-exec-input-shell">
+                        <Clock size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                        <div className="zzc-exec-input-control">
+                          <input
+                            id="att_logout_time"
+                            type="time"
+                            value={newRecordForm.logout_time}
+                            onChange={(e) =>
+                              setNewRecordForm((f) => ({ ...f, logout_time: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Punch In Area: theme-amber */}
+                    <div className="zzc-exec-field theme-amber">
+                      <div className="zzc-exec-field-header">
+                        <span className="zzc-field-label-icon">
+                          <MapPin size={14} />
+                        </span>
+                        <label htmlFor="att_login_area">Punch In Area</label>
+                      </div>
+                      <div className="zzc-exec-input-shell">
+                        <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                        <div className="zzc-exec-input-control">
+                          <input
+                            id="att_login_area"
+                            type="text"
+                            placeholder="e.g. Tirupathur, Tamil Nadu"
+                            value={newRecordForm.login_area}
+                            onChange={(e) =>
+                              setNewRecordForm((f) => ({ ...f, login_area: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Punch Out Area: theme-pink */}
+                    <div className="zzc-exec-field theme-pink">
+                      <div className="zzc-exec-field-header">
+                        <span className="zzc-field-label-icon">
+                          <MapPin size={14} />
+                        </span>
+                        <label htmlFor="att_logout_area">Punch Out Area</label>
+                      </div>
+                      <div className="zzc-exec-input-shell">
+                        <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                        <div className="zzc-exec-input-control">
+                          <input
+                            id="att_logout_area"
+                            type="text"
+                            placeholder="e.g. Vellore, Tamil Nadu"
+                            value={newRecordForm.logout_area}
+                            onChange={(e) =>
+                              setNewRecordForm((f) => ({ ...f, logout_area: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status: theme-green (full width) */}
+                    <div className="zzc-exec-field theme-green zzc-exec-field-full">
+                      <div className="zzc-exec-field-header">
+                        <span className="zzc-field-label-icon">
+                          <ShieldCheck size={14} />
+                        </span>
+                        <label htmlFor="att_status">Status</label>
+                      </div>
+                      <div className="zzc-exec-input-shell">
+                        <ShieldCheck size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                        <div className="zzc-exec-input-control">
+                          <select
+                            id="att_status"
+                            value={newRecordForm.status}
+                            onChange={(e) =>
+                              setNewRecordForm((f) => ({ ...f, status: e.target.value }))
+                            }
+                          >
+                            <option value="Present">Present</option>
+                            <option value="Working">Working</option>
+                            <option value="Completed">Completed</option>
+                          </select>
+                        </div>
+                        <ChevronDown size={14} className="zzc-shell-right-chevron" aria-hidden="true" />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </form>
+            </div>
+
+            {/* Footer */}
+            <footer className="zzc-exec-footer">
+              <div className="zzc-exec-footer-paws" aria-hidden="true">
+                <PawIcon size={24} color="#0d8b7b" />
+                <PawIcon size={16} color="#0d8b7b" />
+              </div>
+              <div
+                className="zzc-exec-footer-actions"
+                style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}
+              >
+                <button
+                  type="button"
+                  className="zzc-btn zzc-btn-cancel"
+                  onClick={() => setNewRecordModal(false)}
+                  disabled={newRecordSaving}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#ffffff",
+                    border: "1.5px solid #cbd5e1",
+                    color: "#334155",
+                    padding: "9px 24px",
+                    borderRadius: "12px",
+                    fontWeight: "700",
+                    fontSize: "0.88rem",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
                 >
-                  <option value="Present">Present</option>
-                  <option value="Working">Working</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="zzc-btn zzc-btn-create"
+                  onClick={handleNewRecordSave}
+                  disabled={newRecordSaving}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "10px 24px",
+                    borderRadius: "12px",
+                    fontWeight: "700",
+                    fontSize: "0.88rem",
+                    boxShadow: "0 4px 14px rgba(13, 139, 123, 0.35)",
+                    cursor: newRecordSaving ? "not-allowed" : "pointer",
+                    opacity: newRecordSaving ? 0.7 : 1,
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <span>{newRecordSaving ? "Saving…" : "Save Record"}</span>
+                  <span className="zzc-btn-sparkle" aria-hidden="true" style={{ fontSize: "0.95rem" }}>
+                    ✨
+                  </span>
+                </button>
               </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
-              <button type="button" onClick={() => setNewRecordModal(false)}
-                style={{ flex: 1, padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: "#64748b", fontWeight: 600 }}>
-                Cancel
-              </button>
-              <button type="button" onClick={handleNewRecordSave} disabled={newRecordSaving}
-                style={{ flex: 2, padding: "10px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg,#0d9488,#059669)", color: "#fff", cursor: newRecordSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700, opacity: newRecordSaving ? 0.7 : 1 }}>
-                {newRecordSaving ? "Saving…" : "Save Record"}
-              </button>
-            </div>
+            </footer>
           </div>
         </div>
       )}

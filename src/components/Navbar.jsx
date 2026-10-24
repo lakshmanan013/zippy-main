@@ -2,6 +2,7 @@
 
 import { Search, Plus } from "lucide-react";
 
+
 function Navbar({ activeItem }) {
   return (
     <header className="navbar">
@@ -22,9 +23,25 @@ function Navbar({ activeItem }) {
           />
         </div>
 
-        <button className="primary-button" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-          <Plus size={16} strokeWidth={2.5} />
-          <span>New record</span>
+        <button
+          className="primary-button"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+            background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: "10px",
+            padding: "0.48rem 0.95rem",
+            fontWeight: "700",
+            fontSize: "0.86rem",
+            boxShadow: "0 3px 10px rgba(13, 139, 123, 0.25)",
+            cursor: "pointer",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
+          <span>+ New record</span>
         </button>
 
         <button className="nav-button active">

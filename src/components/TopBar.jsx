@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Plus, LogOut, User, Crown, ShieldCheck, ChevronDown, Check } from "lucide-react";
 import { LOGIN_ROLES, getRoleConfig } from "../data.js";
 
+
 export default function TopBar({
   title,
   subtitle,
@@ -125,10 +126,23 @@ export default function TopBar({
           <button
             className="zzc-btn zzc-btn-primary"
             onClick={onNewRecord}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px",
+              background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "10px",
+              padding: "0.48rem 0.95rem",
+              fontWeight: "700",
+              fontSize: "0.86rem",
+              boxShadow: "0 3px 10px rgba(13, 139, 123, 0.25)",
+              cursor: "pointer",
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
           >
-            <Plus size={14} />
-            <span>New record</span>
+            <span>+ New record</span>
           </button>
         )}
 

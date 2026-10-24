@@ -23,6 +23,16 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  EyeOff,
+  X,
+  ChevronDown,
+  User,
+  Tag,
+  Phone,
+  Mail,
+  LockKeyhole,
+  Target,
+  ShieldCheck,
 } from "lucide-react";
 import {
   fetchList,
@@ -35,13 +45,34 @@ import {
   API_BASE,
 } from "../api.js";
 import logo from "../assets/zenve-zippy-logo.png";
+import modalPetHeaderImg from "../assets/modal-pet-header.png";
 import "./SalesCRM.css";
+import "./RecordModal.css";
 import SalesCrmLoginModal from "./SalesCrmLoginModal.jsx";
 import PlanView from "./planView.jsx";
 import AttendanceView from "./AttendanceView.jsx";
 import AttendanceReportView from "./AttendanceReportView.jsx";
 import DoctorAvatar from "./DoctorAvatar.jsx";
 import StylizedEyeIcon from "./StylizedEyeIcon.jsx";
+
+function PawIcon({ size = 20, color = "currentColor", className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 11c-2.2 0-4.3 1.6-4.3 4.1 0 2.1 1.7 3.5 4.3 3.5s4.3-1.4 4.3-3.5c0-2.5-2.1-4.1-4.3-4.1z" />
+      <circle cx="5.6" cy="10.2" r="1.9" />
+      <circle cx="9.3" cy="6.2" r="1.9" />
+      <circle cx="14.7" cy="6.2" r="1.9" />
+      <circle cx="18.4" cy="10.2" r="1.9" />
+    </svg>
+  );
+}
 
 import {
   usePlanStats,
@@ -2519,7 +2550,7 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
       .then((data) => {
         if (Array.isArray(data)) setExistingClinics(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const [saving, setSaving] = useState(false);
@@ -2528,6 +2559,7 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
   const [autoDetected, setAutoDetected] = useState(true);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [previewClinicImage, setPreviewClinicImage] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const insideInputRef = useRef(null);
   const outsideInputRef = useRef(null);
@@ -2711,40 +2743,46 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
   };
 
   return createPortal(
-    <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
-      <div className="zzc-modal" style={{ maxWidth: 680, maxHeight: "90vh", overflowY: "auto" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.75rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "8px",
-              background: "rgba(13, 148, 136, 0.12)",
-              color: "#0d9488",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.25rem",
-              fontWeight: 900
-            }}>
-              +
-            </div>
-            <div>
-              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--foreground)" }}>Add New Doctor</h2>
-              <span style={{ fontSize: "0.78rem", color: "var(--muted-foreground)" }}>Enter doctor details to add to territory database</span>
+    <div className="zzc-modal-overlay zzc-exec-overlay" onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
+      <div className="zzc-exec-modal" style={{ maxWidth: 680, maxHeight: "90vh" }}>
+        {/* Header with Mint Theme & Pet Illustration */}
+        <header className="zzc-exec-header">
+          <div className="zzc-exec-header-paws-bg" aria-hidden="true">
+            <PawIcon size={26} color="#0d8b7b" className="zzc-paw-bg-1" />
+            <PawIcon size={18} color="#0d8b7b" className="zzc-paw-bg-2" />
+            <PawIcon size={32} color="#0d8b7b" className="zzc-paw-bg-3" />
+          </div>
+
+          <div className="zzc-exec-header-content">
+            <span className="zzc-exec-header-badge">
+              <PawIcon size={24} color="#ffffff" />
+            </span>
+            <div className="zzc-exec-header-text">
+              <h2 id="zzc-exec-title">Add New Doctor</h2>
+              <p>Enter doctor details to add to territory database</p>
             </div>
           </div>
+
+          <img
+            src={modalPetHeaderImg}
+            alt="Pets header"
+            className="zzc-modal-header-art"
+            aria-hidden="true"
+          />
+
           <button
             type="button"
-            className="rpt-call-close"
+            className="zzc-exec-close"
             onClick={onClose}
             disabled={saving}
-            style={{ fontSize: "1.1rem", background: "none", border: "none", cursor: "pointer", color: "var(--muted-foreground)" }}
+            aria-label="Close"
+            title="Close"
           >
-            ✕
+            <X size={17} strokeWidth={2.4} />
           </button>
-        </div>
+        </header>
+
+        <div className="zzc-exec-layout">
 
         {error && (
           <div className="rpt-call-error" style={{ marginBottom: "1rem", padding: "8px 12px", background: "#fef2f2", color: "#dc2626", borderRadius: "8px", fontSize: "0.85rem", border: "1px solid #fecaca" }}>
@@ -2752,234 +2790,414 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
           </div>
         )}
 
-        <form id="addDoctorForm" className="zzc-modal-form" onSubmit={handleSubmit}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
-            {/* Full Name */}
-            <div className="zzc-field" style={{ gridColumn: "1 / -1" }}>
-              <label htmlFor="doc_name">Doctor Name <span style={{ color: "#ef4444" }}>*</span></label>
-              <input
-                id="doc_name"
-                type="text"
-                placeholder="e.g. Dr. Rajesh Kumar"
-                value={form.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-
-            {/* Qualification */}
-            <div className="zzc-field">
-              <label htmlFor="doc_qualification">Qualification</label>
-              <input
-                id="doc_qualification"
-                type="text"
-                placeholder="e.g. BVSc & AH, MVSc"
-                value={form.qualification}
-                onChange={(e) => handleChange("qualification", e.target.value)}
-              />
-            </div>
-
-            {/* Specialization */}
-            <div className="zzc-field">
-              <label htmlFor="doc_specialization">Specialization</label>
-              <input
-                id="doc_specialization"
-                type="text"
-                placeholder="e.g. Surgery, Dermatology"
-                value={form.specializations}
-                onChange={(e) => handleChange("specializations", e.target.value)}
-              />
-            </div>
-
-            {/* Clinic / Hospital Name */}
-            <div className="zzc-field">
-              <label htmlFor="doc_clinic_name">Clinic / Hospital Name</label>
-              <input
-                id="doc_clinic_name"
-                type="text"
-                list="crm-clinic-options"
-                placeholder="e.g. City Vet Clinic & Hospital"
-                value={form.clinic_name}
-                onChange={(e) => handleChange("clinic_name", e.target.value)}
-              />
-              {existingClinics.length > 0 && (
-                <datalist id="crm-clinic-options">
-                  {existingClinics.map((c, i) => (
-                    <option key={c.id || i} value={c.name} />
-                  ))}
-                </datalist>
-              )}
-              <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>Select from existing or type new clinic</span>
-            </div>
-
-            {/* Facility Type */}
-            <div className="zzc-field">
-              <label htmlFor="doc_facility_type">Facility Type</label>
-              <select
-                id="doc_facility_type"
-                value={form.facility_type}
-                onChange={(e) => handleChange("facility_type", e.target.value)}
-              >
-                <option value="Clinic">Clinic</option>
-                <option value="Hospital">Hospital</option>
-                <option value="Specialty Referral Center">Specialty Referral Center</option>
-                <option value="Diagnostic Center">Diagnostic Center</option>
-                <option value="Animal Shelter / NGO">Animal Shelter / NGO</option>
-              </select>
-            </div>
-
-            {/* Phone */}
-            <div className="zzc-field">
-              <label htmlFor="doc_phone">Phone Number <span style={{ color: "#ef4444" }}>*</span></label>
-              <input
-                id="doc_phone"
-                type="tel"
-                placeholder="e.g. 9876543210"
-                value={form.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-                required
-              />
-            </div>
-
-            {/* Doctor Email (Doctor Website Login) */}
-            <div className="zzc-field">
-              <label htmlFor="doc_email">Doctor Email (Login ID) <span style={{ color: "#ef4444" }}>*</span></label>
-              <input
-                id="doc_email"
-                type="email"
-                placeholder="e.g. doctor@clinic.com"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                required
-              />
-              <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>Login user ID for Doctor Website</span>
-            </div>
-
-            {/* Doctor Password (Doctor Website Login) */}
-            <div className="zzc-field">
-              <label htmlFor="doc_password">Doctor Password <span style={{ color: "#ef4444" }}>*</span></label>
-              <input
-                id="doc_password"
-                type="password"
-                placeholder="Minimum 6 characters"
-                value={form.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                required
-                minLength={6}
-              />
-              <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>Login password for Doctor Website</span>
-            </div>
-
-            {/* Experience */}
-            <div className="zzc-field">
-              <label htmlFor="doc_exp">Experience (Years)</label>
-              <input
-                id="doc_exp"
-                type="number"
-                min="0"
-                step="1"
-                placeholder="e.g. 5"
-                value={form.experience_years}
-                onChange={(e) => handleChange("experience_years", e.target.value)}
-              />
-            </div>
-
-            {/* City (with Auto-generate) */}
-            <div className="zzc-field">
-              <div className="doc-loc-header">
-                <label htmlFor="doc_city">City</label>
-                <button
-                  type="button"
-                  className="doc-detect-btn"
-                  onClick={handleAutoDetectGPS}
-                  disabled={detectingLocation}
-                  title="Auto-detect City & Pincode using GPS"
-                >
-                  <MapPin size={11} />
-                  <span>{detectingLocation ? "Detecting…" : "Auto Detect"}</span>
-                </button>
-              </div>
-              <input
-                id="doc_city"
-                type="text"
-                placeholder="e.g. Silk Board, Bangalore"
-                value={form.city}
-                onChange={(e) => handleCityChange(e.target.value)}
-              />
-              {autoDetected && (
-                <span className="doc-auto-badge">
-                  <Sparkles size={11} /> Auto-generated
+        <form id="addDoctorForm" className="zzc-exec-form" onSubmit={handleSubmit} autoComplete="off">
+          {/* ── SECTION 1: BASIC INFORMATION ── */}
+          <section className="zzc-exec-section">
+            <div className="zzc-exec-section-header">
+              <div className="zzc-exec-section-title-wrap">
+                <span className="zzc-exec-section-badge">
+                  <User size={15} />
                 </span>
-              )}
-            </div>
-
-            {/* Pin Code (with Auto-generate) */}
-            <div className="zzc-field">
-              <div className="doc-loc-header">
-                <label htmlFor="doc_pincode">Pin Code</label>
-                <span style={{ fontSize: "0.68rem", color: "var(--muted-foreground)" }}>6 Digits</span>
+                <h3>Basic Information</h3>
               </div>
-              <input
-                id="doc_pincode"
-                type="text"
-                list="pincode-options"
-                placeholder="e.g. 560068"
-                maxLength={6}
-                value={form.pincode}
-                onChange={(e) => handlePincodeChange(e.target.value)}
-              />
-              {availablePincodes.length > 0 && (
-                <datalist id="pincode-options">
-                  {availablePincodes.map((pc) => (
-                    <option key={pc} value={pc} />
-                  ))}
-                </datalist>
-              )}
-            </div>
-
-            {/* Consultation Fee */}
-            <div className="zzc-field">
-              <label htmlFor="doc_fee">Consultation Fee (₹)</label>
-              <input
-                id="doc_fee"
-                type="number"
-                min="0"
-                step="10"
-                placeholder="e.g. 500"
-                value={form.consultation_fee}
-                onChange={(e) => handleChange("consultation_fee", e.target.value)}
-              />
-            </div>
-
-            {/* Status (Active / Inactive) */}
-            <div className="zzc-field">
-              <label htmlFor="doc_active">Active Status</label>
-              <select
-                id="doc_active"
-                value={form.is_active}
-                onChange={(e) => handleChange("is_active", e.target.value)}
-              >
-                <option value="Yes">Active</option>
-                <option value="No">Inactive</option>
-              </select>
-            </div>
-
-            {/* Verification Status */}
-            <div className="zzc-field" style={{ gridColumn: "1 / -1" }}>
-              <label htmlFor="doc_verification">Verification Status</label>
-              <select
-                id="doc_verification"
-                value={form.verification_status}
-                onChange={(e) => handleChange("verification_status", e.target.value)}
-              >
-                <option value="pending">Pending (Submit for Admin Approval)</option>
-                <option value="verified">Verified (Approved)</option>
-              </select>
-              <span style={{ fontSize: "0.75rem", color: "#0284c7", marginTop: "4px", display: "block" }}>
-                ℹ️ When submitted as <strong>Pending</strong>, this doctor routes to the Admin Approval page and their login account is prepared for the Doctor Website.
+              <span className="zzc-exec-section-subtitle">
+                Doctor profile and qualifications 🐾
               </span>
             </div>
+
+            <div className="zzc-exec-fields">
+              {/* Full Name */}
+              <div className="zzc-exec-field theme-teal zzc-exec-field-full">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <PawIcon size={14} />
+                  </span>
+                  <label htmlFor="doc_name">Doctor Name <span className="zzc-exec-required">*</span></label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <User size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_name"
+                      type="text"
+                      placeholder="e.g. Dr. Rajesh Kumar"
+                      value={form.name}
+                      onChange={(e) => handleChange("name", e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Qualification */}
+              <div className="zzc-exec-field theme-purple">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Tag size={14} />
+                  </span>
+                  <label htmlFor="doc_qualification">Qualification</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Tag size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_qualification"
+                      type="text"
+                      placeholder="e.g. BVSc & AH, MVSc"
+                      value={form.qualification}
+                      onChange={(e) => handleChange("qualification", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Specialization */}
+              <div className="zzc-exec-field theme-purple">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Tag size={14} />
+                  </span>
+                  <label htmlFor="doc_specialization">Specialization</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Tag size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_specialization"
+                      type="text"
+                      placeholder="e.g. Surgery, Dermatology"
+                      value={form.specializations}
+                      onChange={(e) => handleChange("specializations", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Experience */}
+              <div className="zzc-exec-field theme-amber zzc-exec-field-full">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Target size={14} />
+                  </span>
+                  <label htmlFor="doc_exp">Experience (Years)</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_exp"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="e.g. 5"
+                      value={form.experience_years}
+                      onChange={(e) => handleChange("experience_years", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── SECTION 2: CLINIC & TERRITORY DETAILS ── */}
+          <section className="zzc-exec-section">
+            <div className="zzc-exec-section-header">
+              <div className="zzc-exec-section-title-wrap">
+                <span className="zzc-exec-section-badge">
+                  <Building2 size={15} />
+                </span>
+                <h3>Clinic & Territory Details</h3>
+              </div>
+              <span className="zzc-exec-section-subtitle">
+                Facility and territory location 🐾
+              </span>
+            </div>
+
+            <div className="zzc-exec-fields">
+              {/* Clinic / Hospital Name */}
+              <div className="zzc-exec-field theme-blue">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Building2 size={14} />
+                  </span>
+                  <label htmlFor="doc_clinic_name">Clinic / Hospital</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Building2 size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_clinic_name"
+                      type="text"
+                      list="crm-clinic-options"
+                      placeholder="e.g. City Vet Clinic & Hospital"
+                      value={form.clinic_name}
+                      onChange={(e) => handleChange("clinic_name", e.target.value)}
+                    />
+                    {existingClinics.length > 0 && (
+                      <datalist id="crm-clinic-options">
+                        {existingClinics.map((c, i) => (
+                          <option key={c.id || i} value={c.name} />
+                        ))}
+                      </datalist>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Facility Type */}
+              <div className="zzc-exec-field theme-blue">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Building size={14} />
+                  </span>
+                  <label htmlFor="doc_facility_type">Facility Type</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Building size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <select
+                      id="doc_facility_type"
+                      value={form.facility_type}
+                      onChange={(e) => handleChange("facility_type", e.target.value)}
+                    >
+                      <option value="Clinic">Clinic</option>
+                      <option value="Hospital">Hospital</option>
+                      <option value="Specialty Referral Center">Specialty Referral Center</option>
+                      <option value="Diagnostic Center">Diagnostic Center</option>
+                      <option value="Animal Shelter / NGO">Animal Shelter / NGO</option>
+                    </select>
+                  </div>
+                  <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                </div>
+              </div>
+
+              {/* City (with Auto-generate) */}
+              <div className="zzc-exec-field theme-blue">
+                <div className="zzc-exec-field-header" style={{ justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <span className="zzc-field-label-icon">
+                      <MapPin size={14} />
+                    </span>
+                    <label htmlFor="doc_city">City</label>
+                  </div>
+                  <button
+                    type="button"
+                    className="doc-detect-btn"
+                    onClick={handleAutoDetectGPS}
+                    disabled={detectingLocation}
+                    title="Auto-detect City & Pincode using GPS"
+                    style={{ fontSize: "0.72rem", padding: "2px 8px", borderRadius: "10px", background: "#dbeafe", color: "#1d4ed8", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <MapPin size={11} />
+                    <span>{detectingLocation ? "Detecting…" : "Auto Detect"}</span>
+                  </button>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_city"
+                      type="text"
+                      placeholder="e.g. Silk Board, Bangalore"
+                      value={form.city}
+                      onChange={(e) => handleCityChange(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pin Code */}
+              <div className="zzc-exec-field theme-blue">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <MapPin size={14} />
+                  </span>
+                  <label htmlFor="doc_pincode">Pin Code (6 Digits)</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_pincode"
+                      type="text"
+                      placeholder="e.g. 560068"
+                      maxLength={6}
+                      value={form.pincode}
+                      onChange={(e) => handlePincodeChange(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Consultation Fee */}
+              <div className="zzc-exec-field theme-amber zzc-exec-field-full">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Target size={14} />
+                  </span>
+                  <label htmlFor="doc_fee">Consultation Fee (₹)</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_fee"
+                      type="number"
+                      min="0"
+                      step="10"
+                      placeholder="e.g. 500"
+                      value={form.consultation_fee}
+                      onChange={(e) => handleChange("consultation_fee", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── SECTION 3: CREDENTIALS & STATUS ── */}
+          <section className="zzc-exec-section">
+            <div className="zzc-exec-section-header">
+              <div className="zzc-exec-section-title-wrap">
+                <span className="zzc-exec-section-badge">
+                  <LockKeyhole size={15} />
+                </span>
+                <h3>Account Credentials & Status</h3>
+              </div>
+              <span className="zzc-exec-section-subtitle">
+                Doctor website access & verification 🐾
+              </span>
+            </div>
+
+            <div className="zzc-exec-fields">
+              {/* Phone */}
+              <div className="zzc-exec-field theme-pink">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Phone size={14} />
+                  </span>
+                  <label htmlFor="doc_phone">Phone Number <span className="zzc-exec-required">*</span></label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Phone size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_phone"
+                      type="tel"
+                      placeholder="e.g. 9876543210"
+                      value={form.phone}
+                      onChange={(e) => handleChange("phone", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="zzc-exec-field theme-pink">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Mail size={14} />
+                  </span>
+                  <label htmlFor="doc_email">Doctor Email (Login ID) <span className="zzc-exec-required">*</span></label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Mail size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_email"
+                      type="email"
+                      placeholder="e.g. doctor@clinic.com"
+                      value={form.email}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="zzc-exec-field theme-pink zzc-exec-field-full">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <LockKeyhole size={14} />
+                  </span>
+                  <label htmlFor="doc_password">Doctor Password <span className="zzc-exec-required">*</span></label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <LockKeyhole size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <input
+                      id="doc_password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Minimum 6 characters"
+                      value={form.password}
+                      onChange={(e) => handleChange("password", e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    title={showPassword ? "Hide password" : "Show password"}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: 0 }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Status (Active / Inactive) */}
+              <div className="zzc-exec-field theme-green">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <ShieldCheck size={14} />
+                  </span>
+                  <label htmlFor="doc_active">Active Status</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <ShieldCheck size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <select
+                      id="doc_active"
+                      value={form.is_active}
+                      onChange={(e) => handleChange("is_active", e.target.value)}
+                    >
+                      <option value="Yes">Active</option>
+                      <option value="No">Inactive</option>
+                    </select>
+                  </div>
+                  <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                </div>
+              </div>
+
+              {/* Verification Status */}
+              <div className="zzc-exec-field theme-green">
+                <div className="zzc-exec-field-header">
+                  <span className="zzc-field-label-icon">
+                    <Check size={14} />
+                  </span>
+                  <label htmlFor="doc_verification">Verification Status</label>
+                </div>
+                <div className="zzc-exec-input-shell">
+                  <Check size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                  <div className="zzc-exec-input-control">
+                    <select
+                      id="doc_verification"
+                      value={form.verification_status}
+                      onChange={(e) => handleChange("verification_status", e.target.value)}
+                    >
+                      <option value="pending">Pending (Admin Approval)</option>
+                      <option value="verified">Verified (Approved)</option>
+                    </select>
+                  </div>
+                  <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                </div>
+              </div>
+            </div>
+          </section>
 
             {/* ── CLINIC PHOTOS SECTION (INSIDE & OUTSIDE CLINIC IMAGES) ── */}
             <div className="clinic-photos-section">
@@ -3183,48 +3401,68 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
                 )}
               </div>
             </div>
-          </div>
-        </form>
+          </form>
 
-        {/* Modal Actions */}
-        <div className="zzc-modal-actions" style={{ marginTop: "1.5rem" }}>
-          <button
-            type="button"
-            className="zzc-btn zzc-btn-outline"
-            onClick={onClose}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="addDoctorForm"
-            className="zzc-btn zzc-btn-primary"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "linear-gradient(135deg, #0d9488 0%, #007c71 100%)",
-              color: "#fff",
-              border: "none",
-              padding: "0 22px",
-              fontWeight: 700,
-              fontSize: "0.88rem",
-              borderRadius: "8px",
-              cursor: saving ? "not-allowed" : "pointer",
-            }}
-            disabled={saving}
-          >
-            {saving ? (
-              "Saving…"
-            ) : (
-              <>
-                <Check size={16} strokeWidth={2.5} />
-                <span>Save</span>
-              </>
-            )}
-          </button>
         </div>
+
+        {/* Modal Actions Footer */}
+        <footer className="zzc-exec-footer">
+          <div className="zzc-exec-footer-paws" aria-hidden="true">
+            <PawIcon size={24} color="#0d8b7b" />
+            <PawIcon size={16} color="#0d8b7b" />
+          </div>
+
+          <div className="zzc-exec-footer-actions">
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-cancel"
+              onClick={onClose}
+              disabled={saving}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#ffffff",
+                border: "1.5px solid #cbd5e1",
+                color: "#334155",
+                padding: "9px 24px",
+                borderRadius: "12px",
+                fontWeight: "700",
+                fontSize: "0.88rem",
+                cursor: "pointer",
+                transition: "all 0.18s ease",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="addDoctorForm"
+              className="zzc-btn zzc-btn-create"
+              disabled={saving}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                color: "#ffffff",
+                border: "none",
+                padding: "10px 24px",
+                borderRadius: "12px",
+                fontWeight: "700",
+                fontSize: "0.88rem",
+                boxShadow: "0 4px 14px rgba(13, 139, 123, 0.35)",
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.7 : 1,
+                transition: "all 0.18s ease",
+              }}
+            >
+              <span>{saving ? "Submitting…" : "Add Doctor Profile"}</span>
+              <span className="zzc-btn-sparkle" aria-hidden="true">✨</span>
+            </button>
+          </div>
+        </footer>
       </div>
 
       {/* ── SIGNATURE PAD MODAL (PNG MODEL) ── */}
@@ -3693,9 +3931,23 @@ function DoctorsView({ data, execId }) {
           type="button"
           className="doc-add-btn"
           onClick={() => setShowAddDoctorModal(true)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: "12px",
+            padding: "0.6rem 1.15rem",
+            fontWeight: "700",
+            fontSize: "0.9rem",
+            boxShadow: "0 4px 12px rgba(13, 139, 123, 0.28)",
+            cursor: "pointer",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
         >
-          <span style={{ fontSize: "1.25rem", fontWeight: "900", lineHeight: 1 }}>+</span>
-          <span>Add Doctor</span>
+          <span>+ New Doctor</span>
         </button>
       </div>
 
@@ -4920,39 +5172,7 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
           </div>
 
           <div className="header-right">
-            {role === ROLES.MANAGER && data.salesManagers.length > 0 && (
-              <div className="role-switch">
-                <label>MANAGER</label>
-                <select value={managerId ?? ""} onChange={(e) => setManagerId(Number(e.target.value))}>
-                  {data.salesManagers.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
-            {role === ROLES.REGIONAL && data.regionalManagers.length > 0 && (
-              <div className="role-switch">
-                <label>REGIONAL MANAGER</label>
-                <select value={regionalId ?? ""} onChange={(e) => setRegionalId(Number(e.target.value))}>
-                  {data.regionalManagers.map((r) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {(role === ROLES.MANAGER || role === ROLES.REGIONAL) && (
-              <div className="role-switch">
-                <label>REGION FILTER</label>
-                <select value={region} onChange={(e) => setRegion(e.target.value)}>
-                  <option value="">All</option>
-                  {regions.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             <div className="role-switch">
               <label>MONTH</label>

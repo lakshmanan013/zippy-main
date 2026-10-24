@@ -1,5 +1,14 @@
 import { useState } from "react";
 import {
+  Calendar,
+  Clock,
+  Target,
+  Users,
+  X,
+  Sparkles,
+  Check,
+} from "lucide-react";
+import {
   PLAN_MONTH_LABEL,
   RESCHEDULE_REASONS,
   VISIT_TIME_OPTIONS,
@@ -10,6 +19,27 @@ import {
   getCurrentMonthKey,
 } from "./planData.js";
 import { StatusBadge, PriorityBadge, DoctorMiniCard } from "./PlanBits.jsx";
+import modalPetHeaderImg from "../assets/modal-pet-header.png";
+import "./RecordModal.css";
+
+function PawIcon({ size = 20, color = "currentColor", className = "" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12 11c-2.2 0-4.3 1.6-4.3 4.1 0 2.1 1.7 3.5 4.3 3.5s4.3-1.4 4.3-3.5c0-2.5-2.1-4.1-4.3-4.1z" />
+      <circle cx="5.6" cy="10.2" r="1.9" />
+      <circle cx="9.3" cy="6.2" r="1.9" />
+      <circle cx="14.7" cy="6.2" r="1.9" />
+      <circle cx="18.4" cy="10.2" r="1.9" />
+    </svg>
+  );
+}
 
 /* ───────────────────────── CREATE MONTHLY PLAN ───────────────────────── */
 export function CreatePlanModal({ totalAssigned, workingDaysCount, monthLabel, monthKey, onClose, onCreate }) {
@@ -18,53 +48,245 @@ export function CreatePlanModal({ totalAssigned, workingDaysCount, monthLabel, m
   const displayMonth = monthLabel || (monthKey ? formatMonthLabel(monthKey) : PLAN_MONTH_LABEL);
 
   return (
-    <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="zzc-modal">
-        <h2>Create Monthly Plan</h2>
-        <div className="zzc-modal-form">
-          <div className="zzc-field">
-            <label>Month</label>
-            <input value={displayMonth} disabled />
+    <div className="zzc-modal-overlay zzc-exec-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="zzc-exec-modal" style={{ maxWidth: 580 }}>
+        {/* Header with Mint Theme & Pet Illustration */}
+        <header className="zzc-exec-header">
+          <div className="zzc-exec-header-paws-bg" aria-hidden="true">
+            <PawIcon size={26} color="#0d8b7b" className="zzc-paw-bg-1" />
+            <PawIcon size={18} color="#0d8b7b" className="zzc-paw-bg-2" />
+            <PawIcon size={32} color="#0d8b7b" className="zzc-paw-bg-3" />
           </div>
-          <div className="pln-two-col">
-            <div className="zzc-field">
-              <label>Total Assigned Doctors</label>
-              <input value={totalAssigned} disabled />
+
+          <div className="zzc-exec-header-content">
+            <span className="zzc-exec-header-badge">
+              <PawIcon size={24} color="#ffffff" />
+            </span>
+            <div className="zzc-exec-header-text">
+              <h2 id="zzc-exec-title">Create Monthly Plan</h2>
+              <p>Plan territory doctor visits for the month</p>
             </div>
-            <div className="zzc-field">
-              <label>Working Days</label>
-              <input value={workingDaysCount} disabled />
-            </div>
           </div>
-          <div className="zzc-field">
-            <label>Daily Target (auto-calculated)</label>
-            <input value={`${dailyTarget} doctors / day`} disabled />
-          </div>
-          <div className="zzc-field">
-            <label>Planning Method</label>
-            <div className="pln-radio-row">
-              <label className="pln-radio">
-                <input type="radio" checked={method === "manual"} onChange={() => setMethod("manual")} />
-                Manual Planning
-              </label>
-              <label className="pln-radio">
-                <input type="radio" checked={method === "auto"} onChange={() => setMethod("auto")} />
-                Auto Generate Plan
-              </label>
-            </div>
-            <p className="pln-hint">
-              {method === "auto"
-                ? "The system will distribute all assigned doctors evenly across working days. You can adjust individual dates afterwards."
-                : "You'll schedule each doctor's visit date yourself from the Assigned Doctors tab."}
-            </p>
-          </div>
-        </div>
-        <div className="zzc-modal-actions">
-          <button type="button" className="zzc-btn zzc-btn-outline" onClick={onClose}>Cancel</button>
-          <button type="button" className="zzc-btn zzc-btn-primary" onClick={() => { onCreate(method); onClose(); }}>
-            {method === "auto" ? "Generate Plan" : "Create Draft Plan"}
+
+          <img
+            src={modalPetHeaderImg}
+            alt="Pets header"
+            className="zzc-modal-header-art"
+            aria-hidden="true"
+          />
+
+          <button
+            type="button"
+            className="zzc-exec-close"
+            onClick={onClose}
+            aria-label="Close"
+            title="Close"
+          >
+            <X size={17} strokeWidth={2.4} />
           </button>
+        </header>
+
+        {/* Modal Scrollable Body */}
+        <div className="zzc-exec-layout">
+          <form className="zzc-exec-form" onSubmit={(e) => { e.preventDefault(); onCreate(method); onClose(); }} autoComplete="off">
+            <section className="zzc-exec-section">
+              <div className="zzc-exec-section-header">
+                <div className="zzc-exec-section-title-wrap">
+                  <span className="zzc-exec-section-badge">
+                    <Calendar size={15} />
+                  </span>
+                  <h3>Plan Schedule & Targets</h3>
+                </div>
+                <span className="zzc-exec-section-subtitle">
+                  Set up monthly doctor visit targets 🐾
+                </span>
+              </div>
+
+              <div className="zzc-exec-fields">
+                {/* Month Field */}
+                <div className="zzc-exec-field theme-teal zzc-exec-field-full">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <PawIcon size={14} />
+                    </span>
+                    <label>Target Month</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Calendar size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input value={displayMonth} disabled style={{ fontWeight: 600, color: "#0f766e" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Assigned Doctors */}
+                <div className="zzc-exec-field theme-green">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Users size={14} />
+                    </span>
+                    <label>Assigned Doctors</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Users size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input value={`${totalAssigned} Doctors`} disabled style={{ fontWeight: 600 }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Working Days */}
+                <div className="zzc-exec-field theme-blue">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Clock size={14} />
+                    </span>
+                    <label>Working Days</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Clock size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input value={`${workingDaysCount} Days`} disabled style={{ fontWeight: 600 }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Daily Target */}
+                <div className="zzc-exec-field theme-amber zzc-exec-field-full">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Target size={14} />
+                    </span>
+                    <label>Daily Target (Auto-calculated)</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input value={`${dailyTarget} doctors / day`} disabled style={{ fontWeight: 700, color: "#b45309" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Planning Method Card Selector */}
+                <div className="zzc-exec-field theme-purple zzc-exec-field-full">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <PawIcon size={14} />
+                    </span>
+                    <label>Planning Method</label>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "4px" }}>
+                    <div
+                      onClick={() => setMethod("auto")}
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: "12px",
+                        border: method === "auto" ? "2px solid #9333ea" : "1.5px solid #e9d5ff",
+                        background: method === "auto" ? "#faf5ff" : "#ffffff",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#6b21a8" }}>
+                          Auto Generate Plan
+                        </span>
+                        {method === "auto" && <Check size={16} color="#9333ea" strokeWidth={3} />}
+                      </div>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", lineHeight: 1.35 }}>
+                        Distributes doctors evenly across working days automatically.
+                      </span>
+                    </div>
+
+                    <div
+                      onClick={() => setMethod("manual")}
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: "12px",
+                        border: method === "manual" ? "2px solid #9333ea" : "1.5px solid #e9d5ff",
+                        background: method === "manual" ? "#faf5ff" : "#ffffff",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#6b21a8" }}>
+                          Manual Planning
+                        </span>
+                        {method === "manual" && <Check size={16} color="#9333ea" strokeWidth={3} />}
+                      </div>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", lineHeight: 1.35 }}>
+                        Schedule each doctor's visit date yourself from Assigned tab.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </form>
         </div>
+
+        {/* Footer */}
+        <footer className="zzc-exec-footer">
+          <div className="zzc-exec-footer-paws" aria-hidden="true">
+            <PawIcon size={24} color="#0d8b7b" />
+            <PawIcon size={16} color="#0d8b7b" />
+          </div>
+
+          <div className="zzc-exec-footer-actions">
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-cancel"
+              onClick={onClose}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#ffffff",
+                border: "1.5px solid #cbd5e1",
+                color: "#334155",
+                padding: "9px 24px",
+                borderRadius: "12px",
+                fontWeight: "700",
+                fontSize: "0.88rem",
+                cursor: "pointer",
+                transition: "all 0.18s ease",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="zzc-btn zzc-btn-create"
+              onClick={() => { onCreate(method); onClose(); }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                color: "#ffffff",
+                border: "none",
+                padding: "10px 24px",
+                borderRadius: "12px",
+                fontWeight: "700",
+                fontSize: "0.88rem",
+                boxShadow: "0 4px 14px rgba(13, 139, 123, 0.35)",
+                cursor: "pointer",
+                transition: "all 0.18s ease",
+              }}
+            >
+              <span>{method === "auto" ? "Generate Plan" : "Create Draft Plan"}</span>
+              <span className="zzc-btn-sparkle" aria-hidden="true">✨</span>
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );

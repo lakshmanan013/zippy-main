@@ -142,7 +142,7 @@ const ROLES_INFO = {
       { icon: ExecTargetIcon, title: "Achieve More", desc: "", colorTheme: "amber" },
     ],
     chips: [],
-    quote: "“Together for\nHappier, Healthier Pets.”",
+    quote: "“Together for\nHappier, Healthier Pets”",
     footerText: "Secure Field Operations Management",
     tableKey: "sales_executives",
     accentColor: "#0077e6",
@@ -164,10 +164,10 @@ const ROLES_INFO = {
     headlineAccent: "Make a Bigger\nImpact.",
     accentColor: "#059669",
     pillars: [
-      { icon: ExecTeamIcon, title: "Team Leadership", desc: "" },
-      { icon: ExecChartIcon, title: "Performance & Growth", desc: "" },
-      { icon: ExecTargetIcon, title: "Target & Opportunities", desc: "" },
-      { icon: ExecDocIcon, title: "Reports & Approvals", desc: "" },
+      { icon: ExecTeamIcon, title: "", desc: "" },
+      { icon: ExecChartIcon, title: "", desc: "" },
+      { icon: ExecTargetIcon, title: "", desc: "" },
+      { icon: ExecDocIcon, title: "", desc: "" },
     ],
     chips: [],
     quote: "“Empowering Teams for\nHealthier Pets Nationwide.”",
@@ -650,6 +650,7 @@ export default function SalesCrmLoginModal({
         </button>
       )}
 
+
       {/* ══════════════════════════════════════════════════════
           LEFT PANEL: BRANDING, VALUE PILLARS & HERO IMAGE
          ══════════════════════════════════════════════════════ */}
@@ -718,12 +719,7 @@ export default function SalesCrmLoginModal({
           <>
             <div className="zenve-ambient-wave wave-1" />
             <div className="zenve-ambient-wave wave-2" />
-            <div className="zenve-floating-paw paw-1">
-              <PawIcon size={72} color={roleConfig.accentColor} />
-            </div>
-            <div className="zenve-floating-paw paw-2">
-              <PawIcon size={48} color={roleConfig.accentColor} />
-            </div>
+
           </>
         ) : !isManagerRole ? (
           <div className="zenve-exec-ambient-curves" aria-hidden="true">
@@ -876,7 +872,7 @@ export default function SalesCrmLoginModal({
                               : "#ffffff"
                         }
                         fill={
-                          currentRole === "regional" && (pillar.title === "Growth Opportunities" || pIdx === 2)
+                          currentRole === "regional"
                             ? "#6d28d9"
                             : "none"
                         }
@@ -909,14 +905,21 @@ export default function SalesCrmLoginModal({
           {/* Bottom Quote Banner */}
           {!isRegionalRole && !isManagerRole && roleConfig.quote && (
             <div className="zenve-bottom-quote-banner">
+
               <span className="zenve-quote-text">
                 {roleConfig.quote.split("\n").map((line, qIdx) => (
-                  <span key={qIdx}>
+                  <span key={qIdx} className={qIdx === 1 ? "zenve-quote-line-2" : ""}>
                     {line}
                     {qIdx === 0 && <br />}
+                    {qIdx === 1 && currentRole === "executive" && (
+                      <span className="zenve-quote-paw-badge" title="Zenve Pets">
+                        <PawIcon size={22} color="#ffffff" className="zenve-quote-paw-inline" />
+                      </span>
+                    )}
                   </span>
                 ))}
               </span>
+
               <div className="zenve-quote-accent-bar" />
             </div>
           )}
@@ -940,9 +943,9 @@ export default function SalesCrmLoginModal({
                   alt="Zenve Zippy"
                   className="zenve-welcome-full-logo"
                 />
-                <div className="zenve-brand-right-col">
-                  <span className="zenve-brand-subtitle-right">{roleConfig.portalTitle}</span>
-                </div>
+              </div>
+              <div className="zenve-role-pill-badge">
+                <span>{roleConfig.portalTitle}</span>
               </div>
               <h2 className="zenve-welcome-title">{roleConfig.welcomeBack || "Welcome Back!"}</h2>
               {roleConfig.rightSubtitle ? (

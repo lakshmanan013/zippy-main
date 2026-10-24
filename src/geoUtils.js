@@ -418,14 +418,14 @@ export async function reverseGeocodeCoordinates(lat, lng, exec = null) {
  * - If accuracy > 500m: Invalid / Retry (Red)
  */
 export const TARGET_LOCATION_ACCURACY_METERS = 500;
-export const MAX_LOCATION_ACCURACY_METERS = 1000;
-export const EXTREME_LOCATION_ACCURACY_METERS = 2000;
+export const MAX_LOCATION_ACCURACY_METERS = 3000;
+export const EXTREME_LOCATION_ACCURACY_METERS = 15000;
 
 export const ACCURACY_CONFIG = {
   GOOD_THRESHOLD: TARGET_LOCATION_ACCURACY_METERS, // 500m
-  ACCEPTABLE_THRESHOLD: MAX_LOCATION_ACCURACY_METERS, // 1000m
-  DEFAULT_MAX_ALLOWED: MAX_LOCATION_ACCURACY_METERS, // 1000m
-  EXTREME_THRESHOLD: EXTREME_LOCATION_ACCURACY_METERS, // 2000m
+  ACCEPTABLE_THRESHOLD: MAX_LOCATION_ACCURACY_METERS, // 3000m
+  DEFAULT_MAX_ALLOWED: MAX_LOCATION_ACCURACY_METERS, // 3000m
+  EXTREME_THRESHOLD: EXTREME_LOCATION_ACCURACY_METERS, // 15000m
 };
 
 export function getMaxAllowedAccuracy() {
@@ -916,30 +916,30 @@ export function evaluateLocationAccuracy(accuracyMeters) {
     };
   }
 
-  // 2. If accuracy > 500m and <= 2000m: Acceptable / Verified with warning
+  // 2. If accuracy > 500m and <= 15000m: Acceptable / Low-accuracy place accepted for attendance
   if (acc <= EXTREME_LOCATION_ACCURACY_METERS) {
     return {
       level: "warning",
       isAcceptable: true,
       isPrecise: false,
-      badgeText: "Location detected with limited accuracy",
+      badgeText: "Location detected (Low Accuracy)",
       badgeClass: "warning",
-      statusMessage: `Location detected with limited accuracy (±${Math.round(acc)}m)`,
-      userGuidance: "Wi-Fi triangulation provides acceptable desktop positioning.",
+      statusMessage: `Location detected with limited accuracy (±${Math.round(acc)}m) · Accepted for attendance`,
+      userGuidance: "Low accuracy / indoor positioning accepted. Coordinates recorded.",
       canPunch: true,
     };
   }
 
-  // 3. If accuracy > 2000m: Invalid / Extremely poor
+  // 3. If accuracy > 15000m: Still accept coordinates so attendance is not blocked
   return {
-    level: "invalid",
-    isAcceptable: false,
+    level: "warning",
+    isAcceptable: true,
     isPrecise: false,
-    badgeText: "Location accuracy is too low",
-    badgeClass: "rejected",
-    statusMessage: `Location accuracy is extremely poor (${Math.round(acc)}m). Please enable Windows Location Services and try again.`,
-    userGuidance: `Location accuracy is too low (${Math.round(acc)}m). Please enable Windows Location Services and try again.`,
-    canPunch: false,
+    badgeText: "Coarse Location Accepted",
+    badgeClass: "warning",
+    statusMessage: `Coarse location detected (±${Math.round(acc)}m) · Coordinates recorded`,
+    userGuidance: "Coarse location accepted for attendance.",
+    canPunch: true,
   };
 }
 
