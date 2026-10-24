@@ -38,6 +38,7 @@ import {
   Globe,
   ArrowLeft,
   AlertCircle,
+  Crown,
 } from "lucide-react";
 import "./SalesCrmLoginModal.css";
 
@@ -261,6 +262,7 @@ export default function SalesCrmLoginModal({
   initialRole = "executive",
   onClose,
   onLoginSuccess,
+  onSwitchRole,
 }) {
   const [activeRole, setActiveRole] = useState(
     initialRole && ROLES_INFO[initialRole] ? initialRole : "executive"
@@ -637,18 +639,56 @@ export default function SalesCrmLoginModal({
 
   return (
     <div className={`zenve-portal-page ${roleConfig.theme}`}>
-      {/* Return to Admin Button */}
-      {onClose && (
-        <button
-          type="button"
-          className="zenve-portal-back-btn"
-          onClick={onClose}
-          title="Return to Admin CRM"
-        >
-          <ArrowLeft size={15} />
-          <span>Back to Admin CRM</span>
-        </button>
-      )}
+      {/* ── Top Desktop Multi-Portal Switcher Bar ── */}
+      <div className="zenve-desktop-portal-switcher-bar">
+        <div className="zenve-portal-switcher-pill">
+          {onClose && (
+            <button
+              type="button"
+              className="zenve-switcher-item zenve-switcher-admin"
+              onClick={onClose}
+              title="Return to CEO & Department Admin Login"
+            >
+              <Crown size={14} className="zenve-switcher-crown" />
+              <span>Admin / CEO Portal</span>
+            </button>
+          )}
+          <span className="zenve-switcher-divider" />
+          <button
+            type="button"
+            className={`zenve-switcher-item ${activeRole === "executive" ? "active-exec" : ""}`}
+            onClick={() => {
+              setActiveRole("executive");
+              if (onSwitchRole) onSwitchRole("executive");
+            }}
+          >
+            <Briefcase size={14} />
+            <span>Sales Executive</span>
+          </button>
+          <button
+            type="button"
+            className={`zenve-switcher-item ${activeRole === "manager" ? "active-mgr" : ""}`}
+            onClick={() => {
+              setActiveRole("manager");
+              if (onSwitchRole) onSwitchRole("manager");
+            }}
+          >
+            <UserCheck size={14} />
+            <span>Sales Manager</span>
+          </button>
+          <button
+            type="button"
+            className={`zenve-switcher-item ${activeRole === "regional" ? "active-reg" : ""}`}
+            onClick={() => {
+              setActiveRole("regional");
+              if (onSwitchRole) onSwitchRole("regional");
+            }}
+          >
+            <Globe size={14} />
+            <span>Regional Manager</span>
+          </button>
+        </div>
+      </div>
 
 
       {/* ══════════════════════════════════════════════════════

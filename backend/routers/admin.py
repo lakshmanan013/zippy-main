@@ -26,62 +26,125 @@ admin_otp_store = {}
 
 def load_api_txt_config():
     """
-    Reads backend/api.txt if present, extracting provider and api_key.
+    Reads api.txt or .env from backend/ or project root directory.
+    Extracts provider and api_key. Supports APITxT, Fast2SMS, 2Factor, MSG91.
     """
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        api_file = os.path.join(base_dir, "api.txt")
-        if not os.path.exists(api_file):
-            return None, None
+        root_dir = os.path.dirname(base_dir)
+
+        candidate_files = [
+            os.path.join(base_dir, "api.txt"),
+            os.path.join(root_dir, "api.txt"),
+            os.path.join(base_dir, ".env"),
+            os.path.join(root_dir, ".env"),
+        ]
 
         provider = None
         api_key = None
-        with open(api_file, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                if "=" in line:
-                    key, val = line.split("=", 1)
-                    k = key.strip().upper()
-                    v = val.strip()
-                    if k in ("PROVIDER", "SMS_PROVIDER"):
-                        provider = v.lower()
-                    elif k in ("API_KEY", "SMS_API_KEY", "KEY"):
-                        api_key = v
-                elif not api_key and len(line) >= 8 and not line.startswith("//"):
-                    api_key = line
+
+        for filepath in candidate_files:
+            if os.path.exists(filepath):
+                try:
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line or line.startswith("#"):
+                                continue
+                            if "=" in line:
+                                key, val = line.split("=", 1)
+                                k = key.strip().upper()
+                                v = val.strip()
+                                if k in ("PROVIDER", "SMS_PROVIDER"):
+                                    if v:
+                                        provider = v.lower()
+                                elif k in ("APITXT_AUTHKEY", "APITXT_API_KEY", "APITXT_KEY"):
+                                    if v:
+                                        api_key = v
+                                        provider = "apitxt"
+                                elif k in ("FAST2SMS_API_KEY", "FAST2SMS_KEY"):
+                                    if v:
+                                        api_key = v
+                                        if not provider:
+                                            provider = "fast2sms"
+                                elif k in ("TWOFACTOR_API_KEY", "2FACTOR_API_KEY"):
+                                    if v:
+                                        api_key = v
+                                        if not provider:
+                                            provider = "2factor"
+                                elif k in ("API_KEY", "SMS_API_KEY", "KEY", "AUTHKEY"):
+                                    if v:
+                                        api_key = v
+                            elif not api_key and len(line) >= 8 and not line.startswith("//"):
+                                api_key = line
+                except Exception as read_err:
+                    print(f"[api.txt read note] {read_err}")
+
+        # Also fallback to environment variables
+        if not api_key:
+            api_key = (
+                os.getenv("APITXT_AUTHKEY")
+                or os.getenv("APITXT_API_KEY")
+                or os.getenv("SMS_API_KEY")
+                or os.getenv("FAST2SMS_API_KEY")
+                or os.getenv("TWOFACTOR_API_KEY")
+                or ""
+            ).strip()
+
+        if not provider:
+            env_provider = os.getenv("SMS_PROVIDER", "").strip().lower()
+            if env_provider:
+                provider = env_provider
+            elif os.getenv("APITXT_AUTHKEY") or os.getenv("APITXT_API_KEY"):
+                provider = "apitxt"
+            elif os.getenv("FAST2SMS_API_KEY"):
+                provider = "fast2sms"
+            elif os.getenv("TWOFACTOR_API_KEY"):
+                provider = "2factor"
+            elif api_key:
+                provider = "apitxt"
 
         return provider, api_key
     except Exception as e:
-        print(f"[api.txt parse warning] {e}")
+        print(f"[load_api_txt_config warning] {e}")
         return None, None
 
 def dispatch_sms_otp(phone: str, otp: str):
     """
-    Sends SMS OTP via provider specified in api.txt or .env (Fast2SMS, 2Factor, MSG91, Twilio).
+    Sends SMS OTP via provider specified in api.txt or .env (APITxT, Fast2SMS, 2Factor, MSG91).
     """
     txt_provider, txt_key = load_api_txt_config()
 
-    provider = (txt_provider or os.getenv("SMS_PROVIDER", "fast2sms")).strip().lower()
-    api_key = (txt_key or os.getenv("SMS_API_KEY", "")).strip()
+    provider = (txt_provider or os.getenv("SMS_PROVIDER", "apitxt")).strip().lower()
+    api_key = (txt_key or os.getenv("APITXT_AUTHKEY") or os.getenv("SMS_API_KEY", "")).strip()
 
-    if not api_key or api_key in ("YOUR_SMS_API_KEY_HERE", "your_api_key_here"):
-        print(f"[SMS Gateway] No active SMS_API_KEY in api.txt or .env. Using mock console OTP: {otp}")
-        return False, "SMS API key not configured in api.txt or .env (falling back to mock)"
+    if not api_key or api_key in ("YOUR_SMS_API_KEY_HERE", "your_api_key_here", "your_apitxt_authkey_here"):
+        print(f"[SMS Gateway] No active SMS API key in api.txt or .env. Using mock console OTP for {phone}: {otp}")
+        return False, "SMS API key not configured in api.txt or .env (using local console OTP)"
 
     try:
-        if provider in ("apitxt", "api.txt") or len(api_key) == 43:
-            url = "https://apitxt.com/api/sendOTP"
-            clean_num = phone[-10:]
+        clean_num = phone[-10:] if len(phone) >= 10 else phone
+
+        if provider in ("apitxt", "api.txt", "api_txt") or len(api_key) == 43:
+            url = os.getenv("APITXT_OTP_URL", "https://apitxt.com/api/sendOTP")
+            channel = os.getenv("APITXT_CHANNEL", "sms")
             payload = {
                 "authkey": api_key,
                 "mobile": f"91{clean_num}",
-                "otp": otp
+                "otp": otp,
+                "channel": channel,
             }
-            resp = requests.post(url, data=payload, timeout=12)
-            print(f"[APITxT Response] {resp.status_code}: {resp.text}")
-            is_success = resp.status_code == 200 and ("success" in resp.text.lower())
+            sender = os.getenv("APITXT_SENDER_ID") or os.getenv("SMS_SENDER_ID")
+            if sender:
+                payload["sender"] = sender
+            template_id = os.getenv("APITXT_TEMPLATE_ID")
+            if template_id:
+                payload["template_id"] = template_id
+
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            resp = requests.post(url, data=payload, headers=headers, timeout=12)
+            print(f"[APITxT Response] status={resp.status_code}: {resp.text}")
+            is_success = resp.status_code == 200 and ("success" in resp.text.lower() or "sent" in resp.text.lower())
             return is_success, resp.text
 
         elif provider == "fast2sms":
@@ -93,14 +156,14 @@ def dispatch_sms_otp(phone: str, otp: str):
             payload = {
                 "variables_values": otp,
                 "route": "otp",
-                "numbers": phone
+                "numbers": clean_num
             }
             resp = requests.post(url, json=payload, headers=headers, timeout=10)
             print(f"[Fast2SMS Response] {resp.status_code}: {resp.text}")
             return resp.status_code == 200, resp.text
 
         elif provider in ("2factor", "twofactor"):
-            url = f"https://2factor.in/v2/SMS/{api_key}/SMS/{phone}/{otp}/OTP_VERIFICATION"
+            url = f"https://2factor.in/v2/SMS/{api_key}/SMS/{clean_num}/{otp}/OTP_VERIFICATION"
             resp = requests.get(url, timeout=10)
             print(f"[2Factor Response] {resp.status_code}: {resp.text}")
             return resp.status_code == 200, resp.text
@@ -115,7 +178,7 @@ def dispatch_sms_otp(phone: str, otp: str):
             }
             payload = {
                 "template_id": template_id,
-                "mobile": f"91{phone}",
+                "mobile": f"91{clean_num}",
                 "otp": otp
             }
             resp = requests.post(url, json=payload, headers=headers, timeout=10)
@@ -123,12 +186,22 @@ def dispatch_sms_otp(phone: str, otp: str):
             return resp.status_code == 200, resp.text
 
         else:
-            print(f"[SMS Gateway] Unknown SMS_PROVIDER '{provider}'")
-            return False, f"Unknown SMS provider: {provider}"
+            print(f"[SMS Gateway] Unknown SMS_PROVIDER '{provider}', falling back to APITxT")
+            url = "https://apitxt.com/api/sendOTP"
+            payload = {
+                "authkey": api_key,
+                "mobile": f"91{clean_num}",
+                "otp": otp,
+                "channel": "sms"
+            }
+            resp = requests.post(url, data=payload, headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=12)
+            is_success = resp.status_code == 200 and ("success" in resp.text.lower() or "sent" in resp.text.lower())
+            return is_success, resp.text
 
     except Exception as exc:
         print(f"[SMS Gateway Error] Failed to send SMS: {exc}")
         return False, str(exc)
+
 
 @router.post("/admin-send-otp")
 def admin_send_otp(data: AdminSendOtpRequest):

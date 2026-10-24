@@ -433,8 +433,29 @@ export default function App() {
         onClose={() => {
           setSalesLoginModal({ isOpen: false, role: "executive" });
           try {
-            if (window.location.pathname === "/login") {
+            if (
+              window.location.pathname === "/login" ||
+              window.location.pathname === "/manager-login" ||
+              window.location.pathname === "/regional-login" ||
+              window.location.pathname === "/executive-login"
+            ) {
               history.replaceState(null, "", "/");
+            }
+          } catch {
+            /* ignore */
+          }
+        }}
+        onSwitchRole={(role) => {
+          setSalesLoginModal({ isOpen: true, role });
+          try {
+            const targetPath =
+              role === "manager"
+                ? "/manager-login"
+                : role === "regional"
+                ? "/regional-login"
+                : "/executive-login";
+            if (window.location.pathname !== targetPath) {
+              history.pushState(null, "", targetPath);
             }
           } catch {
             /* ignore */
@@ -449,6 +470,7 @@ export default function App() {
     return (
       <AdminLogin
         onLoginSuccess={(user) => setAdminUser(user)}
+        onOpenSalesLogin={(role) => handleOpenSalesCrmLogin(role)}
       />
     );
   }

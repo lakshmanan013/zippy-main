@@ -21,11 +21,19 @@ def _ensure_database_exists(db_url: str):
     try:
         url = make_url(db_url)
         if url.database and "mysql" in url.drivername:
-            server_url = url.set(database=None)
-            temp_engine = create_engine(server_url, isolation_level="AUTOCOMMIT")
-            with temp_engine.connect() as conn:
-                conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{url.database}` CHARACTER SET utf8mb4"))
-            temp_engine.dispose()
+            import pymysql
+            conn = pymysql.connect(
+                host=url.host or "127.0.0.1",
+                user=url.username or "root",
+                password=url.password or "",
+                port=url.port or 3306,
+                autocommit=True
+            )
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{url.database}` CHARACTER SET utf8mb4")
+            finally:
+                conn.close()
     except Exception as e:
         print(f"[DB Setup] Warning: Could not auto-create database: {e}")
 

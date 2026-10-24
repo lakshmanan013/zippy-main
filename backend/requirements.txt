@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+watchfiles
+websockets
+httptools
+pydantic
+sqlalchemy
+pymysql
+cryptography
+python-dotenv
+python-multipart
+requests
