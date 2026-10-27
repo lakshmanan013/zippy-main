@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { NAV_GROUPS, getAllowedNavGroups, getRoleConfig } from "../data.js";
 import logo from "../assets/zenve-zippy-logo.png";
-import { LogOut, Crown, ShieldCheck, Lock } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 export default function Sidebar({
   currentKey,
@@ -39,69 +39,11 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Role Access Level Indicator Card */}
-      <div
-        style={{
-          margin: "8px 10px 4px 10px",
-          padding: "8px 12px",
-          borderRadius: "8px",
-          background: isCeo
-            ? "linear-gradient(135deg, #fffbeb, #fef3c7)"
-            : "#f1f5f9",
-          border: isCeo ? "1px solid #fde68a" : "1px solid #e2e8f0",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <div
-          style={{
-            width: "24px",
-            height: "24px",
-            borderRadius: "6px",
-            background: isCeo ? "#d97706" : roleCfg.accentColor || "#0284c7",
-            color: "#ffffff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {isCeo ? <Crown size={14} /> : <Lock size={13} />}
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span
-              style={{
-                fontSize: "11px",
-                fontWeight: 800,
-                color: isCeo ? "#92400e" : "#0f172a",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {isCeo ? "CEO · Whole Website" : roleCfg.name}
-            </span>
-          </div>
-          <span
-            style={{
-              fontSize: "10px",
-              color: isCeo ? "#b45309" : "#64748b",
-              display: "block",
-              lineHeight: 1.2,
-            }}
-          >
-            {isCeo ? "Full Access · All 7 Sections" : `${roleCfg.badge} (Isolated)`}
-          </span>
-        </div>
-      </div>
-
       <nav
         className="zzc-nav"
         ref={navRef}
         style={{
-          height: "calc(100vh - 140px)",
+          height: "calc(100vh - 80px)",
         }}
       >
         {activeNavGroups.map((group) => (

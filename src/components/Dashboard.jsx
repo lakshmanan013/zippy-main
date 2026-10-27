@@ -507,9 +507,6 @@ export default function Dashboard({ adminUser }) {
   return (
     <div className="zzc-content">
       <div className="dash-hero">
-        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginBottom: "8px", padding: "4px 10px", borderRadius: "12px", background: isCeo ? "#fef3c7" : "#e0f2fe", border: isCeo ? "1px solid #fde68a" : "1px solid #bae6fd", fontSize: "12px", fontWeight: 700, color: isCeo ? "#92400e" : "#0369a1" }}>
-          <span>{isCeo ? "👑 CEO Master Analytics · Entire Website Overview (All 7 Sections)" : `🔒 ${roleCfg.name} Portal · Authorized Department View`}</span>
-        </div>
         <h2 className="dash-hero-title">Zenve Zippy — business intelligence</h2>
         <p className="zzc-muted">
           Live view of the marketplace: veterinary network, pet commerce, services, pin-code coverage and the field sales engine. Every number is read directly from the production cloud.

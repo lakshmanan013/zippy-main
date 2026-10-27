@@ -266,10 +266,21 @@ export default function App() {
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term || !searchConfig) return records;
-    const searchColumns = searchConfig.columns || [searchConfig.column];
+    if (!term) return records;
+    if (searchConfig) {
+      const searchColumns = searchConfig.columns || [searchConfig.column];
+      return records.filter((record) =>
+        searchColumns.some((col) => String(record[col] ?? "").toLowerCase().includes(term))
+      );
+    }
+    // Generic fallback: search all string/number columns in record
     return records.filter((record) =>
-      searchColumns.some((col) => String(record[col] ?? "").toLowerCase().includes(term))
+      Object.entries(record).some(
+        ([key, val]) =>
+          !key.toLowerCase().includes("password") &&
+          typeof val !== "object" &&
+          String(val ?? "").toLowerCase().includes(term)
+      )
     );
   }, [records, searchTerm, searchConfig]);
 
@@ -504,9 +515,13 @@ export default function App() {
         <TopBar
           title={findLabel(currentKey)}
           subtitle={`${filtered.length} records · table ${currentKey}`}
-          showSearch={activeTab === "data" && Boolean(searchConfig)}
+          showSearch={activeTab === "data"}
           showNewRecord={activeTab === "data"}
-          searchPlaceholder={searchConfig ? "Search " + (searchConfig.placeholder || "").replace(/_/g, " ") : ""}
+          searchPlaceholder={
+            searchConfig
+              ? "Search " + (searchConfig.placeholder || "").replace(/_/g, " ")
+              : `Search ${findLabel(currentKey).toLowerCase()}...`
+          }
           searchTerm={searchTerm}
           onSearchChange={(value) => {
             setSearchTerm(value);
@@ -518,8 +533,6 @@ export default function App() {
           onOpenSalesCRM={(view) => handleOpenSalesCrmLogin(view)}
           adminUser={adminUser}
           onLogout={handleLogout}
-          ceoPreviewRole={ceoPreviewRole}
-          onSetCeoPreviewRole={setCeoPreviewRole}
         />
 
         {error && (

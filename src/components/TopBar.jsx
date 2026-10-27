@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Plus, LogOut, User, Crown, ShieldCheck, ChevronDown, Check } from "lucide-react";
-import { LOGIN_ROLES, getRoleConfig } from "../data.js";
-
+import { Search, LogOut, ShieldCheck } from "lucide-react";
+import { getRoleConfig } from "../data.js";
 
 export default function TopBar({
   title,
@@ -17,14 +16,9 @@ export default function TopBar({
   onOpenSalesCRM,
   adminUser,
   onLogout,
-  ceoPreviewRole,
-  onSetCeoPreviewRole,
 }) {
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
-  const [ceoFilterMenuOpen, setCeoFilterMenuOpen] = useState(false);
-
   const salesDropdownRef = useRef(null);
-  const ceoFilterDropdownRef = useRef(null);
 
   const isCeo = Boolean(
     adminUser?.is_ceo ||
@@ -34,16 +28,12 @@ export default function TopBar({
     adminUser?.role === "admin"
   );
   const roleCfg = getRoleConfig(adminUser?.role);
-  const previewCfg = ceoPreviewRole ? getRoleConfig(ceoPreviewRole) : null;
 
   // Closes menus on outside click
   useEffect(() => {
     function handleClickOutside(event) {
       if (salesDropdownRef.current && !salesDropdownRef.current.contains(event.target)) {
         setSalesMenuOpen(false);
-      }
-      if (ceoFilterDropdownRef.current && !ceoFilterDropdownRef.current.contains(event.target)) {
-        setCeoFilterMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -55,11 +45,6 @@ export default function TopBar({
     onOpenSalesCRM?.(view);
   }
 
-  function handleSelectCeoFilter(roleKey) {
-    setCeoFilterMenuOpen(false);
-    onSetCeoPreviewRole?.(roleKey);
-  }
-
   // Only CEO and Sales Team can see/access the Sales CRM dropdown
   const canAccessSalesCrm = isCeo || adminUser?.role === "sales_team";
 
@@ -68,43 +53,6 @@ export default function TopBar({
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <h1 style={{ margin: 0 }}>{title}</h1>
-          {isCeo ? (
-            <span
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                color: "#92400e",
-                background: "#fef3c7",
-                border: "1px solid #fde68a",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <Crown size={12} color="#d97706" />
-              <span>CEO Whole Website</span>
-            </span>
-          ) : (
-            <span
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                color: roleCfg.accentColor || "#0f766e",
-                background: `${roleCfg.accentColor || "#0f766e"}15`,
-                border: `1px solid ${roleCfg.accentColor || "#0f766e"}40`,
-                padding: "2px 8px",
-                borderRadius: "12px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <ShieldCheck size={12} />
-              <span>{roleCfg.badge} Isolated</span>
-            </span>
-          )}
         </div>
         <p className="zzc-muted zzc-small">{subtitle}</p>
       </div>
@@ -156,87 +104,6 @@ export default function TopBar({
           </button>
         ))}
 
-        {/* CEO Department Filter / Preview Dropdown (CEO ONLY) */}
-        {isCeo && onSetCeoPreviewRole && (
-          <div className="zzc-sales-menu-wrap" ref={ceoFilterDropdownRef}>
-            <button
-              className={"zzc-btn zzc-btn-outline" + (ceoFilterMenuOpen || ceoPreviewRole ? " active" : "")}
-              style={{
-                fontWeight: 600,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                borderColor: ceoPreviewRole ? "#d97706" : undefined,
-                color: ceoPreviewRole ? "#92400e" : undefined,
-                background: ceoPreviewRole ? "#fffbeb" : undefined,
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                setCeoFilterMenuOpen((prev) => !prev);
-              }}
-              title="CEO view filter: inspect whole website or a specific department"
-            >
-              <Crown size={13} color="#d97706" />
-              <span>{previewCfg ? `Viewing: ${previewCfg.name}` : "Whole Website (CEO)"}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {ceoFilterMenuOpen && (
-              <div
-                className="zzc-sales-menu"
-                style={{
-                  minWidth: "220px",
-                  maxHeight: "360px",
-                  overflowY: "auto",
-                }}
-              >
-                <div style={{ padding: "6px 12px", fontSize: "10px", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
-                  CEO View Scope
-                </div>
-                <button
-                  type="button"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    fontWeight: !ceoPreviewRole ? 800 : 500,
-                    background: !ceoPreviewRole ? "#fef3c7" : undefined,
-                    color: !ceoPreviewRole ? "#92400e" : undefined,
-                  }}
-                  onClick={() => handleSelectCeoFilter(null)}
-                >
-                  <span>👑 Whole Website (All 7 Sections)</span>
-                  {!ceoPreviewRole && <Check size={14} />}
-                </button>
-                <div style={{ height: "1px", background: "#e2e8f0", margin: "4px 0" }} />
-                <div style={{ padding: "4px 12px", fontSize: "10px", fontWeight: 700, color: "#94a3b8" }}>
-                  Or filter as Department:
-                </div>
-                {LOGIN_ROLES.slice(1).map((dept) => {
-                  const isCur = ceoPreviewRole === dept.key;
-                  return (
-                    <button
-                      key={dept.key}
-                      type="button"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        fontWeight: isCur ? 800 : 500,
-                        background: isCur ? "#f1f5f9" : undefined,
-                      }}
-                      onClick={() => handleSelectCeoFilter(dept.key)}
-                    >
-                      <span>{dept.name} ({dept.badge})</span>
-                      {isCur && <Check size={14} color={dept.accentColor} />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Sales CRM Dropdown Container (Visible to CEO & Sales Team) */}
         {canAccessSalesCrm && (
           <div className="zzc-sales-menu-wrap" ref={salesDropdownRef}>
@@ -267,22 +134,28 @@ export default function TopBar({
           </div>
         )}
 
-        {/* User Role Pill */}
-        {adminUser && (
-          <span
-            className="zzc-btn zzc-btn-outline"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              cursor: "default",
-              fontWeight: 600,
-            }}
-          >
-            {isCeo ? <Crown size={14} color="#d97706" /> : <User size={14} />}
-            <span>{adminUser.name || (isCeo ? "CEO" : "Department Lead")}</span>
-          </span>
-        )}
+        {/* Right side of Sales CRM: Admin */}
+        <button
+          type="button"
+          className="zzc-btn zzc-btn-outline"
+          onClick={() => onTabChange?.("data")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontWeight: 700,
+            color: "#0d8b7b",
+            borderColor: "#99f6e4",
+            background: "#f0fdfa",
+            cursor: "pointer",
+            padding: "0.45rem 0.85rem",
+            borderRadius: "8px",
+          }}
+          title="Admin Control"
+        >
+          <ShieldCheck size={14} color="#0d8b7b" />
+          <span>Admin</span>
+        </button>
 
         {/* Logout Button */}
         {onLogout && (
