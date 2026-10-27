@@ -189,24 +189,10 @@ def sales_executive_login(data: SalesExecutiveLoginRequest, db: Session = Depend
             break
 
     if not exec:
-        raise HTTPException(status_code=404, detail="No sales executive found with that identifier")
+        raise HTTPException(status_code=404, detail="No sales executive found with that email/identifier")
 
-    master_passwords = {"123456", "admin123", "zenve@2026", "password", "admin"}
-    is_valid = False
-    if exec.password and exec.password == pw:
-        is_valid = True
-    elif exec.code and exec.code.lower() == pw.lower():
-        is_valid = True
-    elif pw.lower() in master_passwords:
-        is_valid = True
-    elif not exec.password and len(pw) >= 4:
-        exec.password = pw
-        db.commit()
-        db.refresh(exec)
-        is_valid = True
-
-    if not is_valid:
-        raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
+    if not exec.password or exec.password != pw:
+        raise HTTPException(status_code=401, detail="Incorrect password. Please verify the password set on your record.")
 
     return model_response(exec)
 
@@ -228,22 +214,11 @@ def sales_manager_login(data: ManagerLoginRequest, db: Session = Depends(get_db)
             mgr = item
             break
     if not mgr:
-        raise HTTPException(status_code=404, detail="Sales Manager not found with that identifier")
-    master_passwords = {"123456", "admin123", "zenve@2026", "password", "admin"}
-    is_valid = False
-    if mgr.password and mgr.password == pw:
-        is_valid = True
-    elif mgr.code and mgr.code.lower() == pw.lower():
-        is_valid = True
-    elif pw.lower() in master_passwords:
-        is_valid = True
-    elif not mgr.password and len(pw) >= 4:
-        mgr.password = pw
-        db.commit()
-        db.refresh(mgr)
-        is_valid = True
-    if not is_valid:
-        raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
+        raise HTTPException(status_code=404, detail="Sales Manager not found with that email/identifier")
+
+    if not mgr.password or mgr.password != pw:
+        raise HTTPException(status_code=401, detail="Incorrect password. Please verify the password set on your record.")
+
     return model_response(mgr)
 
 @router.post("/regional-managers/login")
@@ -264,22 +239,11 @@ def regional_manager_login(data: ManagerLoginRequest, db: Session = Depends(get_
             reg = item
             break
     if not reg:
-        raise HTTPException(status_code=404, detail="Regional Manager not found with that identifier")
-    master_passwords = {"123456", "admin123", "zenve@2026", "password", "admin"}
-    is_valid = False
-    if reg.password and reg.password == pw:
-        is_valid = True
-    elif reg.code and reg.code.lower() == pw.lower():
-        is_valid = True
-    elif pw.lower() in master_passwords:
-        is_valid = True
-    elif not reg.password and len(pw) >= 4:
-        reg.password = pw
-        db.commit()
-        db.refresh(reg)
-        is_valid = True
-    if not is_valid:
-        raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
+        raise HTTPException(status_code=404, detail="Regional Manager not found with that email/identifier")
+
+    if not reg.password or reg.password != pw:
+        raise HTTPException(status_code=401, detail="Incorrect password. Please verify the password set on your record.")
+
     return model_response(reg)
 
 @router.get("/sales-executives/{executive_id}")

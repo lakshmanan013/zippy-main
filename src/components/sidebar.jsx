@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { NAV_GROUPS, getAllowedNavGroups, getRoleConfig } from "../data.js";
 import logo from "../assets/zenve-zippy-logo.png";
-import { LogOut } from "lucide-react";
 
 export default function Sidebar({
   currentKey,
@@ -43,7 +42,10 @@ export default function Sidebar({
         className="zzc-nav"
         ref={navRef}
         style={{
-          height: "calc(100vh - 80px)",
+          flex: "1 1 auto",
+          minHeight: 0,
+          overflowY: "auto",
+          paddingBottom: "36px",
         }}
       >
         {activeNavGroups.map((group) => (
@@ -103,99 +105,6 @@ export default function Sidebar({
           </div>
         )}
       </nav>
-
-      {/* Footer Profile & Logout */}
-      {adminUser && onLogout && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderTop: "1px solid var(--sidebar-border, #e2e8f0)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: "rgba(255, 255, 255, 0.95)",
-            position: "relative",
-            zIndex: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-            <div
-              style={{
-                width: "30px",
-                height: "30px",
-                borderRadius: "50%",
-                background: isCeo
-                  ? "linear-gradient(135deg, #f59e0b, #d97706)"
-                  : roleCfg.gradient || "linear-gradient(135deg, #0284c7, #0d9488)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "13px",
-                fontWeight: "bold",
-                flexShrink: 0,
-                boxShadow: isCeo ? "0 2px 6px rgba(217, 119, 6, 0.35)" : "none",
-              }}
-            >
-              {isCeo ? "👑" : (adminUser.name || adminUser.email || "U").charAt(0).toUpperCase()}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <p
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: "var(--foreground, #0f172a)",
-                  margin: 0,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {adminUser.name || (isCeo ? "CEO" : "Department Lead")}
-              </p>
-              <p
-                style={{
-                  fontSize: "10px",
-                  color: "#64748b",
-                  margin: 0,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {adminUser.email || (isCeo ? "ceo@zenvezippy.com" : roleCfg.email)}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            title="Log out of Portal"
-            style={{
-              padding: "6px",
-              borderRadius: "6px",
-              color: "#94a3b8",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "transparent",
-              border: "none",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#e11d48";
-              e.currentTarget.style.background = "#fee2e2";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#94a3b8";
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-      )}
     </aside>
   );
 }

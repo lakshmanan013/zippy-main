@@ -1,73 +1,58 @@
 
 
-import { Search, Plus } from "lucide-react";
+import { Search, LogOut, ShieldCheck } from "lucide-react";
+import "./TopBar.css";
 
-
-function Navbar({ activeItem }) {
+function Navbar({ activeItem = "Data" }) {
   return (
-    <header className="navbar">
-
-      <div className="navbar-title">
-        <h1>{activeItem}</h1>
+    <header className="zzc-topbar">
+      <div className="zzc-topbar-left">
+        <h1 className="zzc-topbar-title">{activeItem}</h1>
       </div>
 
-      <div className="navbar-actions">
-
-        <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-          <Search size={15} style={{ position: "absolute", left: "10px", color: "var(--muted-foreground, #64748b)", pointerEvents: "none" }} />
+      <div className="zzc-topbar-actions">
+        <div className="zzc-search-wrap">
+          <Search className="zzc-search-icon" size={16} />
           <input
             type="text"
-            placeholder="Search full_name"
-            className="search-input"
-            style={{ paddingLeft: "32px" }}
+            placeholder="Search pet name, species, ..."
+            className="zzc-search-input"
           />
         </div>
 
-        <button
-          className="primary-button"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "7px",
-            background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "10px",
-            padding: "0.48rem 0.95rem",
-            fontWeight: "700",
-            fontSize: "0.86rem",
-            boxShadow: "0 3px 10px rgba(13, 139, 123, 0.25)",
-            cursor: "pointer",
-            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
+        <button type="button" className="zzc-topbar-btn zzc-topbar-btn-primary">
           <span>+ New record</span>
         </button>
 
-        <button className="nav-button active">
+        <button type="button" className={`zzc-topbar-btn ${activeItem === "Dashboard" ? "active" : ""}`}>
           Dashboard
         </button>
 
-        <button className="nav-button active">
+        <button type="button" className={`zzc-topbar-btn ${activeItem === "Data" ? "active" : ""}`}>
           Data
         </button>
 
-        <button className="nav-button active">
-          Bulk tools
+        <button type="button" className={`zzc-topbar-btn ${activeItem === "Bulk Tools" ? "active" : ""}`}>
+          Bulk Tools
         </button>
 
-        <button className="nav-button">
-          Sales CRM
+        <button type="button" className="zzc-topbar-btn">
+          <span>Sales CRM</span>
+          <span className="zzc-caret">▼</span>
         </button>
 
-        <button className="nav-button">
-          Console
+        <button type="button" className="zzc-topbar-btn zzc-topbar-btn-admin">
+          <ShieldCheck size={15} />
+          <span>Admin</span>
         </button>
 
+        <button type="button" className="zzc-topbar-btn zzc-topbar-btn-logout">
+          <LogOut size={15} />
+          <span>Logout</span>
+        </button>
       </div>
-
     </header>
   );
 }
 
-export default Navbar;
+export default Navbar;

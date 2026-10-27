@@ -414,6 +414,49 @@ export default function App() {
 
   const columnLabels = tableColumns.map((f) => f.label || f.key);
 
+  const currentTitle = useMemo(() => {
+    if (activeTab === "dashboard") return "Dashboard";
+    if (activeTab === "bulk") return "Bulk Tools";
+    return findLabel(currentKey);
+  }, [activeTab, currentKey]);
+
+  const currentSubtitle = useMemo(() => {
+    if (activeTab === "dashboard") return "Marketplace Overview · Business Intelligence";
+    if (activeTab === "bulk") return "Batch Data Operations · Import & Export";
+    return `${filtered.length} records · table ${currentKey}`;
+  }, [activeTab, filtered.length, currentKey]);
+
+  const currentSearchPlaceholder = useMemo(() => {
+    if (activeTab === "data" && searchConfig) {
+      return "Search " + (searchConfig.placeholder || "").replace(/_/g, " ");
+    }
+    if (activeTab === "data") {
+      return `Search ${findLabel(currentKey).toLowerCase()}...`;
+    }
+    return "Search pet name, species, doctors...";
+  }, [activeTab, searchConfig, currentKey]);
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+    if (activeTab !== "data") {
+      setActiveTab("data");
+    }
+    if (salesCrmView) {
+      setSalesCrmView(null);
+    }
+  };
+
+  const handleNewRecordClick = () => {
+    if (activeTab !== "data") {
+      setActiveTab("data");
+    }
+    if (salesCrmView) {
+      setSalesCrmView(null);
+    }
+    openNewModal();
+  };
+
   if (salesCrmView) {
     return (
       <SalesCrmClone
@@ -421,8 +464,7 @@ export default function App() {
         role={salesCrmView}
         initialUser={activeSalesUser}
         onSwitchRole={(view) => handleSetSalesCrmView(view)}
-        onExit={(loggedOutRole) => {
-          const roleToRedirect = loggedOutRole || salesCrmView || "executive";
+        onExit={() => {
           setActiveSalesUser(null);
           try {
             localStorage.removeItem("zippy_crm_active_auth");
@@ -431,17 +473,9 @@ export default function App() {
             /* ignore */
           }
           setSalesCrmView(null);
-          setSalesLoginModal({ isOpen: true, role: roleToRedirect });
+          setActiveTab("data");
           try {
-            const targetPath =
-              roleToRedirect === "manager"
-                ? "/manager-login"
-                : roleToRedirect === "regional"
-                  ? "/regional-login"
-                  : "/executive-login";
-            if (window.location.pathname !== targetPath) {
-              history.pushState(null, "", targetPath);
-            }
+            history.replaceState(null, "", "/");
           } catch {
             /* ignore */
           }
@@ -513,21 +547,14 @@ export default function App() {
 
       <main className="zzc-main">
         <TopBar
-          title={findLabel(currentKey)}
-          subtitle={`${filtered.length} records · table ${currentKey}`}
-          showSearch={activeTab === "data"}
-          showNewRecord={activeTab === "data"}
-          searchPlaceholder={
-            searchConfig
-              ? "Search " + (searchConfig.placeholder || "").replace(/_/g, " ")
-              : `Search ${findLabel(currentKey).toLowerCase()}...`
-          }
+          title={currentTitle}
+          subtitle={currentSubtitle}
+          showSearch={true}
+          showNewRecord={true}
+          searchPlaceholder={currentSearchPlaceholder}
           searchTerm={searchTerm}
-          onSearchChange={(value) => {
-            setSearchTerm(value);
-            setCurrentPage(1);
-          }}
-          onNewRecord={openNewModal}
+          onSearchChange={handleSearchChange}
+          onNewRecord={handleNewRecordClick}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onOpenSalesCRM={(view) => handleOpenSalesCrmLogin(view)}

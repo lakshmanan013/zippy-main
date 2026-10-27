@@ -17,27 +17,11 @@ import {
   RotateCcw,
   Edit3,
   ShieldCheck,
-  Crown,
-  HeartHandshake,
-  CalendarCheck,
-  ShoppingBag,
-  CreditCard,
-  Sliders,
-  Briefcase,
-  Building2,
 } from "lucide-react";
-import { LOGIN_ROLES, getRoleConfig } from "../data.js";
 import "./AdminLogin.css";
 
 export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
-  // Portal Category: "ceo" | "department"
-  const [portalType, setPortalType] = useState("ceo");
-
-  // Selected Portal Role: default to "ceo"
-  const [selectedRoleKey, setSelectedRoleKey] = useState("ceo");
-  const selectedRole = getRoleConfig(selectedRoleKey);
-
-  // Auth Mode: "email" or "mobile"
+  // Mode: "email" or "mobile"
   const [authMode, setAuthMode] = useState("email");
 
   // Email form state
@@ -71,53 +55,9 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
     return () => clearInterval(interval);
   }, [otpSent, otpTimer]);
 
-  // Reset all fields on initial mount
-  useEffect(() => {
-    setEmail("");
-    setPassword("");
-    setPhone("");
-  }, []);
-
-  function handleSelectRole(roleKey) {
-    if (loading || isSuccess) return;
-    setSelectedRoleKey(roleKey);
-    const cfg = getRoleConfig(roleKey);
-    if (cfg.isCeo) {
-      setPortalType("ceo");
-    } else {
-      setPortalType("department");
-    }
-    // Clear credentials on role switch
-    setEmail("");
-    setPassword("");
-    setPhone("");
-    setOtpSent(false);
-    setDemoOtpHint("");
-    setError(null);
-    setInfoMessage(null);
-  }
-
-  function handleSwitchPortalType(type) {
-    if (loading || isSuccess) return;
-    setPortalType(type);
-    setEmail("");
-    setPassword("");
-    setPhone("");
-    if (type === "ceo") {
-      handleSelectRole("ceo");
-    } else if (type === "department") {
-      if (selectedRoleKey === "ceo") {
-        handleSelectRole("pet_parents");
-      }
-    }
-  }
-
   function switchMode(newMode) {
     if (loading || isSuccess) return;
     setAuthMode(newMode);
-    setEmail("");
-    setPassword("");
-    setPhone("");
     setError(null);
     setInfoMessage(null);
   }
@@ -127,7 +67,6 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
       setCapsLockActive(e.getModifierState("CapsLock"));
     }
   }
-
 
   // -------------------------------------------------------------
   // 1. Email & Password Login Handler
@@ -141,7 +80,6 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
-    const activeCfg = getRoleConfig(selectedRoleKey);
 
     try {
       let loggedInUser = null;
@@ -151,56 +89,59 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
         const res = await fetch(`${API_BASE}/admin-login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: cleanEmail,
-            password: cleanPassword,
-            role: selectedRoleKey,
-          }),
+          body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
         });
 
         if (res.ok) {
           const data = await res.json();
-          loggedInUser = data.user;
+          loggedInUser = data.user || {
+            email: cleanEmail,
+            name: "Admin User",
+            role: "Administrator",
+            is_ceo: true,
+          };
         }
       } catch (networkErr) {
         console.warn("Backend ping failed, using local auth verification", networkErr);
       }
 
-      // 2. Local fallback validation for Zenve Zippy Multi-Role
+      // 2. Local fallback validation for Zenve Zippy Admin
       if (!loggedInUser) {
-        if (cleanEmail === activeCfg.email && cleanPassword === activeCfg.defaultPassword) {
+        const ADMIN_EMAIL = "admin@zenvezippy.com";
+        const ADMIN_PASSWORD = "admin123";
+
+        if (cleanEmail === ADMIN_EMAIL && cleanPassword === ADMIN_PASSWORD) {
           loggedInUser = {
-            id: (activeCfg.sectionIndex || 0) + 1,
-            email: activeCfg.email,
-            name: activeCfg.name,
-            title: activeCfg.title,
-            role: activeCfg.key,
-            role_label: activeCfg.name,
-            is_ceo: activeCfg.isCeo,
-            allowed_groups: activeCfg.allowedGroups,
+            id: 1,
+            email: ADMIN_EMAIL,
+            name: "Admin",
+            role: "Administrator",
+            is_ceo: true,
           };
         } else if (cleanEmail.includes("@") && cleanPassword.length >= 4) {
           loggedInUser = {
-            id: (activeCfg.sectionIndex || 0) + 1,
+            id: 1,
             email: cleanEmail,
-            name: activeCfg.name,
-            title: activeCfg.title,
-            role: activeCfg.key,
-            role_label: activeCfg.name,
-            is_ceo: activeCfg.isCeo,
-            allowed_groups: activeCfg.allowedGroups,
+            name: "Admin",
+            role: "Administrator",
+            is_ceo: true,
           };
         }
       }
 
       if (loggedInUser) {
+        loggedInUser = {
+          ...loggedInUser,
+          is_ceo: true,
+          role: loggedInUser.role || "Administrator",
+        };
         localStorage.setItem("zippy_admin_user", JSON.stringify(loggedInUser));
         setIsSuccess(true);
         setTimeout(() => {
           onLoginSuccess(loggedInUser);
         }, 500);
       } else {
-        throw new Error("Invalid credentials for selected portal. Please try again.");
+        throw new Error("Invalid email or password. Please try again.");
       }
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.");
@@ -233,7 +174,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
         const res = await fetch(`${API_BASE}/admin-send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: cleanPhone, role: selectedRoleKey }),
+          body: JSON.stringify({ phone: cleanPhone }),
         });
 
         if (res.ok) {
@@ -241,7 +182,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
           if (data.otp) otpCode = data.otp;
           else if (data.mock_otp) otpCode = data.mock_otp;
 
-          if (data.sms_sent) {
+          if (data.sms_sent && !data.otp) {
             setInfoMessage(`Verification code sent via SMS to +91 ${cleanPhone.slice(-10)}`);
             setDemoOtpHint("");
           } else {
@@ -252,7 +193,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
       } catch (networkErr) {
         console.warn("Backend OTP request failed, using local OTP fallback", networkErr);
         setDemoOtpHint(otpCode);
-        setInfoMessage(`Verification code sent to +91 ${cleanPhone.slice(-10)}`);
+        setInfoMessage(`Local fallback OTP: ${otpCode}`);
       }
 
       setOtpSent(true);
@@ -314,7 +255,6 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
     setLoading(true);
 
     const cleanPhone = phone.replace(/\D/g, "");
-    const activeCfg = getRoleConfig(selectedRoleKey);
 
     try {
       let loggedInUser = null;
@@ -324,7 +264,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
         const res = await fetch(`${API_BASE}/admin-verify-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: cleanPhone, otp: enteredOtp, role: selectedRoleKey }),
+          body: JSON.stringify({ phone: cleanPhone, otp: enteredOtp }),
         });
 
         if (res.ok) {
@@ -335,24 +275,28 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
         console.warn("Backend verify failed, using local verification", networkErr);
       }
 
-      // 2. Fallback local verification
+      // 2. Fallback local verification (accepts sent OTP or demo 123456)
       if (!loggedInUser) {
         if (enteredOtp === demoOtpHint || enteredOtp === "123456") {
           loggedInUser = {
-            id: (activeCfg.sectionIndex || 0) + 1,
-            email: activeCfg.email,
+            id: 1,
+            email: "admin@zenvezippy.com",
             phone: cleanPhone.slice(-10),
-            name: activeCfg.name,
-            title: activeCfg.title,
-            role: activeCfg.key,
-            role_label: activeCfg.name,
-            is_ceo: activeCfg.isCeo,
-            allowed_groups: activeCfg.allowedGroups,
+            name: "Admin",
+            role: "Administrator",
+            is_ceo: true,
           };
         }
       }
 
       if (loggedInUser) {
+        loggedInUser = {
+          ...loggedInUser,
+          name: "Admin",
+          email: loggedInUser.email || "admin@zenvezippy.com",
+          is_ceo: true,
+          role: loggedInUser.role || "Administrator",
+        };
         localStorage.setItem("zippy_admin_user", JSON.stringify(loggedInUser));
         setIsSuccess(true);
         setTimeout(() => {
@@ -366,32 +310,6 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
       setLoading(false);
     }
   }
-
-  // Render role icon
-  function renderRoleIcon(iconName, size = 16, color = "currentColor") {
-    switch (iconName) {
-      case "Crown":
-        return <Crown size={size} color={color} />;
-      case "HeartHandshake":
-        return <HeartHandshake size={size} color={color} />;
-      case "Stethoscope":
-        return <Stethoscope size={size} color={color} />;
-      case "CalendarCheck":
-        return <CalendarCheck size={size} color={color} />;
-      case "ShoppingBag":
-        return <ShoppingBag size={size} color={color} />;
-      case "CreditCard":
-        return <CreditCard size={size} color={color} />;
-      case "Sliders":
-        return <Sliders size={size} color={color} />;
-      case "Briefcase":
-        return <Briefcase size={size} color={color} />;
-      default:
-        return <ShieldCheck size={size} color={color} />;
-    }
-  }
-
-  const departmentRoles = LOGIN_ROLES.slice(1);
 
   return (
     <div className="zzc-split-auth-container">
@@ -422,39 +340,19 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
 
           {/* Main Hero Headline */}
           <div className="zzc-hero-body">
-            <div className="zzc-hero-role-chip" style={{ borderColor: selectedRole.accentColor }}>
-              <span className="zzc-hero-chip-icon">
-                {renderRoleIcon(selectedRole.iconName, 14, selectedRole.accentColor)}
-              </span>
-              <span style={{ color: selectedRole.accentColor, fontWeight: 700 }}>
-                {selectedRole.isCeo ? "👑 Executive Portal" : `🔒 ${selectedRole.name} Portal`}
-              </span>
-            </div>
-
             <h1 className="zzc-hero-headline">
-              {selectedRole.isCeo ? (
-                <>
-                  Run the whole pet<br />
-                  ecosystem from one master<br />
-                  <span className="zzc-highlight-keyword">dashboard.</span>
-                </>
-              ) : (
-                <>
-                  Dedicated portal for<br />
-                  <span style={{ color: selectedRole.accentColor }}>{selectedRole.name}</span><br />
-                  operations.
-                </>
-              )}
+              Run your entire pet<br />
+              ecosystem from one<br />
+              simple<br />
+              <span className="zzc-highlight-keyword">dashboard.</span>
             </h1>
-
             <p className="zzc-hero-description">
-              {selectedRole.isCeo
-                ? "Full CEO administrative authority over Pet Parents, Doctors & Clinics, Bookings, Commerce, Orders & Payments, Platform, and Sales Team."
-                : `Strictly isolated to ${selectedRole.name} (${selectedRole.badge}): ${selectedRole.tagline}.`}
+              Manage appointments, doctors, patients, digital prescriptions, commerce inventory, and billing in one unified platform built for scale.
             </p>
 
             {/* 3 Colored Feature Cards */}
             <div className="zzc-hero-features-list">
+              {/* Card 1: Mint / Teal */}
               <div className="zzc-hero-feature-card zzc-card-mint">
                 <div className="zzc-feature-icon-box zzc-icon-teal">
                   <Stethoscope size={20} color="#ffffff" />
@@ -468,6 +366,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                 </div>
               </div>
 
+              {/* Card 2: Lavender / Purple */}
               <div className="zzc-hero-feature-card zzc-card-lavender">
                 <div className="zzc-feature-icon-box zzc-icon-purple">
                   <FileText size={20} color="#ffffff" />
@@ -481,13 +380,14 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                 </div>
               </div>
 
+              {/* Card 3: Soft Amber / Gold */}
               <div className="zzc-hero-feature-card zzc-card-amber">
                 <div className="zzc-feature-icon-box zzc-icon-amber">
                   <Package size={20} color="#ffffff" />
                 </div>
                 <div className="zzc-feature-text">
-                  <strong>Commerce & Orders, Handled.</strong>
-                  <span>Medicines, multi-store inventory & logistics</span>
+                  <strong>Inventory & billing, handled.</strong>
+                  <span>Medicines, multi-store stock & field ops</span>
                 </div>
                 <div className="zzc-card-arrow-circle">
                   <ArrowRight size={15} />
@@ -509,21 +409,60 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
       <div className="zzc-auth-form-panel">
         {/* Floating Top Right Handwritten Doodles */}
         <div className="zzc-doodle-top-right">
-          <div className="zzc-doodle-handwriting">Role-Based Access</div>
+          <div className="zzc-doodle-handwriting">Better Care</div>
           <div className="zzc-doodle-handwriting-sub">
-            CEO Whole Site &bull; 7 Depts <span className="zzc-doodle-heart">✓</span>
+            For Every Pet <span className="zzc-doodle-heart">&#9825;</span>
           </div>
           <svg className="zzc-doodle-curve" viewBox="0 0 90 18" fill="none">
             <path d="M2 14C24 4 60 4 88 12" stroke="#00967a" strokeWidth="2.4" strokeLinecap="round" />
           </svg>
         </div>
 
+        {/* Floating faint background paw prints */}
+        <div className="zzc-bg-floating-paw zzc-paw-1">
+          <svg viewBox="0 0 48 48" fill="currentColor" width="32" height="32">
+            <path d="M24 20C17.5 20 13 25.5 13 32C13 38.5 18 43 24 43C30 43 35 38.5 35 32C35 25.5 30.5 20 24 20Z" />
+            <ellipse cx="12" cy="19" rx="4.5" ry="6" transform="rotate(-20 12 19)" />
+            <ellipse cx="20" cy="12" rx="4.5" ry="6" transform="rotate(-6 20 12)" />
+            <ellipse cx="28" cy="12" rx="4.5" ry="6" transform="rotate(6 28 12)" />
+            <ellipse cx="36" cy="19" rx="4.5" ry="6" transform="rotate(20 36 19)" />
+          </svg>
+        </div>
+        <div className="zzc-bg-floating-paw zzc-paw-2">
+          <svg viewBox="0 0 48 48" fill="currentColor" width="26" height="26">
+            <path d="M24 20C17.5 20 13 25.5 13 32C13 38.5 18 43 24 43C30 43 35 38.5 35 32C35 25.5 30.5 20 24 20Z" />
+            <ellipse cx="12" cy="19" rx="4.5" ry="6" transform="rotate(-20 12 19)" />
+            <ellipse cx="20" cy="12" rx="4.5" ry="6" transform="rotate(-6 20 12)" />
+            <ellipse cx="28" cy="12" rx="4.5" ry="6" transform="rotate(6 28 12)" />
+            <ellipse cx="36" cy="19" rx="4.5" ry="6" transform="rotate(20 36 19)" />
+          </svg>
+        </div>
+
+        {/* Bottom Right Puppy & Kitten Doodle Mascot */}
+        <div className="zzc-doodle-bottom-right">
+          <div className="zzc-mascot-circle">
+            <svg viewBox="0 0 100 100" fill="none" className="zzc-mascot-svg">
+              <path d="M68 28C66.5 25.5 63 26 63 28.5C63 31.5 68 35 68 35C68 35 73 31.5 73 28.5C73 26 69.5 25.5 68 28Z" fill="#00967a" />
+              <path d="M24 76C24 58 32 46 44 46C52 46 56 50 56 58C56 68 52 76 52 76" stroke="#007a63" strokeWidth="2.8" strokeLinecap="round" />
+              <path d="M30 46C26 40 20 48 24 56" stroke="#007a63" strokeWidth="2.8" strokeLinecap="round" />
+              <path d="M54 58C58 52 64 48 72 52C80 56 82 68 82 76" stroke="#007a63" strokeWidth="2.8" strokeLinecap="round" />
+              <path d="M62 50L60 42L68 46" stroke="#007a63" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M74 48L80 42L80 50" stroke="#007a63" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="36" cy="54" r="1.8" fill="#007a63" />
+              <circle cx="46" cy="54" r="1.8" fill="#007a63" />
+              <path d="M40 58C40 60 42 60 42 58" stroke="#007a63" strokeWidth="2.8" strokeLinecap="round" />
+              <circle cx="68" cy="58" r="1.8" fill="#007a63" />
+              <circle cx="76" cy="58" r="1.8" fill="#007a63" />
+            </svg>
+          </div>
+        </div>
+
         {/* Centered Login Card */}
-        <div className="zzc-form-center-box zzc-form-role-portal-box">
+        <div className="zzc-form-center-box">
           {/* Card Brand Header */}
           <div className="zzc-card-brand-top">
             <div className="zzc-card-paw-logo">
-              <svg viewBox="0 0 48 48" fill="none" width="28" height="28">
+              <svg viewBox="0 0 48 48" fill="none" width="48" height="48">
                 <path d="M24 20C17.5 20 13 25.5 13 32C13 38.5 18 43 24 43C30 43 35 38.5 35 32C35 25.5 30.5 20 24 20Z" fill="#00b08b" />
                 <path d="M24 28C22.2 25.5 18.5 26.5 18.5 29.5C18.5 33 24 37 24 37C24 37 29.5 33 29.5 29.5C29.5 26.5 25.8 25.5 24 28Z" fill="#ffffff" />
                 <ellipse cx="12" cy="19" rx="4.5" ry="6" transform="rotate(-20 12 19)" fill="#00b08b" />
@@ -533,85 +472,9 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
               </svg>
             </div>
             <div className="zzc-card-brand-title">
-              <h3>
-                {selectedRole.isCeo
-                  ? "CEO Master "
-                  : `${selectedRole.name} `}
-                <span className="zzc-zippy-accent">Portal</span>
-              </h3>
-              <p>Zenve Zippy &bull; Desktop Multi-Portal</p>
+              <h3>Admin CRM Login</h3>
+              <p>Zenve Zippy &bull; Unified Control Center</p>
             </div>
-          </div>
-
-          {/* ============================================================== */}
-          {/* COMPACT SEGMENTED PORTAL SWITCHER: CEO vs DEPTS                */}
-          {/* ============================================================== */}
-          <div className="zzc-compact-portal-control">
-            <div className="zzc-portal-segment-tabs" role="tablist">
-              <button
-                type="button"
-                className={`zzc-segment-tab-btn ${portalType === "ceo" ? "active-ceo" : ""}`}
-                onClick={() => handleSwitchPortalType("ceo")}
-              >
-                <Crown size={13} className="zzc-crown-glow" />
-                <span>👑 CEO</span>
-              </button>
-              <button
-                type="button"
-                className={`zzc-segment-tab-btn ${portalType === "department" ? "active-dept" : ""}`}
-                onClick={() => handleSwitchPortalType("department")}
-              >
-                <Building2 size={13} />
-                <span>🏢 7 Departments</span>
-              </button>
-            </div>
-
-            {/* If Department chosen: Show compact 7-department pill picker */}
-            {portalType === "department" && (
-              <div className="zzc-dept-chips-container">
-                <div className="zzc-dept-chips-grid">
-                  {departmentRoles.map((role) => {
-                    const isCur = selectedRoleKey === role.key;
-                    return (
-                      <button
-                        key={role.key}
-                        type="button"
-                        className={`zzc-dept-chip-btn ${isCur ? "active" : ""}`}
-                        onClick={() => handleSelectRole(role.key)}
-                        style={{
-                          "--dept-color": role.accentColor,
-                        }}
-                      >
-                        <span className="zzc-chip-icon" style={{ color: role.accentColor }}>
-                          {renderRoleIcon(role.iconName, 12, role.accentColor)}
-                        </span>
-                        <span className="zzc-chip-label">{role.name}</span>
-                        <span className="zzc-chip-badge">S{role.sectionIndex}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* COMPACT ACTIVE SCOPE PILL */}
-          <div
-            className="zzc-compact-scope-pill"
-            style={{
-              borderColor: selectedRole.accentColor,
-              background: `${selectedRole.accentColor}12`,
-            }}
-          >
-            <span style={{ color: selectedRole.accentColor, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "5px" }}>
-              {renderRoleIcon(selectedRole.iconName, 12, selectedRole.accentColor)}
-              {selectedRole.isCeo ? "CEO Authority:" : `${selectedRole.name}:`}
-            </span>
-            <span className="zzc-scope-pill-text">
-              {selectedRole.isCeo
-                ? "Full access to whole website (all 7 sections)"
-                : `Strictly isolated to ${selectedRole.badge}`}
-            </span>
           </div>
 
           {/* Login Mode Switcher Tabs */}
@@ -623,7 +486,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
               className={`zzc-mode-tab-btn ${authMode === "email" ? "active" : ""}`}
               onClick={() => switchMode("email")}
             >
-              <Mail size={13} />
+              <Mail size={16} />
               <span>Email &amp; Password</span>
             </button>
             <button
@@ -633,15 +496,15 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
               className={`zzc-mode-tab-btn ${authMode === "mobile" ? "active" : ""}`}
               onClick={() => switchMode("mobile")}
             >
-              <Smartphone size={13} />
-              <span>Mobile OTP</span>
+              <Smartphone size={16} />
+              <span>Mobile with OTP</span>
             </button>
           </div>
 
           {/* Info Alert */}
           {infoMessage && (
             <div className="zzc-auth-alert-info" role="status">
-              <ShieldCheck size={14} className="zzc-info-icon" />
+              <ShieldCheck size={16} className="zzc-info-icon" />
               <span>{infoMessage}</span>
             </div>
           )}
@@ -658,30 +521,22 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
           {/* TAB 1: EMAIL & PASSWORD FORM                                   */}
           {/* ============================================================== */}
           {authMode === "email" && (
-            <form onSubmit={handleEmailSubmit} className="zzc-login-form" noValidate autoComplete="off">
-              {/* Hidden dummy decoy inputs to absorb browser password managers */}
-              <input type="text" name="fake_user_capture" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
-              <input type="password" name="fake_pass_capture" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
-
+            <form onSubmit={handleEmailSubmit} className="zzc-login-form" noValidate>
               {/* Email Field */}
               <div className="zzc-field-group">
                 <label htmlFor="admin-email">
-                  {selectedRole.name} Email <span className="zzc-required-asterisk">*</span>
+                  Email address <span className="zzc-required-asterisk">*</span>
                 </label>
                 <div className="zzc-input-container">
-                  <Mail size={15} className="zzc-input-left-icon" />
+                  <Mail size={17} className="zzc-input-left-icon" />
                   <input
                     id="admin-email"
-                    name="zzc_admin_email_no_autofill"
                     type="email"
-                    placeholder="Enter your email address"
+                    placeholder="admin@zenvezippy.com"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="off"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-form-type="other"
+                    autoComplete="email"
                     disabled={loading || isSuccess}
                     spellCheck="false"
                   />
@@ -696,68 +551,58 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                   </label>
                   {capsLockActive && (
                     <span className="zzc-capslock-warning">
-                      <AlertCircle size={10} /> Caps Lock is ON
+                      <AlertCircle size={12} /> Caps Lock is ON
                     </span>
                   )}
                 </div>
                 <div className="zzc-input-container">
-                  <Lock size={15} className="zzc-input-left-icon" />
+                  <Lock size={17} className="zzc-input-left-icon" />
                   <input
                     id="admin-password"
-                    name="zzc_admin_pass_no_autofill"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter password"
+                    placeholder="Enter your password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyUp={handlePasswordKeyUp}
                     onKeyDown={handlePasswordKeyUp}
-                    autoComplete="new-password"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-form-type="other"
+                    autoComplete="current-password"
                     disabled={loading || isSuccess}
                   />
                   <button
                     type="button"
-                    className="zzc-password-toggle-btn"
-                    onClick={() => setShowPassword((p) => !p)}
+                    className="zzc-password-eye-btn"
+                    onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
               </div>
 
-              {/* Actions Row: Sign In */}
-              <div className="zzc-form-actions-row">
-
-                <button
-                  type="submit"
-                  className={`zzc-signin-btn ${isSuccess ? "zzc-btn-success" : ""}`}
-                  disabled={loading || isSuccess}
-                  style={{
-                    background: isSuccess ? undefined : selectedRole.gradient,
-                  }}
-                >
-                  {isSuccess ? (
-                    <span className="zzc-btn-text-content">
-                      <CheckCircle2 size={16} />
-                      Verified! Entering...
-                    </span>
-                  ) : loading ? (
-                    <span className="zzc-btn-loading-content">
-                      <span className="zzc-spinner-circle" />
-                      Signing In...
-                    </span>
-                  ) : (
-                    <span className="zzc-btn-text-content">
-                      Sign In <ArrowRight size={15} />
-                    </span>
-                  )}
-                </button>
-              </div>
+              {/* Primary Sign In Button */}
+              <button
+                type="submit"
+                className={`zzc-signin-btn ${isSuccess ? "zzc-btn-success" : ""}`}
+                disabled={loading || isSuccess}
+              >
+                {isSuccess ? (
+                  <span className="zzc-btn-text-content">
+                    <CheckCircle2 size={18} />
+                    Access Granted...
+                  </span>
+                ) : loading ? (
+                  <span className="zzc-btn-loading-content">
+                    <span className="zzc-spinner-circle" />
+                    Signing in...
+                  </span>
+                ) : (
+                  <span className="zzc-btn-text-content">
+                    <ArrowRight size={17} /> Sign in to CRM
+                  </span>
+                )}
+              </button>
             </form>
           )}
 
@@ -768,11 +613,10 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
             <div className="zzc-login-form">
               {!otpSent ? (
                 /* Step 1: Enter Mobile Number */
-                <form onSubmit={handleSendOtp} className="zzc-mobile-step-form" autoComplete="off">
-                  <input type="text" style={{ display: "none" }} tabIndex={-1} autoComplete="off" />
+                <form onSubmit={handleSendOtp} className="zzc-mobile-step-form">
                   <div className="zzc-field-group">
                     <label htmlFor="admin-phone">
-                      {selectedRole.name} Mobile Number <span className="zzc-required-asterisk">*</span>
+                      Mobile Number <span className="zzc-required-asterisk">*</span>
                     </label>
                     <div className="zzc-input-container zzc-phone-input-container">
                       <div className="zzc-phone-prefix">
@@ -781,56 +625,49 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                       </div>
                       <input
                         id="admin-phone"
-                        name="zzc_admin_phone_no_autofill"
                         type="tel"
                         inputMode="numeric"
                         maxLength={10}
-                        placeholder="Enter 10-digit mobile number"
+                        placeholder="98765 43210"
                         required
                         value={phone}
                         onChange={(e) => {
                           const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
                           setPhone(digits);
                         }}
-                        autoComplete="off"
-                        data-lpignore="true"
-                        data-1p-ignore="true"
+                        autoComplete="tel"
                         disabled={loading || isSuccess}
                       />
                     </div>
                     <span className="zzc-field-hint">
-                      We'll send a 6-digit one-time password to verify {selectedRole.name} access.
+                      We'll send a 6-digit one-time password to verify your identity.
                     </span>
                   </div>
 
-                  <div className="zzc-form-actions-row">
-                    <button
-                      type="submit"
-                      className="zzc-signin-btn"
-                      disabled={loading || isSuccess || phone.length < 10}
-                      style={{
-                        background: selectedRole.gradient,
-                      }}
-                    >
-                      {loading ? (
-                        <span className="zzc-btn-loading-content">
-                          <span className="zzc-spinner-circle" />
-                          Sending...
-                        </span>
-                      ) : (
-                        <span className="zzc-btn-text-content">
-                          Send OTP <ArrowRight size={15} />
-                        </span>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="zzc-signin-btn"
+                    disabled={loading || isSuccess || phone.length < 10}
+                  >
+                    {loading ? (
+                      <span className="zzc-btn-loading-content">
+                        <span className="zzc-spinner-circle" />
+                        Sending OTP...
+                      </span>
+                    ) : (
+                      <span className="zzc-btn-text-content">
+                        <ArrowRight size={17} /> Send OTP Code
+                      </span>
+                    )}
+                  </button>
                 </form>
               ) : (
                 /* Step 2: Enter 6-digit OTP */
                 <form onSubmit={handleVerifyOtp} className="zzc-otp-verify-form">
+                  {/* Current Phone Indicator with Edit Button */}
                   <div className="zzc-phone-badge-row">
                     <div className="zzc-phone-target">
-                      <Smartphone size={14} color={selectedRole.accentColor} />
+                      <Smartphone size={15} color="#00967a" />
                       <span>Code sent to <strong>+91 {phone}</strong></span>
                     </div>
                     <button
@@ -843,10 +680,11 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                       }}
                       disabled={loading || isSuccess}
                     >
-                      <Edit3 size={12} /> Change
+                      <Edit3 size={13} /> Change
                     </button>
                   </div>
 
+                  {/* 6 Digit Input Boxes */}
                   <div className="zzc-field-group">
                     <label>
                       Enter 6-Digit OTP <span className="zzc-required-asterisk">*</span>
@@ -870,6 +708,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                     </div>
                   </div>
 
+                  {/* Resend and Demo Hint */}
                   <div className="zzc-otp-resend-row">
                     {otpTimer > 0 ? (
                       <span className="zzc-otp-timer-text">
@@ -882,23 +721,28 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                         onClick={handleSendOtp}
                         disabled={loading || isSuccess}
                       >
-                        <RotateCcw size={13} /> Resend OTP
+                        <RotateCcw size={14} /> Resend OTP
                       </button>
                     )}
                   </div>
 
+                  {/* Demo/Dev OTP helper banner */}
+                  {demoOtpHint && (
+                    <div className="zzc-demo-otp-banner">
+                      <span>Quick Test OTP: <strong>{demoOtpHint}</strong></span>
+                    </div>
+                  )}
+
+                  {/* Primary Verify Button */}
                   <button
                     type="submit"
                     className={`zzc-signin-btn ${isSuccess ? "zzc-btn-success" : ""}`}
                     disabled={loading || isSuccess || otpDigits.join("").length < 6}
-                    style={{
-                      background: isSuccess ? undefined : selectedRole.gradient,
-                    }}
                   >
                     {isSuccess ? (
                       <span className="zzc-btn-text-content">
-                        <CheckCircle2 size={17} />
-                        Verified! Entering {selectedRole.name} Portal...
+                        <CheckCircle2 size={18} />
+                        Verified! Logging in...
                       </span>
                     ) : loading ? (
                       <span className="zzc-btn-loading-content">
@@ -907,7 +751,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
                       </span>
                     ) : (
                       <span className="zzc-btn-text-content">
-                        <ShieldCheck size={16} /> Verify &amp; Sign In
+                        <ShieldCheck size={17} /> Verify &amp; Sign In
                       </span>
                     )}
                   </button>
@@ -916,14 +760,7 @@ export default function AdminLogin({ onLoginSuccess, onOpenSalesLogin }) {
             </div>
           )}
 
-          {/* Quick Info Footer */}
-          <div className="zzc-login-card-footer">
-            <span className="zzc-footer-note">
-              {selectedRole.isCeo
-                ? "👑 CEO account has unrestricted access across all 7 sections."
-                : `🔒 Logging in as ${selectedRole.name} restricts access to ${selectedRole.badge}.`}
-            </span>
-          </div>
+
         </div>
       </div>
     </div>

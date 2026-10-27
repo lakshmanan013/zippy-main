@@ -115,18 +115,17 @@ a {
 
 .zzc-sidebar {
   position: relative;
-
   width: 16rem;
   height: 100vh;
-
+  max-height: 100vh;
   flex-shrink: 0;
-
   border-right: 1px solid var(--border);
-
   background-color: var(--card);
-
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
+
 
 
 /* Sidebar Header */
@@ -187,62 +186,49 @@ a {
 ========================= */
 
 .zzc-nav {
-  height: calc(100vh - 64px);
-
+  flex: 1 1 auto;
+  min-height: 0;
   margin-top: 0px;
-
-  overflow-y: scroll;
-
+  overflow-y: auto;
   padding: .75rem;
-
-  scrollbar-width: auto;
-
-  scrollbar-color: #808080 transparent;
-  
+  padding-bottom: 2.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
 }
 
+.zzc-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.zzc-nav::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 4px;
+}
 
 /* Navigation Groups */
-
 .zzc-nav-group {
   margin-bottom: 1rem;
 }
 
-
 /* Group Title */
-
 .zzc-nav-group-label {
   padding: 0 .5rem .25rem;
-
   font-size: 11px;
-
   font-weight: 600;
-
   text-transform: uppercase;
-
   letter-spacing: .025em;
-
   color: var(--muted-foreground);
 }
 
-
 /* Navigation Buttons */
-
 .zzc-nav-btn {
   display: block;
-
   width: 100%;
-
   border-radius: calc(var(--radius) - 4px);
-
   padding: .375rem .5rem;
-
   text-align: left;
-
   font-size: .875rem;
-
   color: var(--foreground);
-
   transition:
     background-color .15s ease,
     color .15s ease;
@@ -254,74 +240,10 @@ a {
 
 .zzc-nav-btn.active {
   background-color: var(--primary);
-
   color: var(--primary-foreground);
 }
 
 
-/* =========================
-   SIDEBAR SCROLL ARROWS
-========================= */
-
-.zzc-scroll-arrow {
-  position: absolute;
-  left: 0;
-  width: 100%; /* Spans the full sidebar width for a clean look */
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--background);
-  color: var(--muted-foreground);
-  font-size: 9px;
-  border: none;
-  z-index: 20;
-  padding: 0;
-  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.2s ease;
-
-}
-
-.zzc-scroll-arrow:hover {
-  background-color: #d0d0d0;
-
-  color: #222;
-}
-
-
-/* =========================
-   SIDEBAR SCROLLBAR
-========================= */
-.zzc-nav::-webkit-scrollbar:vertical {
-  width: 16px;
-  background-color: #212121;
-}
-
-/* Scrollbar thumb (the draggable bar) */
-.zzc-nav::-webkit-scrollbar-thumb:vertical {
-  background-color: #757575;
-  border-radius: 8px;
-}
-
-/* Enable and size the scrollbar buttons */
-.zzc-nav::-webkit-scrollbar-button:single-button:vertical {
-  display: block;
-  background-color: #212121;
-  height: 16px;
-}
-
-/* Up Arrow (Decrement) */
-.zzc-nav::-webkit-scrollbar-button:single-button:vertical:decrement {
-  border-width: 0 6px 6px 6px;
-  border-color: transparent transparent #757575 transparent;
-  border-style: solid;
-}
-
-/* Down Arrow (Increment) */
-.zzc-nav::-webkit-scrollbar-button:single-button:vertical:increment {
-  border-width: 6px 6px 0 6px;
-  border-color: #757575 transparent transparent transparent;
-  border-style: solid;
-}
 
 /* ========================
    MAIN
@@ -344,89 +266,15 @@ a {
 }
 
 /* =========================
-   TOP BAR
+   TOP BAR & SEARCH
+   (Detailed sizing & button layout defined in TopBar.css)
 ========================= */
-
-.zzc-topbar {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  align-items: center;
-
-  justify-content: space-between;
-
-  gap: .75rem;
-
-  border-bottom: 1px solid var(--border);
-
-  background-color: var(--card);
-
-  padding: .75rem 1.25rem;
-}
-
-.zzc-topbar h1 {
-  font-size: 1.125rem;
-
-  font-weight: 600;
-
-  margin: 0;
-}
-
-.zzc-muted {
-  color: var(--muted-foreground);
-}
-
-.zzc-small {
-  font-size: .75rem;
-}
 
 .zzc-topbar-actions {
   display: flex;
-
   align-items: center;
-
-  gap: .5rem;
-
-  flex-wrap: wrap;
-}
-
-
-/* =========================
-   SEARCH
-========================= */
-
-.zzc-search-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.zzc-search-icon {
-  color: var(--muted-foreground, #64748b);
-  flex-shrink: 0;
-}
-
-.zzc-search-input {
-  height: 2.25rem;
-
-  border-radius: calc(var(--radius) - 4px);
-
-  border: 1px solid var(--border);
-
-  background-color: var(--background);
-
-  padding: 0 .75rem;
-
-  font-size: .875rem;
-
-  min-width: 10rem;
-}
-
-.zzc-search-input:focus {
-  outline: 2px solid var(--ring);
-
-  outline-offset: 1px;
+  flex-wrap: nowrap;
+  overflow: visible;
 }
 
 

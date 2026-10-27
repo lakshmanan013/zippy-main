@@ -554,37 +554,9 @@ export default function SalesCrmLoginModal({
       if (currentRole === "executive") {
         loggedUser = await loginSalesExecutive(cleanUser, cleanPass);
       } else if (currentRole === "manager") {
-        try {
-          loggedUser = await loginSalesManager(cleanUser, cleanPass);
-        } catch (mErr) {
-          const matched = usersList.find(
-            (u) =>
-              (u.email && u.email.toLowerCase() === cleanUser.toLowerCase()) ||
-              (u.code && u.code.toLowerCase() === cleanUser.toLowerCase()) ||
-              (u.phone && String(u.phone).trim() === cleanUser)
-          );
-          if (matched && (cleanPass === "123456" || cleanPass === matched.code || cleanPass.length >= 4)) {
-            loggedUser = matched;
-          } else {
-            throw mErr;
-          }
-        }
+        loggedUser = await loginSalesManager(cleanUser, cleanPass);
       } else if (currentRole === "regional") {
-        try {
-          loggedUser = await loginRegionalManager(cleanUser, cleanPass);
-        } catch (rErr) {
-          const matched = usersList.find(
-            (u) =>
-              (u.email && u.email.toLowerCase() === cleanUser.toLowerCase()) ||
-              (u.code && u.code.toLowerCase() === cleanUser.toLowerCase()) ||
-              (u.phone && String(u.phone).trim() === cleanUser)
-          );
-          if (matched && (cleanPass === "123456" || cleanPass === matched.code || cleanPass.length >= 4)) {
-            loggedUser = matched;
-          } else {
-            throw rErr;
-          }
-        }
+        loggedUser = await loginRegionalManager(cleanUser, cleanPass);
       }
 
       if (!loggedUser) {

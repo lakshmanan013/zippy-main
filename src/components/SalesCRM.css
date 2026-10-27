@@ -428,6 +428,14 @@ button {
   overflow: hidden;
 }
 
+/* Ensure full visibility when rendered inside main Zenve TopBar wrapper */
+.zzc-sales-page-wrapper .app,
+.zzc-sales-page-wrapper .app .sidebar,
+.zzc-sales-page-wrapper .app .main {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
 .main {
   flex: 1;
   min-width: 0;
