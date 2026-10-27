@@ -21,6 +21,7 @@ import BulkTools from "./components/BulkTools.jsx";
 import SalesCrmClone from "./components/SalesCrm.jsx";
 import SalesCrmLoginModal from "./components/SalesCrmLoginModal.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
+import TaskManagementView from "./components/TaskManagementView.jsx";
 
 
 const PAGE_SIZE = 10;
@@ -81,7 +82,7 @@ export default function App() {
       if (saved && (saved === "manager" || saved === "executive" || saved === "regional")) {
         return saved;
       }
-      if (hash && (hash === "#attendance" || hash === "#attendance_report" || hash === "#doctors" || hash === "#reports" || hash === "#dashboard" || hash === "#plan" || hash === "#approvals")) {
+      if (hash && (hash === "#attendance" || hash === "#attendance_report" || hash === "#doctors" || hash === "#reports" || hash === "#dashboard" || hash === "#plan" || hash === "#approvals" || hash === "#tasks")) {
         return "manager";
       }
     } catch {
@@ -200,7 +201,17 @@ export default function App() {
     return () => clearTimeout(t);
   }, [loadRecords]);
 
-    const filtered = useMemo(() => {
+  // Immediately refresh CRM when executive tasks are created, updated, or deleted
+  useEffect(() => {
+    const handleTasksUpdated = () => {
+      loadRecords();
+      setRefreshTrigger((n) => n + 1);
+    };
+    window.addEventListener("executive_tasks_updated", handleTasksUpdated);
+    return () => window.removeEventListener("executive_tasks_updated", handleTasksUpdated);
+  }, [loadRecords]);
+
+  const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     if (!term || !searchConfig) return records;
     const searchColumns = searchConfig.columns || [searchConfig.column];
@@ -220,7 +231,7 @@ export default function App() {
   const start = (safePage - 1) * PAGE_SIZE;
   const pageItems = filtered.slice(start, start + PAGE_SIZE);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-   
+  const [taskViewMode, setTaskViewMode] = useState("table");
   function selectTable(key) {
     setCurrentKey(key);
     setCurrentPage(1);
@@ -311,14 +322,15 @@ export default function App() {
       closeModal();
       await loadRecords();
       setRefreshTrigger((n) => n + 1);
+      if (currentKey === "executive_tasks") {
+        window.dispatchEvent(new CustomEvent("executive_tasks_updated", { detail: savedItem }));
+      }
     } catch (err) {
       setError(err.message || "Failed to save record");
     } finally {
       setSaving(false);
     }
   }
-
-
 
   async function handleDelete(record) {
     if (!window.confirm("Delete this record?")) return;
@@ -327,6 +339,9 @@ export default function App() {
       await deleteRecord(currentKey, record.id);
       await loadRecords();
       setRefreshTrigger((n) => n + 1);
+      if (currentKey === "executive_tasks") {
+        window.dispatchEvent(new CustomEvent("executive_tasks_updated", { detail: { id: record.id, deleted: true } }));
+      }
     } catch (err) {
       setError(err.message || "Failed to delete record");
     }
@@ -357,8 +372,8 @@ export default function App() {
               roleToRedirect === "manager"
                 ? "/manager-login"
                 : roleToRedirect === "regional"
-                ? "/regional-login"
-                : "/executive-login";
+                  ? "/regional-login"
+                  : "/executive-login";
             if (window.location.pathname !== targetPath) {
               history.pushState(null, "", targetPath);
             }
@@ -448,14 +463,16 @@ export default function App() {
         {activeTab === "dashboard" && <Dashboard />}
 
         {activeTab === "bulk" && <BulkTools />}
-        
+
         {activeTab === "data" && (
           <>
-          {findGroupLabel(currentKey) === "Sales team" ? (
-  <SalesTeamStats refreshTrigger={refreshTrigger} />
-) : (
-  <StatsGrid refreshTrigger={refreshTrigger} />
-)}
+            {findGroupLabel(currentKey) === "Sales team" ? (
+              <SalesTeamStats refreshTrigger={refreshTrigger} />
+            ) : (
+              <StatsGrid refreshTrigger={refreshTrigger} />
+            )}
+
+
             {loading ? (
               <div className="zzc-content">
                 <p className="zzc-muted">Loading {findLabel(currentKey)}…</p>

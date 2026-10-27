@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   usePlanStore,
   computeStats,
@@ -34,7 +34,47 @@ import {
 } from "./PlanModals.jsx";
 import "./Plan.css";
 import { VscSearch } from "react-icons/vsc";
+import { fetchTaskList, updateExecutiveTask } from "../api.js";
 
+/* ─────────────────────────────────────────────────────────
+   Convert a database ExecutiveTask into the shape
+   planView components expect (tasksWithDoctor).
+───────────────────────────────────────────────────────── */
+function adaptExecutiveTaskToPlanTask(item, today) {
+  const normStatus = (() => {
+    const s = String(item.status || "").toLowerCase().trim();
+    if (s === "completed" || s === "done" || s === "closed") return "Completed";
+    if (s === "in_progress" || s === "progress") return "In Progress";
+    if (s === "cancelled") return "Cancelled";
+    if (s === "rescheduled") return "Rescheduled";
+    if (item.is_overdue) return "Missed";
+    return "Scheduled";
+  })();
+
+  const schedDate = item.due_date ? String(item.due_date).slice(0, 10) : today;
+  const rawPriority = String(item.priority || "Medium").trim();
+  const priority = rawPriority ? (rawPriority.charAt(0).toUpperCase() + rawPriority.slice(1).toLowerCase()) : "Medium";
+
+  return {
+    id: `exec-task-${item.id}`,
+    rawTaskId: item.id,
+    isExecutiveTask: true,
+    scheduledDate: schedDate,
+    visitTime: item.task_type || "Assigned Task",
+    status: normStatus,
+    rescheduleReason: null,
+    rescheduledFrom: null,
+    doctor: {
+      id: `exec-doc-${item.id}`,
+      name: item.target_entity_name || item.title || "Assigned Task",
+      specialization: item.task_type ? `${item.task_type} · ${item.title}` : (item.description || "Assigned Task"),
+      hospital: item.assigned_by_name ? `Assigned by ${item.assigned_by_name} (${item.assigned_by_role || "Manager"})` : "—",
+      location: item.region || item.pincode || "Assigned Territory",
+      phone: item.description ? item.description : (item.remarks || "Assigned Task"),
+      priority: priority,
+    },
+  };
+}
 
 /* ─────────────────────────────────────────────────────────
    Convert a real API doctor (from useSalesData) into the
@@ -67,7 +107,11 @@ function adaptDoctor(doc, index, monthKey = getCurrentMonthKey()) {
 ───────────────────────────────────────────────────────── */
 function TaskActions({ task, onStart, onComplete, onReschedule, onCancel }) {
   if (task.status === "Completed") {
-    return <span className="doc-muted" style={{ fontSize: ".72rem" }}>Report submitted</span>;
+    return (
+      <span className="doc-muted" style={{ fontSize: ".72rem" }}>
+        {task.isExecutiveTask ? "Task Completed" : "Report submitted"}
+      </span>
+    );
   }
   if (task.status === "Cancelled") {
     return <span className="doc-muted" style={{ fontSize: ".72rem" }}>Cancelled</span>;
@@ -76,24 +120,28 @@ function TaskActions({ task, onStart, onComplete, onReschedule, onCancel }) {
     <div className="pln-action-row">
       {task.status !== "In Progress" ? (
         <button type="button" className="rpt-btn-sm rpt-btn-outline" onClick={onStart}>
-          Start Visit
+          {task.isExecutiveTask ? "Start Task" : "Start Visit"}
         </button>
       ) : (
         <button type="button" className="rpt-btn-sm rpt-btn-post" onClick={onComplete}>
-          Complete Visit
+          {task.isExecutiveTask ? "Complete Task" : "Complete Visit"}
         </button>
       )}
-      <button type="button" className="rpt-btn-sm rpt-btn-outline" onClick={onReschedule}>
-        Reschedule
-      </button>
-      {task.cancelRequested ? (
-        <button type="button" className="rpt-btn-sm rpt-btn-outline" disabled style={{opacity: 0.7}}>
-          Cancel Pending
+      {!task.isExecutiveTask && (
+        <button type="button" className="rpt-btn-sm rpt-btn-outline" onClick={onReschedule}>
+          Reschedule
         </button>
-      ) : (
-        <button type="button" className="rpt-btn-sm rpt-btn-edit" onClick={onCancel}>
-          Cancel
-        </button>
+      )}
+      {!task.isExecutiveTask && (
+        task.cancelRequested ? (
+          <button type="button" className="rpt-btn-sm rpt-btn-outline" disabled style={{ opacity: 0.7 }}>
+            Cancel Pending
+          </button>
+        ) : (
+          <button type="button" className="rpt-btn-sm rpt-btn-edit" onClick={onCancel}>
+            Cancel
+          </button>
+        )
       )}
     </div>
   );
@@ -477,7 +525,16 @@ function AssignedDoctorsTab({ store, planDoctorMap, monthKey }) {
 /* ─────────────────────────────────────────────────────────
    CALENDAR TAB
 ───────────────────────────────────────────────────────── */
-function CalendarTab({ store, doctorMap, monthKey, monthLabel, openTaskReport, openReschedule }) {
+function CalendarTab({
+  store,
+  doctorMap,
+  assignedExecTasks = [],
+  onUpdateExecTask,
+  monthKey,
+  monthLabel,
+  openTaskReport,
+  openReschedule,
+}) {
   const activeMonthKey = monthKey || getCurrentMonthKey();
   const label = monthLabel || formatMonthLabel(activeMonthKey);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -485,12 +542,17 @@ function CalendarTab({ store, doctorMap, monthKey, monthLabel, openTaskReport, o
 
   const byDate = useMemo(() => {
     const map = new Map();
-    store.planDoctors.forEach((pd) => {
+    (store?.planDoctors || []).forEach((pd) => {
       if (!map.has(pd.scheduledDate)) map.set(pd.scheduledDate, []);
       map.get(pd.scheduledDate).push(pd);
     });
+    (assignedExecTasks || []).forEach((et) => {
+      const adapted = adaptExecutiveTaskToPlanTask(et, today);
+      if (!map.has(adapted.scheduledDate)) map.set(adapted.scheduledDate, []);
+      map.get(adapted.scheduledDate).push(adapted);
+    });
     return map;
-  }, [store.planDoctors]);
+  }, [store?.planDoctors, assignedExecTasks, today]);
 
   const allDaysInMonth = useMemo(() => {
     const [y, m] = activeMonthKey.split("-").map(Number);
@@ -583,10 +645,26 @@ function CalendarTab({ store, doctorMap, monthKey, monthLabel, openTaskReport, o
           renderActions={(t, doctor) => (
             <TaskActions
               task={t}
-              onStart={() => store.updateTaskStatus(t.doctorId, "In Progress")}
-              onComplete={() => openTaskReport(t, doctor)}
-              onReschedule={() => openReschedule(t, doctor)}
-              onCancel={() => store.requestCancelTask(t.doctorId)}
+              onStart={() => {
+                if (t.isExecutiveTask) {
+                  onUpdateExecTask?.(t.rawTaskId, "In Progress");
+                } else {
+                  store?.updateTaskStatus?.(t.doctorId, "In Progress");
+                }
+              }}
+              onComplete={() => {
+                if (t.isExecutiveTask) {
+                  onUpdateExecTask?.(t.rawTaskId, "Completed");
+                } else {
+                  openTaskReport(t, doctor);
+                }
+              }}
+              onReschedule={() => {
+                if (!t.isExecutiveTask) openReschedule(t, doctor);
+              }}
+              onCancel={() => {
+                if (!t.isExecutiveTask) store?.requestCancelTask?.(t.doctorId);
+              }}
             />
           )}
         />
@@ -598,25 +676,35 @@ function CalendarTab({ store, doctorMap, monthKey, monthLabel, openTaskReport, o
 /* ─────────────────────────────────────────────────────────
    DAILY TASKS TAB
 ───────────────────────────────────────────────────────── */
-function DailyTasksTab({ store, doctorMap, monthKey, openTaskReport, openReschedule }) {
+function DailyTasksTab({
+  store,
+  doctorMap,
+  assignedExecTasks = [],
+  onUpdateExecTask,
+  monthKey,
+  openTaskReport,
+  openReschedule,
+}) {
   const today = getPlanToday(monthKey || getCurrentMonthKey());
   const tomorrow = addDaysStr(today, 1);
   const weekEnd = addDaysStr(today, 6);
   const [filter, setFilter] = useState("today");
 
-  const tasksWithDoctor = useMemo(
-    () =>
-      store.planDoctors
-        .filter((t) => t.status !== "Cancelled")
-        .map((t) => ({ ...t, doctor: doctorMap.get(t.doctorId) }))
-        .sort(
-          (a, b) =>
-            (a.scheduledDate + a.visitTime).localeCompare(
-              b.scheduledDate + b.visitTime
-            )
-        ),
-    [store.planDoctors, doctorMap]
-  );
+  const tasksWithDoctor = useMemo(() => {
+    const planList = (store?.planDoctors || [])
+      .filter((t) => t.status !== "Cancelled")
+      .map((t) => ({ ...t, doctor: doctorMap?.get?.(t.doctorId) }));
+
+    const execList = (assignedExecTasks || []).map((et) =>
+      adaptExecutiveTaskToPlanTask(et, today)
+    );
+
+    return [...planList, ...execList].sort((a, b) =>
+      (a.scheduledDate + a.visitTime).localeCompare(
+        b.scheduledDate + b.visitTime
+      )
+    );
+  }, [store?.planDoctors, doctorMap, assignedExecTasks, today]);
 
   const buckets = useMemo(() => {
     const todays = tasksWithDoctor.filter((t) => t.scheduledDate === today);
@@ -701,10 +789,26 @@ function DailyTasksTab({ store, doctorMap, monthKey, openTaskReport, openResched
               )}
               <TaskActions
                 task={t}
-                onStart={() => store.updateTaskStatus(t.doctorId, "In Progress")}
-                onComplete={() => openTaskReport(t, t.doctor)}
-                onReschedule={() => openReschedule(t, t.doctor)}
-                onCancel={() => store.requestCancelTask(t.doctorId)}
+                onStart={() => {
+                  if (t.isExecutiveTask) {
+                    onUpdateExecTask?.(t.rawTaskId, "In Progress");
+                  } else {
+                    store?.updateTaskStatus?.(t.doctorId, "In Progress");
+                  }
+                }}
+                onComplete={() => {
+                  if (t.isExecutiveTask) {
+                    onUpdateExecTask?.(t.rawTaskId, "Completed");
+                  } else {
+                    openTaskReport(t, t.doctor);
+                  }
+                }}
+                onReschedule={() => {
+                  if (!t.isExecutiveTask) openReschedule(t, t.doctor);
+                }}
+                onCancel={() => {
+                  if (!t.isExecutiveTask) store?.requestCancelTask?.(t.doctorId);
+                }}
               />
             </div>
           ))}
@@ -1300,6 +1404,48 @@ export default function PlanView({
   const [reportTarget, setReportTarget] = useState(null);
   const [rescheduleTarget, setRescheduleTarget] = useState(null);
 
+  useEffect(() => {
+    if (initialTab && !isManager) {
+      setSelectedTab(initialTab);
+    }
+  }, [initialTab, isManager]);
+
+  const [assignedExecTasks, setAssignedExecTasks] = useState([]);
+  const [execTasksLoading, setExecTasksLoading] = useState(false);
+
+  const loadExecutiveTasks = useCallback(async () => {
+    if (!execId) return;
+    try {
+      setExecTasksLoading(true);
+      const res = await fetchTaskList({ role: "executive", user_id: execId });
+      if (Array.isArray(res)) {
+        setAssignedExecTasks(res);
+      }
+    } catch (err) {
+      console.error("Failed to load assigned tasks for plan:", err);
+    } finally {
+      setExecTasksLoading(false);
+    }
+  }, [execId]);
+
+  useEffect(() => {
+    if (!isManager && execId) {
+      loadExecutiveTasks();
+    }
+  }, [isManager, execId, loadExecutiveTasks]);
+
+  const handleUpdateExecTask = async (taskId, newStatus) => {
+    try {
+      const payload = {
+        status: newStatus.toLowerCase().replace(/\s+/g, "_"),
+        progress: newStatus === "Completed" ? 100 : newStatus === "In Progress" ? 50 : 0,
+      };
+      await updateExecutiveTask(taskId, payload);
+      await loadExecutiveTasks();
+    } catch (err) {
+      console.error("Failed to update executive task:", err);
+    }
+  };
 
   function handleTabSelect(key) {
     if (isManager) return;
@@ -1453,10 +1599,12 @@ export default function PlanView({
         )}
 
         {tab === "calendar" &&
-          (store.monthlyPlan ? (
+          (store.monthlyPlan || assignedExecTasks.length > 0 ? (
             <CalendarTab
               store={store}
               doctorMap={doctorMap}
+              assignedExecTasks={assignedExecTasks}
+              onUpdateExecTask={handleUpdateExecTask}
               monthKey={monthKey}
               monthLabel={monthLabel}
               openTaskReport={openTaskReport}
@@ -1469,10 +1617,12 @@ export default function PlanView({
           ))}
 
         {tab === "tasks" &&
-          (store.monthlyPlan ? (
+          (store.monthlyPlan || assignedExecTasks.length > 0 ? (
             <DailyTasksTab
               store={store}
               doctorMap={doctorMap}
+              assignedExecTasks={assignedExecTasks}
+              onUpdateExecTask={handleUpdateExecTask}
               monthKey={monthKey}
               openTaskReport={openTaskReport}
               openReschedule={openReschedule}

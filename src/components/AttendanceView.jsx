@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Trash2,
 } from "lucide-react";
 import DoctorAvatar from "./DoctorAvatar.jsx";
 import FacePunchModal from "./FacePunchModal.jsx";
@@ -38,6 +39,7 @@ import {
   punchLunchAttendance,
   fetchAttendanceList,
   fetchTodayAttendance,
+  deleteAttendanceRecord,
 } from "../api.js";
 import { formatAttendanceDateAndDay } from "../dateUtils.js";
 import "./AttendanceView.css";
@@ -1415,6 +1417,44 @@ export default function AttendanceView({
     return pages;
   }, [currentPage, totalPages]);
 
+  // Handler to delete an attendance record
+  const handleDeleteAttendanceRow = async (row) => {
+    const formatted = formatAttendanceDateAndDay(row.date);
+    const dateLabel = formatted.formattedDate !== "—" ? `${formatted.formattedDate} (${formatted.dayName})` : row.date;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete attendance record for ${dateLabel}?`
+      )
+    ) {
+      return;
+    }
+    try {
+      if (row.id) {
+        await deleteAttendanceRecord(row.id).catch((err) => {
+          console.warn("Backend delete attendance notice:", err);
+        });
+      }
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const k1 = `${activeExecutive?.id}_${row.date}`;
+          const k2 = row.date;
+          delete parsed[k1];
+          delete parsed[k2];
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          setRecords(parsed);
+        }
+      } catch (err) {
+        console.warn("Storage delete notice:", err);
+      }
+      setDbRecords((prev) => prev.filter((item) => item.id !== row.id && item.date !== row.date));
+      showToast(`Attendance record for ${dateLabel} deleted successfully!`, "success");
+    } catch {
+      showToast("Failed to delete attendance record.", "error");
+    }
+  };
+
   return (
     <div className="attend-wrapper">
       {/* Toast Alert */}
@@ -1988,31 +2028,38 @@ export default function AttendanceView({
             <table className="attend-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Day</th>
-                  <th>Executive</th>
-                  <th>Face Verification</th>
-                  <th>Morning Punch In</th>
-                  <th>Lunch Out</th>
-                  <th>Lunch In</th>
-                  <th>Evening Logout</th>
-                  <th>Working Hours</th>
-                  <th>Status</th>
-                  <th>Remarks</th>
+                  <th style={{ width: 44, textAlign: "center" }}>#</th>
+                  <th style={{ minWidth: 125 }}>Date &amp; Day</th>
+                  <th style={{ minWidth: 150 }}>Sales Executive</th>
+                  <th style={{ minWidth: 165 }}>Face Verification</th>
+                  <th style={{ minWidth: 150 }}>Morning Punch In</th>
+                  <th style={{ minWidth: 125 }}>Lunch Out</th>
+                  <th style={{ minWidth: 125 }}>Lunch In</th>
+                  <th style={{ minWidth: 150 }}>Evening Logout</th>
+                  <th style={{ minWidth: 110, textAlign: "center" }}>Working Hours</th>
+                  <th style={{ minWidth: 105, textAlign: "center" }}>Status</th>
+                  <th style={{ minWidth: 160 }}>Remarks</th>
+                  <th style={{ width: 65, textAlign: "center" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedList.map((row) => {
+                {paginatedList.map((row, index) => {
                   const dateInfo = formatAttendanceDateAndDay(row.date);
+                  const isToday = row.date === todayIso;
+                  const rowNum = (currentPage - 1) * pageSize + index + 1;
                   return (
-                    <tr key={row.id}>
-                      <td>
-                        <span className="attend-date-text">{row.date}</span>
+                    <tr key={row.id || `${row.date}_${index}`} className={isToday ? "attend-row-today" : ""}>
+                      <td style={{ textAlign: "center" }}>
+                        <span className="attend-row-index">{rowNum}</span>
                       </td>
                       <td>
-                        <span className={`attend-day-text ${dateInfo.dayName.toLowerCase() === "sunday" ? "sunday" : ""}`}>
-                          {dateInfo.dayName}
-                        </span>
+                        <div className="attend-date-cell">
+                          <span className="attend-date-text">{dateInfo.formattedDate || row.date}</span>
+                          <span className={`attend-day-text ${dateInfo.dayName.toLowerCase() === "sunday" ? "sunday" : ""}`}>
+                            {dateInfo.dayName}
+                          </span>
+                          {isToday && <span className="attend-today-tag">TODAY</span>}
+                        </div>
                       </td>
                       <td>
                         <div className="attend-exec-cell">
@@ -2022,7 +2069,7 @@ export default function AttendanceView({
                       </td>
                       <td>
                         {(row.faceImage || row.punchOutFaceImage) ? (
-                          <div className="attend-face-cell" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <div className="attend-face-cell">
                             {row.faceImage && (
                               <button
                                 type="button"
@@ -2073,10 +2120,10 @@ export default function AttendanceView({
                             )}
                             <span className="attend-face-tag">
                               {row.faceImage && row.punchOutFaceImage
-                                ? "In & Out Verified"
+                                ? "In & Out"
                                 : row.faceImage
-                                ? "Morning In Verified"
-                                : "Evening Out Verified"}
+                                ? "Morning In"
+                                : "Evening Out"}
                             </span>
                           </div>
                         ) : (
@@ -2149,12 +2196,13 @@ export default function AttendanceView({
                           )}
                         </div>
                       </td>
-                      <td>
-                        <span className="attend-duration-text">
+                      <td style={{ textAlign: "center" }}>
+                        <span className="attend-duration-badge">
+                          <Clock size={11} />
                           {row.duration || "—"}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ textAlign: "center" }}>
                         <span
                           className={`attend-status-tag ${(row.status || "Present")
                             .toLowerCase()
@@ -2167,6 +2215,16 @@ export default function AttendanceView({
                         <span className="attend-remarks-text" title={row.remarks || "Field territory route completed"}>
                           {row.remarks ? formatShortRemarks(row.remarks) : "Field territory route completed"}
                         </span>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <button
+                          type="button"
+                          className="attend-row-del-btn"
+                          title={`Delete attendance record for ${dateInfo.formattedDate || row.date}`}
+                          onClick={() => handleDeleteAttendanceRow(row)}
+                        >
+                          <Trash2 size={13} color="#ef4444" />
+                        </button>
                       </td>
                     </tr>
                   );

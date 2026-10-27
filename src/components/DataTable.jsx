@@ -1,3 +1,5 @@
+import { Trash2 } from "lucide-react";
+
 export default function DataTable({
   columns,
   pageItems,
@@ -36,7 +38,12 @@ export default function DataTable({
                       <button className="zzc-btn-sm" onClick={() => onEdit(index)}>
                         Edit
                       </button>
-                      <button className="zzc-btn-sm zzc-btn-danger" onClick={() => onDelete(index)}>
+                      <button
+                        className="zzc-btn-sm zzc-btn-danger"
+                        onClick={() => onDelete(index)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                      >
+                        <Trash2 size={12} color="#ef4444" />
                         Delete
                       </button>
                     </td>

@@ -27,6 +27,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -37,6 +38,7 @@
     opacity: 0;
     transform: translateY(18px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -156,8 +158,8 @@
   object-fit: contain;
   pointer-events: none;
   z-index: 1;
-  mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.85) 16%, black 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.85) 16%, black 100%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.85) 16%, black 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.85) 16%, black 100%);
 }
 
 /* Close Button (Circular White Pill) */
@@ -305,9 +307,11 @@
   .zzc-exec-fields {
     grid-template-columns: 1fr;
   }
+
   .zzc-modal-header-art {
     display: none;
   }
+
   .zzc-exec-header-content {
     max-width: 100%;
   }
@@ -368,7 +372,8 @@
   box-sizing: border-box;
   transition: border-color 0.15s ease, background-color 0.15s ease;
   position: relative;
-  box-shadow: none !important; /* CRITICAL: No extra outer box shadow */
+  box-shadow: none !important;
+  /* CRITICAL: No extra outer box shadow */
 }
 
 /* Shell left icon */
@@ -463,19 +468,24 @@
 .theme-green .zzc-exec-field-header {
   color: #065f46;
 }
+
 .theme-green .zzc-field-label-icon {
   color: #059669;
 }
+
 .theme-green .zzc-exec-input-shell {
   border-color: #a7f3d0;
   background: #f0fdf9;
 }
+
 .theme-green .zzc-shell-left-icon {
   color: #059669;
 }
+
 .theme-green .zzc-shell-right-chevron {
   color: #059669;
 }
+
 .theme-green .zzc-exec-input-shell:focus-within {
   border-color: #059669;
   background: #ecfdf5;
@@ -485,19 +495,24 @@
 .theme-teal .zzc-exec-field-header {
   color: #0f766e;
 }
+
 .theme-teal .zzc-field-label-icon {
   color: #0d9488;
 }
+
 .theme-teal .zzc-exec-input-shell {
   border-color: #5eead4;
   background: #f0fdfa;
 }
+
 .theme-teal .zzc-shell-left-icon {
   color: #0d9488;
 }
+
 .theme-teal .zzc-shell-right-chevron {
   color: #0d9488;
 }
+
 .theme-teal .zzc-exec-input-shell:focus-within {
   border-color: #0d9488;
   background: #e6fffa;
@@ -507,19 +522,24 @@
 .theme-purple .zzc-exec-field-header {
   color: #6b21a8;
 }
+
 .theme-purple .zzc-field-label-icon {
   color: #9333ea;
 }
+
 .theme-purple .zzc-exec-input-shell {
   border-color: #c084fc;
   background: #faf5ff;
 }
+
 .theme-purple .zzc-shell-left-icon {
   color: #9333ea;
 }
+
 .theme-purple .zzc-shell-right-chevron {
   color: #9333ea;
 }
+
 .theme-purple .zzc-exec-input-shell:focus-within {
   border-color: #9333ea;
   background: #f3e8ff;
@@ -529,19 +549,24 @@
 .theme-blue .zzc-exec-field-header {
   color: #0369a1;
 }
+
 .theme-blue .zzc-field-label-icon {
   color: #0284c7;
 }
+
 .theme-blue .zzc-exec-input-shell {
   border-color: #7dd3fc;
   background: #f0f9ff;
 }
+
 .theme-blue .zzc-shell-left-icon {
   color: #0284c7;
 }
+
 .theme-blue .zzc-shell-right-chevron {
   color: #0284c7;
 }
+
 .theme-blue .zzc-exec-input-shell:focus-within {
   border-color: #0284c7;
   background: #e0f2fe;
@@ -551,19 +576,24 @@
 .theme-pink .zzc-exec-field-header {
   color: #be185d;
 }
+
 .theme-pink .zzc-field-label-icon {
   color: #db2777;
 }
+
 .theme-pink .zzc-exec-input-shell {
   border-color: #f472b6;
   background: #fdf2f8;
 }
+
 .theme-pink .zzc-shell-left-icon {
   color: #db2777;
 }
+
 .theme-pink .zzc-shell-right-chevron {
   color: #db2777;
 }
+
 .theme-pink .zzc-exec-input-shell:focus-within {
   border-color: #db2777;
   background: #fce7f3;
@@ -573,19 +603,24 @@
 .theme-amber .zzc-exec-field-header {
   color: #b45309;
 }
+
 .theme-amber .zzc-field-label-icon {
   color: #d97706;
 }
+
 .theme-amber .zzc-exec-input-shell {
   border-color: #fcd34d;
   background: #fffbeb;
 }
+
 .theme-amber .zzc-shell-left-icon {
   color: #d97706;
 }
+
 .theme-amber .zzc-shell-right-chevron {
   color: #d97706;
 }
+
 .theme-amber .zzc-exec-input-shell:focus-within {
   border-color: #d97706;
   background: #fef3c7;
@@ -722,12 +757,206 @@ button.zzc-btn-create:hover:not(:disabled) {
 }
 
 @keyframes zzcSparklePulse {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.2); opacity: 1; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
 
 .zzc-exec-footer .zzc-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   ROLE THEME ADAPTATIONS FOR ALL ZZC-EXEC MODALS
+   (New Record, Add Doctor, Assign Task, etc.)
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* ── Regional Manager (Royal Violet / Purple #7c3aed) ── */
+.role-regional.zzc-exec-modal,
+.role-regional .zzc-exec-modal,
+.theme-purple.zzc-exec-modal,
+.theme-purple .zzc-exec-modal {
+  border-color: #e9d5ff !important;
+  box-shadow: 0 25px 60px -15px rgba(124, 58, 237, 0.28), 0 0 0 1px rgba(124, 58, 237, 0.18) !important;
+}
+
+.role-regional .zzc-exec-header,
+.theme-purple .zzc-exec-header {
+  background: linear-gradient(135deg, #f5f3ff 0%, #fae8ff 50%, #fff7ed 100%) !important;
+  border-bottom: 1.5px solid #e9d5ff !important;
+}
+
+.role-regional .zzc-exec-header-badge,
+.theme-purple .zzc-exec-header-badge {
+  background: #7c3aed !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4) !important;
+}
+
+.role-regional .zzc-exec-section-badge,
+.theme-purple .zzc-exec-section-badge {
+  background: #f3e8ff !important;
+  color: #7c3aed !important;
+}
+
+.role-regional .zzc-exec-section-title-wrap h3,
+.theme-purple .zzc-exec-section-title-wrap h3 {
+  color: #4c1d95 !important;
+}
+
+.role-regional .zzc-exec-section-subtitle,
+.theme-purple .zzc-exec-section-subtitle {
+  color: #7c3aed !important;
+}
+
+.role-regional .zzc-exec-input-shell:focus-within,
+.theme-purple .zzc-exec-input-shell:focus-within {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18) !important;
+}
+
+.role-regional .zzc-btn-create,
+.role-regional button.zzc-btn-create,
+.theme-purple .zzc-btn-create,
+.theme-purple button.zzc-btn-create {
+  background: linear-gradient(90deg, #7c3aed 0%, #8b5cf6 100%) !important;
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.55), 0 4px 14px rgba(124, 58, 237, 0.3) !important;
+}
+
+.role-regional .zzc-btn-create:hover:not(:disabled),
+.role-regional button.zzc-btn-create:hover:not(:disabled),
+.theme-purple .zzc-btn-create:hover:not(:disabled),
+.theme-purple button.zzc-btn-create:hover:not(:disabled) {
+  background: linear-gradient(90deg, #6d28d9 0%, #7c3aed 100%) !important;
+  box-shadow: 0 0 22px rgba(124, 58, 237, 0.8), 0 6px 18px rgba(139, 92, 246, 0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Sales Manager (Emerald Green #059669) ── */
+.role-manager.zzc-exec-modal,
+.role-manager .zzc-exec-modal,
+.theme-green.zzc-exec-modal,
+.theme-green .zzc-exec-modal {
+  border-color: #bbf7d0 !important;
+  box-shadow: 0 25px 60px -15px rgba(5, 150, 105, 0.28), 0 0 0 1px rgba(5, 150, 105, 0.18) !important;
+}
+
+.role-manager .zzc-exec-header,
+.theme-green .zzc-exec-header {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #dcfce7 100%) !important;
+  border-bottom: 1.5px solid #bbf7d0 !important;
+}
+
+.role-manager .zzc-exec-header-badge,
+.theme-green .zzc-exec-header-badge {
+  background: #059669 !important;
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4) !important;
+}
+
+.role-manager .zzc-exec-section-badge,
+.theme-green .zzc-exec-section-badge {
+  background: #dcfce7 !important;
+  color: #059669 !important;
+}
+
+.role-manager .zzc-exec-section-title-wrap h3,
+.theme-green .zzc-exec-section-title-wrap h3 {
+  color: #064e3b !important;
+}
+
+.role-manager .zzc-exec-section-subtitle,
+.theme-green .zzc-exec-section-subtitle {
+  color: #059669 !important;
+}
+
+.role-manager .zzc-exec-input-shell:focus-within,
+.theme-green .zzc-exec-input-shell:focus-within {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18) !important;
+}
+
+.role-manager .zzc-btn-create,
+.role-manager button.zzc-btn-create,
+.theme-green .zzc-btn-create,
+.theme-green button.zzc-btn-create {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 0 16px rgba(5, 150, 105, 0.55), 0 4px 14px rgba(5, 150, 105, 0.3) !important;
+}
+
+.role-manager .zzc-btn-create:hover:not(:disabled),
+.role-manager button.zzc-btn-create:hover:not(:disabled),
+.theme-green .zzc-btn-create:hover:not(:disabled),
+.theme-green button.zzc-btn-create:hover:not(:disabled) {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+  box-shadow: 0 0 22px rgba(5, 150, 105, 0.8), 0 6px 18px rgba(4, 120, 87, 0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Sales Executive (Electric Azure Blue #0077e6) ── */
+.role-executive.zzc-exec-modal,
+.role-executive .zzc-exec-modal,
+.theme-blue.zzc-exec-modal,
+.theme-blue .zzc-exec-modal {
+  border-color: #bfdbfe !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 119, 230, 0.28), 0 0 0 1px rgba(0, 119, 230, 0.18) !important;
+}
+
+.role-executive .zzc-exec-header,
+.theme-blue .zzc-exec-header {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #e0f2fe 100%) !important;
+  border-bottom: 1.5px solid #bfdbfe !important;
+}
+
+.role-executive .zzc-exec-header-badge,
+.theme-blue .zzc-exec-header-badge {
+  background: #0077e6 !important;
+  box-shadow: 0 4px 14px rgba(0, 119, 230, 0.4) !important;
+}
+
+.role-executive .zzc-exec-section-badge,
+.theme-blue .zzc-exec-section-badge {
+  background: #dbeafe !important;
+  color: #0077e6 !important;
+}
+
+.role-executive .zzc-exec-section-title-wrap h3,
+.theme-blue .zzc-exec-section-title-wrap h3 {
+  color: #1e3a8a !important;
+}
+
+.role-executive .zzc-exec-section-subtitle,
+.theme-blue .zzc-exec-section-subtitle {
+  color: #0077e6 !important;
+}
+
+.role-executive .zzc-exec-input-shell:focus-within,
+.theme-blue .zzc-exec-input-shell:focus-within {
+  border-color: #0077e6 !important;
+  box-shadow: 0 0 0 3px rgba(0, 119, 230, 0.18) !important;
+}
+
+.role-executive .zzc-btn-create,
+.role-executive button.zzc-btn-create,
+.theme-blue .zzc-btn-create,
+.theme-blue button.zzc-btn-create {
+  background: linear-gradient(135deg, #0077e6 0%, #0056b3 100%) !important;
+  box-shadow: 0 0 16px rgba(0, 119, 230, 0.55), 0 4px 14px rgba(0, 119, 230, 0.3) !important;
+}
+
+.role-executive .zzc-btn-create:hover:not(:disabled),
+.role-executive button.zzc-btn-create:hover:not(:disabled),
+.theme-blue .zzc-btn-create:hover:not(:disabled),
+.theme-blue button.zzc-btn-create:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3 0%, #004494 100%) !important;
+  box-shadow: 0 0 22px rgba(0, 119, 230, 0.8), 0 6px 18px rgba(0, 86, 179, 0.5) !important;
+  transform: translateY(-2px) !important;
 }

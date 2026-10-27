@@ -473,17 +473,53 @@ class PincodeCoverageCreate(BaseModel):
     state: Optional[str] = None
 class ExecutiveTaskCreate(BaseModel):
     title: str
+    description: Optional[str] = None
+    task_type: Optional[str] = "General"
+    entity_type: Optional[str] = None
+    pincode: Optional[str] = None
+    priority: Optional[str] = "Medium"
+    status: Optional[str] = "pending"
+    due_date: Optional[date] = None
+    assigned_by_id: Optional[int] = None
+    assigned_by_role: Optional[str] = None
+    assigned_by_name: Optional[str] = None
+    assigned_to_role: Optional[str] = "executive"
+    assigned_to_id: Optional[int] = None
+    assigned_to_name: Optional[str] = None
+    region: Optional[str] = None
+    target_entity_name: Optional[str] = None
+    target_entity_id: Optional[int] = None
+    progress: Optional[int] = 0
+    remarks: Optional[str] = None
+
+class ExecutiveTaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
     task_type: Optional[str] = None
     entity_type: Optional[str] = None
     pincode: Optional[str] = None
     priority: Optional[str] = None
-    status: str = "pending"
+    status: Optional[str] = None
     due_date: Optional[date] = None
+    assigned_to_role: Optional[str] = None
+    assigned_to_id: Optional[int] = None
+    assigned_to_name: Optional[str] = None
+    region: Optional[str] = None
+    target_entity_name: Optional[str] = None
+    target_entity_id: Optional[int] = None
+    progress: Optional[int] = None
+    remarks: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
 class ExecutiveAlertCreate(BaseModel):
     title: str
-    severity: Optional[str] = None
+    message: Optional[str] = None
+    severity: Optional[str] = "info"
+    alert_type: Optional[str] = "task"
     entity_type: Optional[str] = None
     pincode: Optional[str] = None
+    executive_id: Optional[int] = None
+    task_id: Optional[int] = None
     is_read: bool = False
 class MonthlyPlanCreate(BaseModel):
     executive_id: int

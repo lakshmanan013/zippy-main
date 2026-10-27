@@ -20,11 +20,14 @@ def plan_response(obj):
             data[k] = v.isoformat()
     return data
 def model_response(obj):
-    data = {
-        key: value
-        for key, value in obj.__dict__.items()
-        if key != "_sa_instance_state"   
-    }
+    if hasattr(obj, "__table__"):
+        data = {col.name: getattr(obj, col.name) for col in obj.__table__.columns}
+    else:
+        data = {
+            key: value
+            for key, value in obj.__dict__.items()
+            if key != "_sa_instance_state"   
+        }
     if "is_active" in data:
         data["is_active"] = "Yes" if data["is_active"] else "No"
     if "password" in data and data["password"]:

@@ -1,0 +1,507 @@
+/* AssignTaskModal.css — Pet Theme & Section Cards styling */
+
+.atm-modal-frame {
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(13, 139, 123, 0.12) !important;
+}
+
+.atm-scrollable-body {
+  padding: 1.15rem 1.5rem !important;
+  max-height: calc(90vh - 175px);
+  overflow-y: auto;
+}
+
+/* Quick Templates Bar */
+.atm-quick-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  background: #f0fdf9;
+  border: 1px solid #cceee5;
+  border-radius: 12px;
+}
+
+.atm-quick-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #0d8b7b;
+}
+
+.atm-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.atm-quick-chip {
+  background: #ffffff;
+  border: 1px solid #bfe8dd;
+  color: #0f4a43;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.atm-quick-chip:hover {
+  background: #e6f8f3;
+  border-color: #0d8b7b;
+  transform: translateY(-1px);
+}
+
+.atm-quick-chip.active {
+  background: #0d8b7b;
+  color: #ffffff;
+  border-color: #0d8b7b;
+  box-shadow: 0 2px 6px rgba(13, 139, 123, 0.3);
+}
+
+/* Textarea Shell */
+.atm-textarea-shell {
+  height: auto !important;
+  min-height: 78px;
+  align-items: flex-start !important;
+  padding: 0.5rem 0.85rem 0.5rem 2.5rem !important;
+}
+
+.atm-textarea-shell textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.84rem;
+  color: #0f172a;
+  outline: none;
+  resize: vertical;
+  line-height: 1.4;
+  padding-top: 2px;
+}
+
+.atm-textarea-shell textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Role Toggle Bar for Regional Manager */
+.atm-role-toggle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.atm-role-toggle-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+}
+
+.atm-role-toggle-group {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.atm-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.atm-role-pill:hover {
+  border-color: #0d8b7b;
+  color: #0d8b7b;
+}
+
+.atm-role-pill.active {
+  background: #0d8b7b;
+  border-color: #0d8b7b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(13, 139, 123, 0.25);
+}
+
+/* 1-Click Quick Date Shortcuts */
+.atm-date-shortcuts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.atm-shortcuts-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-right: 0.15rem;
+}
+
+.atm-date-shortcuts button {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.atm-date-shortcuts button:hover {
+  background: var(--primary, #059669);
+  color: #ffffff;
+  border-color: var(--primary, #059669);
+}
+
+/* ── Regional Manager (Royal Purple #7c3aed & Sunset) Theme ── */
+.role-regional .atm-quick-templates,
+.theme-purple .atm-quick-templates {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+}
+
+.role-regional .atm-quick-label,
+.theme-purple .atm-quick-label {
+  color: #7c3aed;
+}
+
+.role-regional .atm-quick-chip,
+.theme-purple .atm-quick-chip {
+  border-color: #ddd6fe;
+  color: #5b21b6;
+}
+
+.role-regional .atm-quick-chip:hover,
+.theme-purple .atm-quick-chip:hover {
+  background: #f3e8ff;
+  border-color: #7c3aed;
+}
+
+.role-regional .atm-quick-chip.active,
+.theme-purple .atm-quick-chip.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
+  color: #ffffff;
+}
+
+.role-regional .atm-date-shortcuts button:hover,
+.theme-purple .atm-date-shortcuts button:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #ffffff;
+}
+
+/* ── Sales Manager (Emerald Green #059669) Theme ── */
+.role-manager .atm-quick-templates,
+.theme-green .atm-quick-templates {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.role-manager .atm-quick-label,
+.theme-green .atm-quick-label {
+  color: #059669;
+}
+
+.role-manager .atm-quick-chip,
+.theme-green .atm-quick-chip {
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.role-manager .atm-quick-chip:hover,
+.theme-green .atm-quick-chip:hover {
+  background: #d1fae5;
+  border-color: #059669;
+}
+
+.role-manager .atm-quick-chip.active,
+.theme-green .atm-quick-chip.active {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+  color: #ffffff;
+}
+
+.role-manager .atm-date-shortcuts button:hover,
+.theme-green .atm-date-shortcuts button:hover {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+/* ── Sales Executive (Electric Azure Blue #0077e6) Theme ── */
+.role-executive .atm-quick-templates,
+.theme-blue .atm-quick-templates {
+  background: #eff6ff;
+  border-color: #bae6fd;
+}
+
+.role-executive .atm-quick-label,
+.theme-blue .atm-quick-label {
+  color: #0077e6;
+}
+
+.role-executive .atm-quick-chip,
+.theme-blue .atm-quick-chip {
+  border-color: #93c5fd;
+  color: #0369a1;
+}
+
+.role-executive .atm-quick-chip:hover,
+.theme-blue .atm-quick-chip:hover {
+  background: #e0f2fe;
+  border-color: #0077e6;
+}
+
+.role-executive .atm-quick-chip.active,
+.theme-blue .atm-quick-chip.active {
+  background: #0077e6;
+  border-color: #0077e6;
+  box-shadow: 0 2px 6px rgba(0, 119, 230, 0.3);
+  color: #ffffff;
+}
+
+.role-executive .atm-date-shortcuts button:hover,
+.theme-blue .atm-date-shortcuts button:hover {
+  background: #0077e6;
+  border-color: #0077e6;
+  color: #ffffff;
+}
+
+/* ── Header & Section theme overrides for AssignTaskModal ── */
+.role-regional .atm-modal-frame,
+.role-regional.atm-modal-frame,
+.theme-purple .atm-modal-frame,
+.theme-purple.atm-modal-frame {
+  border-color: #e9d5ff !important;
+  box-shadow: 0 25px 60px -15px rgba(124, 58, 237, 0.25), 0 0 0 1px rgba(124, 58, 237, 0.15) !important;
+}
+
+.role-regional .atm-modal-frame .zzc-exec-header,
+.role-regional.atm-modal-frame .zzc-exec-header,
+.theme-purple .atm-modal-frame .zzc-exec-header,
+.theme-purple.atm-modal-frame .zzc-exec-header {
+  background: linear-gradient(135deg, #f5f3ff 0%, #fae8ff 50%, #fff7ed 100%) !important;
+  border-bottom: 1.5px solid #e9d5ff !important;
+}
+
+.role-regional .atm-modal-frame .zzc-exec-header-badge,
+.role-regional.atm-modal-frame .zzc-exec-header-badge,
+.theme-purple .atm-modal-frame .zzc-exec-header-badge,
+.theme-purple.atm-modal-frame .zzc-exec-header-badge {
+  background: #7c3aed !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35) !important;
+}
+
+.role-regional .atm-modal-frame .zzc-exec-section-badge,
+.role-regional.atm-modal-frame .zzc-exec-section-badge,
+.theme-purple .atm-modal-frame .zzc-exec-section-badge,
+.theme-purple.atm-modal-frame .zzc-exec-section-badge {
+  background: #f3e8ff !important;
+  color: #7c3aed !important;
+}
+
+.role-regional .atm-modal-frame .zzc-exec-input-shell:focus-within,
+.role-regional.atm-modal-frame .zzc-exec-input-shell:focus-within,
+.theme-purple .atm-modal-frame .zzc-exec-input-shell:focus-within,
+.theme-purple.atm-modal-frame .zzc-exec-input-shell:focus-within {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15) !important;
+}
+
+.role-manager .atm-modal-frame,
+.role-manager.atm-modal-frame,
+.theme-green .atm-modal-frame,
+.theme-green.atm-modal-frame {
+  border-color: #bbf7d0 !important;
+  box-shadow: 0 25px 60px -15px rgba(5, 150, 105, 0.25), 0 0 0 1px rgba(5, 150, 105, 0.15) !important;
+}
+
+.role-manager .atm-modal-frame .zzc-exec-header,
+.role-manager.atm-modal-frame .zzc-exec-header,
+.theme-green .atm-modal-frame .zzc-exec-header,
+.theme-green.atm-modal-frame .zzc-exec-header {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #dcfce7 100%) !important;
+  border-bottom: 1.5px solid #bbf7d0 !important;
+}
+
+.role-manager .atm-modal-frame .zzc-exec-header-badge,
+.role-manager.atm-modal-frame .zzc-exec-header-badge,
+.theme-green .atm-modal-frame .zzc-exec-header-badge,
+.theme-green.atm-modal-frame .zzc-exec-header-badge {
+  background: #059669 !important;
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35) !important;
+}
+
+.role-manager .atm-modal-frame .zzc-exec-section-badge,
+.role-manager.atm-modal-frame .zzc-exec-section-badge,
+.theme-green .atm-modal-frame .zzc-exec-section-badge,
+.theme-green.atm-modal-frame .zzc-exec-section-badge {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+}
+
+.role-manager .atm-modal-frame .zzc-exec-input-shell:focus-within,
+.role-manager.atm-modal-frame .zzc-exec-input-shell:focus-within,
+.theme-green .atm-modal-frame .zzc-exec-input-shell:focus-within,
+.theme-green.atm-modal-frame .zzc-exec-input-shell:focus-within {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15) !important;
+}
+
+/* ── Assigner Delegation & Authority Banner ── */
+.atm-delegation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 0.85rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.atm-delegation-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary, #059669);
+  border-radius: 2px;
+}
+
+.role-regional .atm-delegation-card,
+.theme-purple .atm-delegation-card {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  border-color: #e9d5ff;
+}
+.role-regional .atm-delegation-card::before,
+.theme-purple .atm-delegation-card::before {
+  background: #7c3aed;
+}
+
+.atm-delegation-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.atm-delegation-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.atm-delegation-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.atm-delegation-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.atm-delegation-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.atm-delegation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  white-space: nowrap;
+}
+
+.role-regional .atm-delegation-badge,
+.theme-purple .atm-delegation-badge {
+  background: #f3e8ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+/* ── Target Assignee Preview Card ── */
+.atm-assignee-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.atm-assignee-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.atm-assignee-card-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}

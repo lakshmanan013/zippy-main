@@ -518,7 +518,7 @@ export function DayDetailModal({ date, tasks, doctorMap, onClose, renderActions 
         ) : (
           <div className="pln-day-list">
             {tasks.map((t) => {
-              const doctor = doctorMap.get(t.doctorId);
+              const doctor = t.doctor || doctorMap?.get(t.doctorId);
               return (
                 <div className="pln-day-list-row" key={t.id}>
                   <DoctorMiniCard doctor={doctor} />

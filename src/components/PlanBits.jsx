@@ -52,9 +52,14 @@ export function SummaryCards({ stats }) {
 
 export function DoctorMiniCard({ doctor }) {
   if (!doctor) return <span className="doc-muted">Unknown doctor</span>;
+  const initial = (() => {
+    if (!doctor.name) return "D";
+    const cleaned = doctor.name.replace(/^Dr\.?\s*/i, "").trim();
+    return cleaned.charAt(0)?.toUpperCase() || doctor.name.charAt(0)?.toUpperCase() || "D";
+  })();
   return (
     <div className="doc-name-cell">
-      <div className="doc-avatar">{doctor.name?.charAt(4)?.toUpperCase() ?? "D"}</div>
+      <div className="doc-avatar">{initial}</div>
       <div>
         <span className="doc-name-text">{doctor.name}</span>
         <div className="doc-muted" style={{ fontSize: ".7rem" }}>{doctor.specialization}</div>

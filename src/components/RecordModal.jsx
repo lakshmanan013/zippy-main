@@ -23,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { findLabel } from "../data.js";
-import { sendMobileOtp, verifyMobileOtp } from "../api.js";
+import { sendMobileOtp, verifyMobileOtp, fetchList } from "../api.js";
 import modalPetHeaderImg from "../assets/modal-pet-header.png";
 import "./RecordModal.css";
 
@@ -331,6 +331,57 @@ function groupColumnsIntoSections(columns, tableKey) {
     return sections;
   }
 
+  if (tableKey === "executive_tasks") {
+    const taskDetailsKeys = ["title", "task_type", "priority", "status", "due_date", "description"];
+    const assignKeys = ["assigned_by_role", "assigned_by_name", "assigned_to_role", "assigned_to_name"];
+    const targetKeys = ["region", "target_entity_name", "pincode", "progress", "remarks"];
+
+    const taskCols = cleanColumns.filter((c) => taskDetailsKeys.includes(c.key));
+    const assignCols = cleanColumns.filter((c) => assignKeys.includes(c.key));
+    const targetCols = cleanColumns.filter((c) => targetKeys.includes(c.key));
+    const otherCols = cleanColumns.filter(
+      (c) =>
+        !taskDetailsKeys.includes(c.key) &&
+        !assignKeys.includes(c.key) &&
+        !targetKeys.includes(c.key)
+    );
+
+    const sections = [];
+    if (taskCols.length > 0) {
+      sections.push({
+        id: "task_details",
+        title: "Task Details & Schedule",
+        Icon: Check,
+        columns: taskCols,
+      });
+    }
+    if (assignCols.length > 0) {
+      sections.push({
+        id: "hierarchy",
+        title: "Assignment & Delegation (Auto-Fetched)",
+        Icon: User,
+        columns: assignCols,
+      });
+    }
+    if (targetCols.length > 0) {
+      sections.push({
+        id: "target_location",
+        title: "Territory & Deliverables",
+        Icon: MapPin,
+        columns: targetCols,
+      });
+    }
+    if (otherCols.length > 0) {
+      sections.push({
+        id: "other",
+        title: "Additional Details",
+        Icon: FileText,
+        columns: otherCols,
+      });
+    }
+    return sections;
+  }
+
   // Generic tables partition into Status and Basic Information
   const statusKeys = ["is_active", "status", "is_verified", "verified"];
   const locationKeys = [
@@ -457,6 +508,65 @@ export default function RecordModal({
     setPhoneOtpCountdown(0);
     setPhoneOtpMsg("");
   }
+
+  // Team members for Executive Task auto-fetch & delegation dropdowns
+  const [taskTeam, setTaskTeam] = useState({
+    executives: [],
+    managers: [],
+    regionalManagers: [],
+    coverage: [],
+  });
+
+  useEffect(() => {
+    if (tableKey === "executive_tasks" && mode) {
+      Promise.all([
+        fetchList("sales_executives").catch(() => []),
+        fetchList("sales_managers").catch(() => []),
+        fetchList("regional_managers").catch(() => []),
+        fetchList("pincode_coverage").catch(() => []),
+      ]).then(([execs, mgrs, regs, cov]) => {
+        setTaskTeam({
+          executives: Array.isArray(execs) ? execs : [],
+          managers: Array.isArray(mgrs) ? mgrs : [],
+          regionalManagers: Array.isArray(regs) ? regs : [],
+          coverage: Array.isArray(cov) ? cov : [],
+        });
+      });
+    }
+  }, [tableKey, mode]);
+
+  // Auto-fill initial values for new executive tasks
+  useEffect(() => {
+    if (tableKey === "executive_tasks" && mode === "new") {
+      if (!values.assigned_by_role) {
+        onChange("assigned_by_role", "regional");
+      }
+      if (!values.assigned_by_name && taskTeam.regionalManagers.length > 0) {
+        onChange("assigned_by_name", taskTeam.regionalManagers[0].name);
+        onChange("assigned_by_id", taskTeam.regionalManagers[0].id);
+      }
+      if (!values.assigned_to_role) {
+        onChange("assigned_to_role", "executive");
+      }
+      if (!values.assigned_to_name && taskTeam.executives.length > 0) {
+        const firstExec = taskTeam.executives[0];
+        onChange("assigned_to_name", firstExec.name);
+        onChange("assigned_to_id", firstExec.id);
+        if (firstExec.region && !values.region) {
+          onChange("region", firstExec.region);
+        }
+      }
+      if (!values.status) {
+        onChange("status", "Pending");
+      }
+      if (!values.priority) {
+        onChange("priority", "Medium");
+      }
+      if (!values.task_type) {
+        onChange("task_type", "Doctor Visit");
+      }
+    }
+  }, [tableKey, mode, taskTeam.regionalManagers, taskTeam.executives]);
 
   async function handleSendPhoneOtp() {
     setInputError("");
@@ -599,6 +709,206 @@ export default function RecordModal({
     const ShellIcon = getFieldShellIcon(key, field.type);
     const placeholder = getFieldPlaceholder(field);
     const id = `field_${key}`;
+
+    // Handle Assigner Role in executive_tasks
+    if (key === "assigned_by_role" && tableKey === "executive_tasks") {
+      return (
+        <div className={`zzc-exec-field theme-purple`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <ShieldCheck size={14} />
+            </span>
+            <label htmlFor={id}>
+              Assigner Role <span className="zzc-exec-required"> *</span>
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <ShieldCheck size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value || "regional"}
+                onChange={(e) => {
+                  const newRole = e.target.value;
+                  onChange("assigned_by_role", newRole);
+                  if (newRole === "regional") {
+                    const firstRm = taskTeam.regionalManagers[0];
+                    if (firstRm) {
+                      onChange("assigned_by_name", firstRm.name);
+                      onChange("assigned_by_id", firstRm.id);
+                    } else {
+                      onChange("assigned_by_name", "Regional Manager");
+                      onChange("assigned_by_id", 1);
+                    }
+                  } else if (newRole === "manager") {
+                    const firstSm = taskTeam.managers[0];
+                    if (firstSm) {
+                      onChange("assigned_by_name", firstSm.name);
+                      onChange("assigned_by_id", firstSm.id);
+                    } else {
+                      onChange("assigned_by_name", "Sales Manager");
+                      onChange("assigned_by_id", 1);
+                    }
+                  } else {
+                    onChange("assigned_by_name", "Admin");
+                    onChange("assigned_by_id", 1);
+                  }
+                }}
+              >
+                <option value="regional">Regional Manager</option>
+                <option value="manager">Sales Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle Assigned By in executive_tasks
+    if (key === "assigned_by_name" && tableKey === "executive_tasks") {
+      const byRole = values.assigned_by_role || "regional";
+      const assignerOptions =
+        byRole === "regional"
+          ? taskTeam.regionalManagers
+          : byRole === "manager"
+          ? taskTeam.managers
+          : [{ id: 1, name: "Admin" }];
+
+      return (
+        <div className={`zzc-exec-field theme-purple`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <User size={14} />
+            </span>
+            <label htmlFor={id}>
+              Assigned By (Auto-Fetched) <span className="zzc-exec-required"> *</span>
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <User size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value || ""}
+                onChange={(e) => {
+                  const selName = e.target.value;
+                  onChange("assigned_by_name", selName);
+                  const matched = assignerOptions.find((p) => p.name === selName);
+                  if (matched) {
+                    onChange("assigned_by_id", matched.id);
+                  }
+                }}
+              >
+                <option value="" disabled>Select assigner</option>
+                {assignerOptions.map((opt) => (
+                  <option key={opt.id} value={opt.name}>
+                    {opt.name} {opt.code ? `(${opt.code})` : ""} {opt.region ? `• ${opt.region}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle Assignee Role in executive_tasks
+    if (key === "assigned_to_role" && tableKey === "executive_tasks") {
+      return (
+        <div className={`zzc-exec-field theme-teal`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <Target size={14} />
+            </span>
+            <label htmlFor={id}>
+              Assignee Target Role <span className="zzc-exec-required"> *</span>
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value || "executive"}
+                onChange={(e) => {
+                  const toRole = e.target.value;
+                  onChange("assigned_to_role", toRole);
+                  if (toRole === "manager" && taskTeam.managers.length > 0) {
+                    const firstMgr = taskTeam.managers[0];
+                    onChange("assigned_to_name", firstMgr.name);
+                    onChange("assigned_to_id", firstMgr.id);
+                    if (firstMgr.region) onChange("region", firstMgr.region);
+                  } else if (toRole === "executive" && taskTeam.executives.length > 0) {
+                    const firstExec = taskTeam.executives[0];
+                    onChange("assigned_to_name", firstExec.name);
+                    onChange("assigned_to_id", firstExec.id);
+                    if (firstExec.region) onChange("region", firstExec.region);
+                    const cov = taskTeam.coverage.find((c) => c.executive_id === firstExec.id);
+                    if (cov?.pincode) onChange("pincode", cov.pincode);
+                  }
+                }}
+              >
+                <option value="executive">Field Sales Executive ({taskTeam.executives.length})</option>
+                <option value="manager">Territory Sales Manager ({taskTeam.managers.length})</option>
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
+
+    // Handle Assigned To in executive_tasks
+    if (key === "assigned_to_name" && tableKey === "executive_tasks") {
+      const isManager = values.assigned_to_role === "manager";
+      const candidateList = isManager ? taskTeam.managers : taskTeam.executives;
+
+      return (
+        <div className={`zzc-exec-field theme-teal`} key={key}>
+          <div className="zzc-exec-field-header">
+            <span className="zzc-field-label-icon">
+              <User size={14} />
+            </span>
+            <label htmlFor={id}>
+              Assigned To ({isManager ? "Sales Manager" : "Sales Executive"}) <span className="zzc-exec-required"> *</span>
+            </label>
+          </div>
+          <div className="zzc-exec-input-shell">
+            <User size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+            <div className="zzc-exec-input-control">
+              <select
+                id={id}
+                value={value || ""}
+                onChange={(e) => {
+                  const selName = e.target.value;
+                  onChange("assigned_to_name", selName);
+                  const matched = candidateList.find((p) => p.name === selName);
+                  if (matched) {
+                    onChange("assigned_to_id", matched.id);
+                    if (matched.region) onChange("region", matched.region);
+                    if (!isManager) {
+                      const cov = taskTeam.coverage.find((c) => c.executive_id === matched.id);
+                      if (cov?.pincode) onChange("pincode", cov.pincode);
+                    }
+                  }
+                }}
+              >
+                <option value="" disabled>— Select {isManager ? "Sales Manager" : "Sales Executive"} —</option>
+                {candidateList.map((emp) => (
+                  <option key={emp.id} value={emp.name}>
+                    {emp.name} {emp.code ? `(${emp.code})` : ""} {emp.region ? `• ${emp.region}` : ""} {emp.city ? `• ${emp.city}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+          </div>
+        </div>
+      );
+    }
 
     // Handle Region Field
     if (key === "region") {
@@ -900,7 +1210,7 @@ export default function RecordModal({
     }
 
     // Handle Status / is_active Field
-    if (key === "is_active" || key === "status") {
+    if (key === "is_active" || (key === "status" && !field.options && tableKey !== "executive_tasks")) {
       return (
         <div className={`zzc-exec-field ${themeClass}`} key={key}>
           <div className="zzc-exec-field-header">

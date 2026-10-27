@@ -540,12 +540,24 @@ export const TABLE_CONFIG = {
     path: "/executive-tasks",
     fields: [
       { key: "title", type: "text", required: true },
-      { key: "task_type", type: "text" },
-      { key: "entity_type", type: "text" },
-      { key: "pincode", type: "text" },
-      { key: "priority", type: "text" },
-      { key: "status", type: "text", default: "pending" },
+      { key: "description", type: "text" },
+      { key: "task_type", type: "select", options: ["Doctor Visit", "Clinic Onboarding", "Product Detailing", "Target Review", "Payment Collection", "Audit", "General"], label: "Task Category", default: "Doctor Visit" },
+      { key: "priority", type: "select", options: ["Urgent", "High", "Medium", "Low"], default: "Medium" },
+      { key: "status", type: "select", options: ["Pending", "In Progress", "Completed", "Cancelled"], default: "Pending" },
       { key: "due_date", type: "date" },
+      { key: "assigned_by_role", type: "select", options: ["regional", "manager", "admin"], label: "Assigner Role", default: "regional" },
+      { key: "assigned_by_name", type: "text", label: "Assigned By" },
+      { key: "assigned_by_id", type: "number", label: "Assigner ID", formOnly: true },
+      { key: "assigned_to_role", type: "select", options: ["executive", "manager"], label: "Assignee Role", default: "executive" },
+      { key: "assigned_to_name", type: "text", label: "Assigned To" },
+      { key: "assigned_to_id", type: "number", label: "Assignee ID", formOnly: true },
+      { key: "region", type: "text" },
+      { key: "target_entity_name", type: "text", label: "Doctor / Entity" },
+      { key: "pincode", type: "text" },
+      { key: "progress", type: "number", default: 0 },
+      { key: "remarks", type: "text" },
+      { key: "completed_at", type: "datetime", readOnly: true },
+      { key: "created_at", type: "datetime", readOnly: true },
     ],
   },
   executive_alerts: {
@@ -838,4 +850,61 @@ export async function checkFaceImage(imageDataUrl) {
   });
   return handleResponse(res);
 }
+
+export async function fetchTaskAnalytics(params = {}) {
+  const query = new URLSearchParams();
+  if (params.role) query.append("role", params.role);
+  if (params.user_id) query.append("user_id", params.user_id);
+  if (params.region) query.append("region", params.region);
+  const qStr = query.toString() ? `?${query.toString()}` : "";
+  const res = await fetch(`${API_BASE}/tasks/analytics${qStr}`);
+  return handleResponse(res);
+}
+
+export async function fetchExecutiveTaskSummary(executiveId) {
+  const res = await fetch(`${API_BASE}/tasks/executive-summary/${executiveId}`);
+  return handleResponse(res);
+}
+
+export async function fetchTaskList(params = {}) {
+  const query = new URLSearchParams();
+  if (params.role) query.append("role", params.role);
+  if (params.user_id) query.append("user_id", params.user_id);
+  if (params.assigned_to_id) query.append("assigned_to_id", params.assigned_to_id);
+  if (params.assigned_to_role) query.append("assigned_to_role", params.assigned_to_role);
+  if (params.assigned_by_id) query.append("assigned_by_id", params.assigned_by_id);
+  if (params.assigned_by_role) query.append("assigned_by_role", params.assigned_by_role);
+  if (params.status) query.append("status", params.status);
+  if (params.priority) query.append("priority", params.priority);
+  if (params.region) query.append("region", params.region);
+  const qStr = query.toString() ? `?${query.toString()}` : "";
+  const res = await fetch(`${API_BASE}/executive-tasks${qStr}`);
+  return handleResponse(res);
+}
+
+export async function createExecutiveTask(payload) {
+  const res = await fetch(`${API_BASE}/executive-tasks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function updateExecutiveTask(taskId, payload) {
+  const res = await fetch(`${API_BASE}/executive-tasks/${taskId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}
+
+export async function markAlertRead(alertId) {
+  const res = await fetch(`${API_BASE}/executive-alerts/${alertId}?is_read=true`, {
+    method: "PUT",
+  });
+  return handleResponse(res);
+}
+
 

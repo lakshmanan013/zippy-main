@@ -652,12 +652,39 @@ export default function AttendanceReportView({
     URL.revokeObjectURL(url);
   };
 
+  const isRegional = role === "regional";
+  const isExecutive = role === "executive";
+
+  const repBadgeBg = isRegional
+    ? "linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)"
+    : isExecutive
+    ? "linear-gradient(135deg, #0077e6 0%, #0056b3 100%)"
+    : "linear-gradient(135deg, #059669 0%, #047857 100%)";
+  const repBadgeShadow = isRegional
+    ? "0 6px 16px rgba(124, 58, 237, 0.35)"
+    : isExecutive
+    ? "0 6px 16px rgba(0, 119, 230, 0.35)"
+    : "0 6px 16px rgba(5, 150, 105, 0.35)";
+
+  const newRecGradient = isRegional
+    ? "linear-gradient(90deg, #7c3aed 0%, #8b5cf6 100%)"
+    : isExecutive
+    ? "linear-gradient(135deg, #0077e6 0%, #0056b3 100%)"
+    : "linear-gradient(135deg, #059669 0%, #047857 100%)";
+  const newRecGlow = isRegional
+    ? "0 0 16px rgba(124, 58, 237, 0.55), 0 4px 12px rgba(124, 58, 237, 0.35)"
+    : isExecutive
+    ? "0 0 16px rgba(0, 119, 230, 0.55), 0 4px 12px rgba(0, 119, 230, 0.35)"
+    : "0 0 16px rgba(5, 150, 105, 0.55), 0 4px 12px rgba(5, 150, 105, 0.35)";
+
+  const exportBtnColor = isRegional ? "#7c3aed" : isExecutive ? "#0077e6" : "#059669";
+
   return (
-    <div className="att-rep-wrap">
+    <div className={`att-rep-wrap role-${role} theme-${isRegional ? "purple" : isExecutive ? "blue" : "green"}`}>
       {/* ── HEADER BANNER ── */}
       <div className="att-rep-header">
         <div className="att-rep-header-left">
-          <div className="att-rep-icon-badge">
+          <div className="att-rep-icon-badge" style={{ background: repBadgeBg, boxShadow: repBadgeShadow }}>
             <FileSpreadsheet size={24} />
           </div>
           <div className="att-rep-title-group">
@@ -672,20 +699,21 @@ export default function AttendanceReportView({
           {isManager && (
             <button
               type="button"
+              className="att-rep-btn-primary"
               onClick={() => setNewRecordModal(true)}
               title="Manually add a new attendance record"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                background: newRecGradient,
                 color: "#ffffff",
                 border: "none",
                 borderRadius: "12px",
                 padding: "0.6rem 1.25rem",
                 fontWeight: "700",
                 fontSize: "0.9rem",
-                boxShadow: "0 4px 12px rgba(13, 139, 123, 0.28)",
+                boxShadow: newRecGlow,
                 cursor: "pointer",
                 transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
@@ -703,14 +731,14 @@ export default function AttendanceReportView({
               alignItems: "center",
               gap: "8px",
               background: "#ffffff",
-              color: "#0d8b7b",
-              border: "1.5px solid #0d8b7b",
+              color: exportBtnColor,
+              border: `1.5px solid ${exportBtnColor}`,
               padding: "0.55rem 1.2rem",
               borderRadius: "12px",
               fontWeight: "700",
               fontSize: "0.88rem",
               cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(13, 139, 123, 0.1)",
+              boxShadow: `0 2px 8px ${exportBtnColor}26`,
               transition: "all 0.2s ease",
             }}
           >
@@ -1427,17 +1455,17 @@ export default function AttendanceReportView({
             }
           }}
         >
-          <div className="zzc-exec-modal" style={{ maxWidth: 580, maxHeight: "90vh" }}>
-            {/* Header with Mint Theme & Pet Illustration */}
+          <div className={`zzc-exec-modal role-${role} theme-${isRegional ? "purple" : "green"}`} style={{ maxWidth: 580, maxHeight: "90vh" }}>
+            {/* Header with Role Theme & Pet Illustration */}
             <header className="zzc-exec-header">
               <div className="zzc-exec-header-paws-bg" aria-hidden="true">
-                <PawIcon size={26} color="#0d8b7b" className="zzc-paw-bg-1" />
-                <PawIcon size={18} color="#0d8b7b" className="zzc-paw-bg-2" />
-                <PawIcon size={32} color="#0d8b7b" className="zzc-paw-bg-3" />
+                <PawIcon size={26} color={isRegional ? "#7c3aed" : "#059669"} className="zzc-paw-bg-1" />
+                <PawIcon size={18} color={isRegional ? "#7c3aed" : "#059669"} className="zzc-paw-bg-2" />
+                <PawIcon size={32} color={isRegional ? "#7c3aed" : "#059669"} className="zzc-paw-bg-3" />
               </div>
 
               <div className="zzc-exec-header-content">
-                <span className="zzc-exec-header-badge">
+                <span className="zzc-exec-header-badge" style={{ background: isRegional ? "#7c3aed" : "#059669" }}>
                   <PawIcon size={24} color="#ffffff" />
                 </span>
                 <div className="zzc-exec-header-text">
@@ -1514,7 +1542,6 @@ export default function AttendanceReportView({
                           margin: 0,
                           fontSize: "0.86rem",
                           fontWeight: 800,
-                          color: "#0f2e2b",
                           letterSpacing: "0.02em",
                           textTransform: "uppercase",
                           whiteSpace: "nowrap",
@@ -1527,7 +1554,6 @@ export default function AttendanceReportView({
                       className="zzc-exec-section-subtitle"
                       style={{
                         fontSize: "0.78rem",
-                        color: "#5b7b75",
                         fontWeight: 600,
                         display: "inline-flex",
                         alignItems: "center",
@@ -1625,7 +1651,6 @@ export default function AttendanceReportView({
                           margin: 0,
                           fontSize: "0.86rem",
                           fontWeight: 800,
-                          color: "#0f2e2b",
                           letterSpacing: "0.02em",
                           textTransform: "uppercase",
                           whiteSpace: "nowrap",
@@ -1638,7 +1663,6 @@ export default function AttendanceReportView({
                       className="zzc-exec-section-subtitle"
                       style={{
                         fontSize: "0.78rem",
-                        color: "#5b7b75",
                         fontWeight: 600,
                         display: "inline-flex",
                         alignItems: "center",
@@ -1782,8 +1806,8 @@ export default function AttendanceReportView({
             {/* Footer */}
             <footer className="zzc-exec-footer">
               <div className="zzc-exec-footer-paws" aria-hidden="true">
-                <PawIcon size={24} color="#0d8b7b" />
-                <PawIcon size={16} color="#0d8b7b" />
+                <PawIcon size={24} color={isRegional ? "#7c3aed" : "#059669"} />
+                <PawIcon size={16} color={isRegional ? "#7c3aed" : "#059669"} />
               </div>
               <div
                 className="zzc-exec-footer-actions"
@@ -1821,14 +1845,14 @@ export default function AttendanceReportView({
                     alignItems: "center",
                     justifyContent: "center",
                     gap: "8px",
-                    background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                    background: newRecGradient,
                     color: "#ffffff",
                     border: "none",
                     padding: "10px 24px",
                     borderRadius: "12px",
                     fontWeight: "700",
                     fontSize: "0.88rem",
-                    boxShadow: "0 4px 14px rgba(13, 139, 123, 0.35)",
+                    boxShadow: newRecGlow,
                     cursor: newRecordSaving ? "not-allowed" : "pointer",
                     opacity: newRecordSaving ? 0.7 : 1,
                     transition: "all 0.18s ease",

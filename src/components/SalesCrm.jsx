@@ -33,6 +33,21 @@ import {
   LockKeyhole,
   Target,
   ShieldCheck,
+  CheckSquare,
+  Bell,
+  AlertTriangle,
+  AlertCircle,
+  TrendingUp,
+  CheckCircle2,
+  ArrowRight,
+  Award,
+  ShieldAlert,
+  Download,
+  Plus,
+  Globe,
+  Compass,
+  Users,
+  Package,
 } from "lucide-react";
 import {
   fetchList,
@@ -43,6 +58,10 @@ import {
   updateRecord,
   createRecord,
   API_BASE,
+  fetchTaskAnalytics,
+  fetchExecutiveTaskSummary,
+  updateExecutiveTask,
+  markAlertRead,
 } from "../api.js";
 import logo from "../assets/zenve-zippy-logo.png";
 import modalPetHeaderImg from "../assets/modal-pet-header.png";
@@ -52,6 +71,8 @@ import SalesCrmLoginModal from "./SalesCrmLoginModal.jsx";
 import PlanView from "./planView.jsx";
 import AttendanceView from "./AttendanceView.jsx";
 import AttendanceReportView from "./AttendanceReportView.jsx";
+import TaskManagementView from "./TaskManagementView.jsx";
+import AssignTaskModal from "./AssignTaskModal.jsx";
 import DoctorAvatar from "./DoctorAvatar.jsx";
 import StylizedEyeIcon from "./StylizedEyeIcon.jsx";
 
@@ -193,47 +214,364 @@ function Stat({ icon, title, value, text, type }) {
   );
 }
 
-function Chart({ title, categories, targets, achieved }) {
-  const max = Math.max(1, ...targets, ...achieved);
+function Chart({
+  title,
+  categories = [],
+  targets = [],
+  achieved = [],
+  execResults = null,
+  totalTarget = 0,
+  totalAchieved = 0,
+  role = null,
+  isRegional = false,
+}) {
+  const isReg = role === "regional" || isRegional;
+  const isExec = role === "executive";
+  const primaryColor = isReg ? "#7c3aed" : isExec ? "#0077e6" : "#059669";
+  const secondaryColor = isReg ? "#c4b5fd" : isExec ? "#93c5fd" : "#6ee7b7";
+  const badgeShadow = isReg ? "0 2px 6px rgba(124, 58, 237, 0.25)" : isExec ? "0 2px 6px rgba(0, 119, 230, 0.25)" : "0 2px 6px rgba(5, 150, 105, 0.25)";
+
+  const [viewMode, setViewMode] = useState("bars"); // "bars" | "list"
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+
+  const items = useMemo(() => {
+    if (execResults && execResults.length > 0) {
+      return execResults.map((r) => {
+        const t = r.stats?.total_doctors || r.stats?.planned_visits || 0;
+        const a = r.stats?.completed || 0;
+        const p = parseInt(r.stats?.completion_pct) || (t > 0 ? Math.round((a / t) * 100) : 0);
+        return {
+          name: r.exec?.name || "Executive",
+          region: r.exec?.region || r.exec?.city || "Territory",
+          target: t,
+          achieved: a,
+          pct: p,
+        };
+      });
+    }
+    return categories.map((cat, i) => {
+      const t = targets[i] || 0;
+      const a = achieved[i] || 0;
+      return {
+        name: cat,
+        region: "Field",
+        target: t,
+        achieved: a,
+        pct: t > 0 ? Math.round((a / t) * 100) : 0,
+      };
+    });
+  }, [execResults, categories, targets, achieved]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [items.length]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const validPage = Math.min(page, totalPages);
+
+  const displayedItems = useMemo(() => {
+    const start = (validPage - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  }, [items, validPage, pageSize]);
+
+  const calcTarget = totalTarget || items.reduce((s, it) => s + it.target, 0);
+  const calcAchieved = totalAchieved || items.reduce((s, it) => s + it.achieved, 0);
+  const calcPct = calcTarget > 0 ? Math.round((calcAchieved / calcTarget) * 100) : 0;
+
+  const maxVal = useMemo(() => {
+    const m = Math.max(10, ...displayedItems.map((it) => Math.max(it.target, it.achieved)));
+    return Math.ceil(m / 10) * 10 || 100;
+  }, [displayedItems]);
+
+  const yTicks = [
+    maxVal,
+    Math.round(maxVal * 0.75),
+    Math.round(maxVal * 0.5),
+    Math.round(maxVal * 0.25),
+    0,
+  ];
+
   return (
-    <div className="panel">
-      <div className="panel-title">
-        <h2>{title}</h2>
-        <div className="legend">
-          <span><i className="blue-dot" />Target</span>
-          <span><i className="green-dot" />Achieved</span>
+    <div className="panel chart-panel-modern">
+      {/* ── Top Header ── */}
+      <div className="chart-header-row">
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: primaryColor, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0, boxShadow: badgeShadow }}>
+            <Check size={16} color="#ffffff" strokeWidth={2.5} />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#0f172a" }}>{title}</h2>
+            <p style={{ margin: "2px 0 0 0", fontSize: "0.76rem", color: "#64748b" }}>
+              Monthly target comparison vs completed doctor visits
+            </p>
+          </div>
+        </div>
+
+        {/* View Toggle Tabs */}
+        <div className="chart-view-toggle">
+          <button
+            type="button"
+            className={`chart-view-btn ${viewMode === "bars" ? "active" : ""}`}
+            style={viewMode === "bars" ? { color: primaryColor } : {}}
+            onClick={() => setViewMode("bars")}
+            title="Dual Bar Chart View"
+          >
+            <TrendingUp size={13} />
+            <span>Dual Bars</span>
+          </button>
+          <button
+            type="button"
+            className={`chart-view-btn ${viewMode === "list" ? "active" : ""}`}
+            style={viewMode === "list" ? { color: primaryColor } : {}}
+            onClick={() => setViewMode("list")}
+            title="Executive Progress List View"
+          >
+            <CheckSquare size={13} />
+            <span>Progress Rows</span>
+          </button>
         </div>
       </div>
-      <div className="chart">
-        {categories.map((cat, i) => (
-          <div className="month" key={cat}>
-            <div className="bars">
-              <div className="bar target" style={{ height: `${(targets[i] / max) * 145}px` }} />
-              <div className="bar achieved" style={{ height: `${(achieved[i] / max) * 145}px` }} />
-            </div>
-            <small>{cat}</small>
+
+      {/* ── Metric Summary Strip ── */}
+      <div className="chart-summary-strip">
+        <div className="chart-summary-pill mint">
+          <div>
+            <span className="chart-pill-label">TOTAL TARGET</span>
+            <strong className="chart-pill-val">{calcTarget}</strong>
           </div>
-        ))}
+          <span className="chart-pill-sub">Planned</span>
+        </div>
+        <div className="chart-summary-pill green">
+          <div>
+            <span className="chart-pill-label">ACHIEVED</span>
+            <strong className="chart-pill-val">{calcAchieved}</strong>
+          </div>
+          <span className="chart-pill-sub">Visits Done</span>
+        </div>
+        <div className="chart-summary-pill teal">
+          <div>
+            <span className="chart-pill-label">COMPLETION RATE</span>
+            <strong className="chart-pill-val">{calcPct}%</strong>
+          </div>
+          <span className="chart-pill-sub">{calcAchieved >= calcTarget ? "Target Met" : "In Progress"}</span>
+        </div>
+      </div>
+
+      {/* ── Main Visual Body ── */}
+      {viewMode === "bars" ? (
+        <div className="chart-modern-canvas">
+          {/* Y-Axis Horizontal Full-Width Dotted Gridlines */}
+          <div className="chart-y-axis-full">
+            {yTicks.map((tick, idx) => (
+              <div key={`${tick}-${idx}`} className="chart-grid-row">
+                <span className="chart-grid-val">{tick}</span>
+                <div className="chart-grid-line-full" />
+              </div>
+            ))}
+          </div>
+
+          {/* Symmetrical Dual Bars for up to 5 executives */}
+          <div className="chart-exec-columns-wrap">
+            {displayedItems.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#94a3b8", padding: "2rem", width: "100%" }}>
+                No performance data available.
+              </div>
+            ) : (
+              displayedItems.map((item) => {
+                const tHeight = (item.target / maxVal) * 160;
+                const aHeight = (item.achieved / maxVal) * 160;
+
+                return (
+                  <div key={item.name} className="chart-exec-col">
+                    <div className="chart-pair-bars">
+                      {/* Target Bar */}
+                      <div className="chart-single-bar-wrap">
+                        <span className="chart-bar-num target">{item.target}</span>
+                        <div
+                          className="chart-bar-rect target"
+                          style={{ height: `${Math.max(6, tHeight)}px`, background: secondaryColor }}
+                          title={`Target: ${item.target} visits`}
+                        />
+                      </div>
+                      {/* Achieved Bar */}
+                      <div className="chart-single-bar-wrap">
+                        <span className="chart-bar-num achieved" style={{ color: primaryColor }}>{item.achieved}</span>
+                        <div
+                          className="chart-bar-rect achieved"
+                          style={{ height: `${Math.max(6, aHeight)}px`, background: primaryColor }}
+                          title={`Achieved: ${item.achieved} visits`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Executive Identity & Badge */}
+                    <div className="chart-exec-meta">
+                      <span className="chart-exec-name" title={item.name}>
+                        {item.name}
+                      </span>
+                      <span className="chart-exec-pct-badge">
+                        {item.pct}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Progress Rows View */
+        <div className="chart-list-view">
+          {displayedItems.map((item) => {
+            const barCol = item.pct >= 80 ? primaryColor : item.pct >= 50 ? "#d97706" : secondaryColor;
+            return (
+              <div key={item.name} className="chart-list-row">
+                <div className="chart-list-avatar" style={{ background: primaryColor }}>{item.name.charAt(0)}</div>
+                <div className="chart-list-info">
+                  <strong title={item.name}>{item.name}</strong>
+                  <small>{item.region}</small>
+                </div>
+                <div className="chart-list-progress-wrap">
+                  <div className="chart-list-numbers">
+                    <span>Target: <strong>{item.target}</strong></span>
+                    <span>Done: <strong style={{ color: primaryColor }}>{item.achieved}</strong></span>
+                  </div>
+                  <div className="chart-list-track">
+                    <div
+                      className="chart-list-fill"
+                      style={{ width: `${Math.min(100, item.pct)}%`, background: barCol }}
+                    />
+                  </div>
+                </div>
+                <div
+                  className="chart-list-pct-pill"
+                  style={{
+                    background: item.pct >= 80 ? (isReg ? "#f3e8ff" : isExec ? "#e0f2fe" : "#dcfce7") : item.pct >= 50 ? "#fef3e7" : (isReg ? "#faf5ff" : isExec ? "#eff6ff" : "#ecfdf5"),
+                    color: item.pct >= 80 ? primaryColor : item.pct >= 50 ? "#d97706" : primaryColor,
+                  }}
+                >
+                  {item.pct}%
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Footer: Legend & Pagination ── */}
+      <div className="chart-footer-row">
+        <div className="chart-legend-wrap">
+          <span className="chart-legend-item">
+            <span className="chart-legend-dot target" style={{ background: secondaryColor }} />
+            Target Visits
+          </span>
+          <span className="chart-legend-item">
+            <span className="chart-legend-dot achieved" style={{ background: primaryColor }} />
+            Achieved Visits
+          </span>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="chart-page-nav">
+            <span className="chart-page-info">
+              Showing <strong>{(validPage - 1) * pageSize + 1}–{Math.min(validPage * pageSize, items.length)}</strong> of <strong>{items.length}</strong>
+            </span>
+            <button
+              type="button"
+              className="chart-page-btn"
+              disabled={validPage === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+            <span className="chart-page-indicator">{validPage}/{totalPages}</span>
+            <button
+              type="button"
+              className="chart-page-btn"
+              disabled={validPage === totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function Achievement({ percentage, achieved, progress, pending }) {
+function Achievement({ percentage, achieved, progress, pending, role = null, isRegional = false }) {
+  const isReg = role === "regional" || isRegional;
+  const isExec = role === "executive";
+  const primaryColor = isReg ? "#7c3aed" : isExec ? "#0077e6" : "#059669";
+  const badgeShadow = isReg ? "0 2px 6px rgba(124, 58, 237, 0.25)" : isExec ? "0 2px 6px rgba(0, 119, 230, 0.25)" : "0 2px 6px rgba(5, 150, 105, 0.25)";
+  const trackBg = isReg ? "#f3e8ff" : isExec ? "#e0f2fe" : "#dcfce7";
+
+  const pctNum = parseInt(percentage) || 0;
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (pctNum / 100) * circumference;
+
   return (
-    <div className="panel">
-      <div className="panel-title"><h2>Achievement Overview</h2></div>
-      <div className="achievement">
-        <div className="donut">
-          <div>
-            <strong>{percentage}</strong>
+    <div className="panel achievement-modern-panel">
+      <div className="panel-title" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ width: 28, height: 28, borderRadius: 8, background: primaryColor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: badgeShadow }}>
+          <UserCheck size={16} color="#ffffff" />
+        </div>
+        <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#0f172a" }}>Achievement Overview</h2>
+      </div>
+
+      <div className="achievement-modern-body">
+        {/* SVG Donut Ring */}
+        <div className="achievement-donut-wrap">
+          <svg className="achievement-donut-svg" width="130" height="130" viewBox="0 0 100 100">
+            {/* Background track */}
+            <circle cx="50" cy="50" r={radius} stroke={trackBg} strokeWidth="12" fill="none" />
+            {/* Progress track */}
+            <circle
+              cx="50"
+              cy="50"
+              r={radius}
+              stroke={primaryColor}
+              strokeWidth="12"
+              fill="none"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              transform="rotate(-90 50 50)"
+              style={{ transition: "stroke-dashoffset 0.5s ease" }}
+            />
+          </svg>
+          <div className="achievement-donut-center">
+            <strong style={{ color: primaryColor }}>{percentage}</strong>
             <span>Achieved</span>
           </div>
         </div>
-        <div className="achievement-list">
-          <div><span><i className="green-dot" />Achieved</span><strong>{achieved}</strong></div>
-          <div><span><i className="orange-dot" />In Progress</span><strong>{progress}</strong></div>
-          <div><span><i className="red-dot" />Pending</span><strong>{pending}</strong></div>
+
+        {/* Legend Breakdown */}
+        <div className="achievement-breakdown-list">
+          <div className="achievement-breakdown-row">
+            <span className="achievement-breakdown-label">
+              <i style={{ width: 9, height: 9, borderRadius: "50%", background: primaryColor, display: "inline-block", marginRight: 8 }} />
+              Achieved
+            </span>
+            <strong className="achievement-breakdown-val" style={{ color: primaryColor }}>{achieved}</strong>
+          </div>
+          <div className="achievement-breakdown-row">
+            <span className="achievement-breakdown-label">
+              <i style={{ width: 9, height: 9, borderRadius: "50%", background: "#f59e0b", display: "inline-block", marginRight: 8 }} />
+              In Progress
+            </span>
+            <strong className="achievement-breakdown-val">{progress}</strong>
+          </div>
+          <div className="achievement-breakdown-row">
+            <span className="achievement-breakdown-label">
+              <i style={{ width: 9, height: 9, borderRadius: "50%", background: "#ef4444", display: "inline-block", marginRight: 8 }} />
+              Pending
+            </span>
+            <strong className="achievement-breakdown-val">{pending}</strong>
+          </div>
         </div>
       </div>
     </div>
@@ -359,6 +697,9 @@ function useSalesData() {
 /* ─────────────────────────────────────────────────────────
    PROFILE MODAL
 ───────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   MODERN EXECUTIVE PROFILE MODAL
+───────────────────────────────────────────────────────── */
 function ProfileModal({ tableKey, record, onClose, onSaved }) {
   const config = TABLE_CONFIG[tableKey];
   const fields = config.fields.filter((f) => !f.formOnly); // password is set by admin only
@@ -367,15 +708,29 @@ function ProfileModal({ tableKey, record, onClose, onSaved }) {
     fields.forEach((f) => { init[f.key] = displayFieldValue(f, record); });
     return init;
   });
+  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const roleName = useMemo(() => {
+    if (tableKey === "regional_managers") return "Regional Manager";
+    if (tableKey === "sales_managers") return "Sales Manager";
+    return "Sales Executive";
+  }, [tableKey]);
+
+  const roleTheme = useMemo(() => {
+    if (tableKey === "regional_managers") return { color: "#0f766e", bg: "#f0fdfa", border: "#99f6e4", title: "Regional Director" };
+    if (tableKey === "sales_managers") return { color: "#0284c7", bg: "#f0f9ff", border: "#bae6fd", title: "Territory Sales Manager" };
+    return { color: "#059669", bg: "#ecfdf5", border: "#a7f3d0", title: "Field Sales Executive" };
+  }, [tableKey]);
 
   function handleChange(key, value) {
     setValues((p) => ({ ...p, [key]: value }));
   }
 
   async function handleSave(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setSaving(true);
     setError(null);
     try {
@@ -386,8 +741,12 @@ function ProfileModal({ tableKey, record, onClose, onSaved }) {
       });
       const payload = buildRecordPayload(tableKey, record, changes);
       await updateRecord(tableKey, record.id, payload);
+      setSavedSuccess(true);
       if (onSaved) await onSaved();
-      onClose();
+      setTimeout(() => {
+        setIsEditing(false);
+        setSavedSuccess(false);
+      }, 1200);
     } catch (err) {
       setError(err.message || "Failed to save profile");
     } finally {
@@ -398,34 +757,215 @@ function ProfileModal({ tableKey, record, onClose, onSaved }) {
   function renderInput(field) {
     const value = values[field.key];
     const id = "pf_" + field.key;
-    if (field.readOnly) return <input id={id} value={value ?? ""} disabled />;
+    if (field.readOnly) return <input id={id} value={value ?? ""} disabled className="mod-prof-input disabled" />;
     if (field.type === "bool") return <input id={id} type="checkbox" checked={Boolean(value)} onChange={(e) => handleChange(field.key, e.target.checked)} />;
     if (field.type === "yesno") return (
-      <select id={id} value={value === true || value === "Yes" ? "Yes" : "No"} onChange={(e) => handleChange(field.key, e.target.value)}>
+      <select id={id} value={value === true || value === "Yes" ? "Yes" : "No"} onChange={(e) => handleChange(field.key, e.target.value)} className="mod-prof-input">
         <option value="Yes">Yes</option><option value="No">No</option>
       </select>
     );
-    if (field.type === "number") return <input id={id} type="number" step="any" value={value ?? ""} required={field.required} onChange={(e) => handleChange(field.key, e.target.value)} />;
-    if (field.type === "date") return <input id={id} type="date" value={value ?? ""} required={field.required} onChange={(e) => handleChange(field.key, e.target.value)} />;
-    return <input id={id} value={value ?? ""} required={field.required} onChange={(e) => handleChange(field.key, e.target.value)} />;
+    if (field.type === "number") return <input id={id} type="number" step="any" value={value ?? ""} required={field.required} onChange={(e) => handleChange(field.key, e.target.value)} className="mod-prof-input" />;
+    if (field.type === "date") return <input id={id} type="date" value={value ?? ""} required={field.required} onChange={(e) => handleChange(field.key, e.target.value)} className="mod-prof-input" />;
+    return <input id={id} value={value ?? ""} required={field.required} onChange={(e) => handleChange(field.key, e.target.value)} className="mod-prof-input" />;
   }
 
   return (
     <div className="zzc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="zzc-modal">
-        <h2>{record.name || "Profile"}</h2>
-        {error && <div className="rpt-call-error">{error}</div>}
-        <form id="profileForm" className="zzc-modal-form" onSubmit={handleSave}>
-          {fields.map((field) => (
-            <div className="zzc-field" key={field.key}>
-              <label htmlFor={"pf_" + field.key}>{field.label || field.key}{field.required ? " *" : ""}</label>
-              {renderInput(field)}
+      <div className="modern-profile-modal-frame" onClick={(e) => e.stopPropagation()}>
+        {/* Banner with gradient decoration */}
+        <div className="mod-prof-banner">
+          <div className="mod-prof-banner-deco" />
+          <button type="button" className="mod-prof-close-btn" onClick={onClose} title="Close Profile">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* User Hero Section */}
+        <div className="mod-prof-hero">
+          <div className="mod-prof-avatar-wrap">
+            <DoctorAvatar name={record.name || "User"} size={68} />
+            <span className="mod-prof-status-dot online" title="Status: Online & Active" />
+          </div>
+
+          <div className="mod-prof-hero-info">
+            <div className="mod-prof-name-row">
+              <h2>{record.name || "Executive Profile"}</h2>
+              <span
+                className="mod-prof-role-badge"
+                style={{
+                  color: roleTheme.color,
+                  backgroundColor: roleTheme.bg,
+                  borderColor: roleTheme.border,
+                }}
+              >
+                <ShieldCheck size={13} />
+                {roleName}
+              </span>
             </div>
-          ))}
-        </form>
-        <div className="zzc-modal-actions">
-          <button type="button" className="zzc-btn zzc-btn-outline" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="submit" form="profileForm" className="zzc-btn zzc-btn-primary" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+            <p className="mod-prof-subtitle">
+              <span>Code: <strong>{record.code || `ID-#${record.id}`}</strong></span>
+              <span>•</span>
+              <span>Region: <strong>{record.region || "South India"}</strong></span>
+              <span>•</span>
+              <span className="mod-prof-active-pill">● Verified Account</span>
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className={`mod-prof-toggle-edit-btn ${isEditing ? "active" : ""}`}
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? "View Profile" : "Edit Profile"}
+          </button>
+        </div>
+
+        {error && <div className="mod-prof-alert error">{error}</div>}
+        {savedSuccess && <div className="mod-prof-alert success">✓ Profile updated successfully!</div>}
+
+        {/* Content Body */}
+        <div className="mod-prof-body">
+          {!isEditing ? (
+            /* ── VIEW MODE (Rich Cards & KPI Badges) ── */
+            <div className="mod-prof-view-grid">
+              {/* Card 1: Official Identity & Role */}
+              <div className="mod-prof-card">
+                <div className="mod-prof-card-title">
+                  <User size={15} color="#0d9488" />
+                  <span>Official Identity &amp; Role</span>
+                </div>
+                <div className="mod-prof-card-rows">
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Full Name</span>
+                    <strong className="mod-prof-val">{record.name || "—"}</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Employee Code</span>
+                    <strong className="mod-prof-val mono">{record.code || `EMP-${record.id}`}</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Role Position</span>
+                    <strong className="mod-prof-val">{roleTheme.title}</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Account Status</span>
+                    <span className="mod-prof-status-badge active">Active Employee</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Contact & Authentication */}
+              <div className="mod-prof-card">
+                <div className="mod-prof-card-title">
+                  <Phone size={15} color="#0d9488" />
+                  <span>Contact &amp; Verification</span>
+                </div>
+                <div className="mod-prof-card-rows">
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Phone Number</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <strong className="mod-prof-val">{record.phone || "—"}</strong>
+                      {record.is_phone_verified && (
+                        <span className="mod-prof-verified-pill" title="Mobile verified via OTP">
+                          <CheckCircle2 size={11} /> OTP Verified
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Official Email</span>
+                    <strong className="mod-prof-val">{record.email || `${(record.name || "user").toLowerCase().replace(/\s+/g, ".")}@zenve.in`}</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Security Access</span>
+                    <strong className="mod-prof-val">CRM Enterprise Authorized</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Login Protocol</span>
+                    <span className="mod-prof-val">Password &amp; Mobile OTP</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Territory & Field Assignment */}
+              <div className="mod-prof-card">
+                <div className="mod-prof-card-title">
+                  <MapPin size={15} color="#0d9488" />
+                  <span>Territory &amp; Operations</span>
+                </div>
+                <div className="mod-prof-card-rows">
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Assigned Territory</span>
+                    <strong className="mod-prof-val">{record.region || "Karnataka"}</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Operating City / HQ</span>
+                    <strong className="mod-prof-val">{record.city || "Bangalore"}</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Monthly Target</span>
+                    <strong className="mod-prof-val highlight">{record.monthly_target ? `${record.monthly_target} Doctor Visits` : "80 Doctor Visits / Month"}</strong>
+                  </div>
+                  <div className="mod-prof-row">
+                    <span className="mod-prof-key">Jurisdiction</span>
+                    <strong className="mod-prof-val">{tableKey === "regional_managers" ? "Multi-State Regional Operations" : "State Division"}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* ── EDIT MODE (Modern Form Inputs) ── */
+            <form id="profileEditForm" className="mod-prof-form" onSubmit={handleSave}>
+              <div className="mod-prof-form-grid">
+                {fields.map((field) => (
+                  <div
+                    key={field.key}
+                    className={`mod-prof-form-field ${field.key === "name" || field.key === "email" ? "full" : ""}`}
+                  >
+                    <label htmlFor={"pf_" + field.key}>
+                      {field.label || field.key}
+                      {field.required && <span className="req">*</span>}
+                    </label>
+                    <div className="mod-prof-input-wrap">
+                      {renderInput(field)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Modal Actions Footer */}
+        <div className="mod-prof-footer">
+          {isEditing ? (
+            <>
+              <button
+                type="button"
+                className="mod-prof-btn outline"
+                onClick={() => setIsEditing(false)}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="profileEditForm"
+                className="mod-prof-btn primary"
+                disabled={saving}
+              >
+                {saving ? "Saving Changes…" : "Save Profile"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="mod-prof-btn primary"
+              onClick={onClose}
+            >
+              Done &amp; Close
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -1103,7 +1643,9 @@ function ReportDetailsModal({ report, role, onClose, onFeedbackSaved, onDelete }
                 className="rpt-btn-danger"
                 onClick={() => onDelete(report.id)}
                 disabled={saving}
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
               >
+                <Trash2 size={14} color="#ef4444" />
                 Delete Report
               </button>
             )}
@@ -1403,7 +1945,9 @@ function ReceivedReportsSection({ data, role, currentRecord }) {
                           onClick={(e) => handleDeleteReport(r.id, e)}
                           disabled={deletingId === r.id}
                           title="Delete report"
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
                         >
+                          <Trash2 size={12} color="#ef4444" />
                           {deletingId === r.id ? "Deleting…" : "Delete"}
                         </button>
                       </div>
@@ -1998,12 +2542,19 @@ function ReportsView({ data, execId, role, managerId, regionalId, currentRecord 
             <button
               className="rpt-btn-danger"
               onClick={handleRemoveVisits}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
             >
+              <Trash2 size={13} color="#ef4444" />
               Remove Selected ({selectedIds.size})
             </button>
           </>
         ) : (
-          <button className="rpt-btn-danger" onClick={handleRemoveVisits}>
+          <button
+            className="rpt-btn-danger"
+            onClick={handleRemoveVisits}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <Trash2 size={13} color="#ef4444" />
             Remove Visit Details
           </button>
         )}
@@ -2518,7 +3069,21 @@ function SignaturePadModal({ isOpen, onClose, onSave, existingSignature }) {
    - Inside & Outside Clinic Images with Upload Buttons
    - Digital Signature Model with PNG export
 ───────────────────────────────────────────────────────── */
-function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onDoctorAdded }) {
+function AddDoctorModal({ defaultCity = "", availablePincodes = [], role = "manager", onClose, onDoctorAdded }) {
+  const isRegional = role === "regional";
+  const isExecutive = role === "executive";
+  const primaryColor = isRegional ? "#7c3aed" : isExecutive ? "#0077e6" : "#059669";
+  const primaryGradient = isRegional
+    ? "linear-gradient(90deg, #7c3aed 0%, #8b5cf6 100%)"
+    : isExecutive
+      ? "linear-gradient(135deg, #0077e6 0%, #0056b3 100%)"
+      : "linear-gradient(135deg, #059669 0%, #047857 100%)";
+  const primaryGlow = isRegional
+    ? "0 0 16px rgba(124, 58, 237, 0.55), 0 4px 14px rgba(124, 58, 237, 0.35)"
+    : isExecutive
+      ? "0 0 16px rgba(0, 119, 230, 0.55), 0 4px 14px rgba(0, 119, 230, 0.35)"
+      : "0 0 16px rgba(5, 150, 105, 0.55), 0 4px 14px rgba(5, 150, 105, 0.35)";
+
   const initialPin = availablePincodes[0] || "560068";
   const initialCity = defaultCity || (PINCODE_CITY_MAP[initialPin] || "Silk Board, Bangalore");
 
@@ -2744,17 +3309,17 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
 
   return createPortal(
     <div className="zzc-modal-overlay zzc-exec-overlay" onClick={(e) => { if (e.target === e.currentTarget && !saving) onClose(); }}>
-      <div className="zzc-exec-modal" style={{ maxWidth: 680, maxHeight: "90vh" }}>
-        {/* Header with Mint Theme & Pet Illustration */}
+      <div className={`zzc-exec-modal role-${role} theme-${isRegional ? "purple" : isExecutive ? "blue" : "green"}`} style={{ maxWidth: 680, maxHeight: "90vh" }}>
+        {/* Header with Role Theme & Pet Illustration */}
         <header className="zzc-exec-header">
           <div className="zzc-exec-header-paws-bg" aria-hidden="true">
-            <PawIcon size={26} color="#0d8b7b" className="zzc-paw-bg-1" />
-            <PawIcon size={18} color="#0d8b7b" className="zzc-paw-bg-2" />
-            <PawIcon size={32} color="#0d8b7b" className="zzc-paw-bg-3" />
+            <PawIcon size={26} color={primaryColor} className="zzc-paw-bg-1" />
+            <PawIcon size={18} color={primaryColor} className="zzc-paw-bg-2" />
+            <PawIcon size={32} color={primaryColor} className="zzc-paw-bg-3" />
           </div>
 
           <div className="zzc-exec-header-content">
-            <span className="zzc-exec-header-badge">
+            <span className="zzc-exec-header-badge" style={{ background: primaryColor }}>
               <PawIcon size={24} color="#ffffff" />
             </span>
             <div className="zzc-exec-header-text">
@@ -2784,427 +3349,427 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
 
         <div className="zzc-exec-layout">
 
-        {error && (
-          <div className="rpt-call-error" style={{ marginBottom: "1rem", padding: "8px 12px", background: "#fef2f2", color: "#dc2626", borderRadius: "8px", fontSize: "0.85rem", border: "1px solid #fecaca" }}>
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="rpt-call-error" style={{ marginBottom: "1rem", padding: "8px 12px", background: "#fef2f2", color: "#dc2626", borderRadius: "8px", fontSize: "0.85rem", border: "1px solid #fecaca" }}>
+              {error}
+            </div>
+          )}
 
-        <form id="addDoctorForm" className="zzc-exec-form" onSubmit={handleSubmit} autoComplete="off">
-          {/* ── SECTION 1: BASIC INFORMATION ── */}
-          <section className="zzc-exec-section">
-            <div className="zzc-exec-section-header">
-              <div className="zzc-exec-section-title-wrap">
-                <span className="zzc-exec-section-badge">
-                  <User size={15} />
+          <form id="addDoctorForm" className="zzc-exec-form" onSubmit={handleSubmit} autoComplete="off">
+            {/* ── SECTION 1: BASIC INFORMATION ── */}
+            <section className="zzc-exec-section">
+              <div className="zzc-exec-section-header">
+                <div className="zzc-exec-section-title-wrap">
+                  <span className="zzc-exec-section-badge">
+                    <User size={15} />
+                  </span>
+                  <h3>Basic Information</h3>
+                </div>
+                <span className="zzc-exec-section-subtitle">
+                  Doctor profile and qualifications 🐾
                 </span>
-                <h3>Basic Information</h3>
               </div>
-              <span className="zzc-exec-section-subtitle">
-                Doctor profile and qualifications 🐾
-              </span>
-            </div>
 
-            <div className="zzc-exec-fields">
-              {/* Full Name */}
-              <div className="zzc-exec-field theme-teal zzc-exec-field-full">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <PawIcon size={14} />
-                  </span>
-                  <label htmlFor="doc_name">Doctor Name <span className="zzc-exec-required">*</span></label>
+              <div className="zzc-exec-fields">
+                {/* Full Name */}
+                <div className="zzc-exec-field theme-teal zzc-exec-field-full">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <PawIcon size={14} />
+                    </span>
+                    <label htmlFor="doc_name">Doctor Name <span className="zzc-exec-required">*</span></label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <User size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_name"
+                        type="text"
+                        placeholder="e.g. Dr. Rajesh Kumar"
+                        value={form.name}
+                        onChange={(e) => handleChange("name", e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="zzc-exec-input-shell">
-                  <User size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_name"
-                      type="text"
-                      placeholder="e.g. Dr. Rajesh Kumar"
-                      value={form.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      required
-                      autoFocus
-                    />
+
+                {/* Qualification */}
+                <div className="zzc-exec-field theme-purple">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Tag size={14} />
+                    </span>
+                    <label htmlFor="doc_qualification">Qualification</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Tag size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_qualification"
+                        type="text"
+                        placeholder="e.g. BVSc & AH, MVSc"
+                        value={form.qualification}
+                        onChange={(e) => handleChange("qualification", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Specialization */}
+                <div className="zzc-exec-field theme-purple">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Tag size={14} />
+                    </span>
+                    <label htmlFor="doc_specialization">Specialization</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Tag size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_specialization"
+                        type="text"
+                        placeholder="e.g. Surgery, Dermatology"
+                        value={form.specializations}
+                        onChange={(e) => handleChange("specializations", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Experience */}
+                <div className="zzc-exec-field theme-amber zzc-exec-field-full">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Target size={14} />
+                    </span>
+                    <label htmlFor="doc_exp">Experience (Years)</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_exp"
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="e.g. 5"
+                        value={form.experience_years}
+                        onChange={(e) => handleChange("experience_years", e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
+            </section>
 
-              {/* Qualification */}
-              <div className="zzc-exec-field theme-purple">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Tag size={14} />
+            {/* ── SECTION 2: CLINIC & TERRITORY DETAILS ── */}
+            <section className="zzc-exec-section">
+              <div className="zzc-exec-section-header">
+                <div className="zzc-exec-section-title-wrap">
+                  <span className="zzc-exec-section-badge">
+                    <Building2 size={15} />
                   </span>
-                  <label htmlFor="doc_qualification">Qualification</label>
+                  <h3>Clinic & Territory Details</h3>
                 </div>
-                <div className="zzc-exec-input-shell">
-                  <Tag size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_qualification"
-                      type="text"
-                      placeholder="e.g. BVSc & AH, MVSc"
-                      value={form.qualification}
-                      onChange={(e) => handleChange("qualification", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Specialization */}
-              <div className="zzc-exec-field theme-purple">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Tag size={14} />
-                  </span>
-                  <label htmlFor="doc_specialization">Specialization</label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <Tag size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_specialization"
-                      type="text"
-                      placeholder="e.g. Surgery, Dermatology"
-                      value={form.specializations}
-                      onChange={(e) => handleChange("specializations", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Experience */}
-              <div className="zzc-exec-field theme-amber zzc-exec-field-full">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Target size={14} />
-                  </span>
-                  <label htmlFor="doc_exp">Experience (Years)</label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_exp"
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="e.g. 5"
-                      value={form.experience_years}
-                      onChange={(e) => handleChange("experience_years", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* ── SECTION 2: CLINIC & TERRITORY DETAILS ── */}
-          <section className="zzc-exec-section">
-            <div className="zzc-exec-section-header">
-              <div className="zzc-exec-section-title-wrap">
-                <span className="zzc-exec-section-badge">
-                  <Building2 size={15} />
+                <span className="zzc-exec-section-subtitle">
+                  Facility and territory location 🐾
                 </span>
-                <h3>Clinic & Territory Details</h3>
               </div>
-              <span className="zzc-exec-section-subtitle">
-                Facility and territory location 🐾
-              </span>
-            </div>
 
-            <div className="zzc-exec-fields">
-              {/* Clinic / Hospital Name */}
-              <div className="zzc-exec-field theme-blue">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Building2 size={14} />
-                  </span>
-                  <label htmlFor="doc_clinic_name">Clinic / Hospital</label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <Building2 size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_clinic_name"
-                      type="text"
-                      list="crm-clinic-options"
-                      placeholder="e.g. City Vet Clinic & Hospital"
-                      value={form.clinic_name}
-                      onChange={(e) => handleChange("clinic_name", e.target.value)}
-                    />
-                    {existingClinics.length > 0 && (
-                      <datalist id="crm-clinic-options">
-                        {existingClinics.map((c, i) => (
-                          <option key={c.id || i} value={c.name} />
-                        ))}
-                      </datalist>
-                    )}
+              <div className="zzc-exec-fields">
+                {/* Clinic / Hospital Name */}
+                <div className="zzc-exec-field theme-blue">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Building2 size={14} />
+                    </span>
+                    <label htmlFor="doc_clinic_name">Clinic / Hospital</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Building2 size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_clinic_name"
+                        type="text"
+                        list="crm-clinic-options"
+                        placeholder="e.g. City Vet Clinic & Hospital"
+                        value={form.clinic_name}
+                        onChange={(e) => handleChange("clinic_name", e.target.value)}
+                      />
+                      {existingClinics.length > 0 && (
+                        <datalist id="crm-clinic-options">
+                          {existingClinics.map((c, i) => (
+                            <option key={c.id || i} value={c.name} />
+                          ))}
+                        </datalist>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Facility Type */}
-              <div className="zzc-exec-field theme-blue">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Building size={14} />
-                  </span>
-                  <label htmlFor="doc_facility_type">Facility Type</label>
+                {/* Facility Type */}
+                <div className="zzc-exec-field theme-blue">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Building size={14} />
+                    </span>
+                    <label htmlFor="doc_facility_type">Facility Type</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Building size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <select
+                        id="doc_facility_type"
+                        value={form.facility_type}
+                        onChange={(e) => handleChange("facility_type", e.target.value)}
+                      >
+                        <option value="Clinic">Clinic</option>
+                        <option value="Hospital">Hospital</option>
+                        <option value="Specialty Referral Center">Specialty Referral Center</option>
+                        <option value="Diagnostic Center">Diagnostic Center</option>
+                        <option value="Animal Shelter / NGO">Animal Shelter / NGO</option>
+                      </select>
+                    </div>
+                    <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                  </div>
                 </div>
-                <div className="zzc-exec-input-shell">
-                  <Building size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <select
-                      id="doc_facility_type"
-                      value={form.facility_type}
-                      onChange={(e) => handleChange("facility_type", e.target.value)}
+
+                {/* City (with Auto-generate) */}
+                <div className="zzc-exec-field theme-blue">
+                  <div className="zzc-exec-field-header" style={{ justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span className="zzc-field-label-icon">
+                        <MapPin size={14} />
+                      </span>
+                      <label htmlFor="doc_city">City</label>
+                    </div>
+                    <button
+                      type="button"
+                      className="doc-detect-btn"
+                      onClick={handleAutoDetectGPS}
+                      disabled={detectingLocation}
+                      title="Auto-detect City & Pincode using GPS"
+                      style={{ fontSize: "0.72rem", padding: "2px 8px", borderRadius: "10px", background: "#dbeafe", color: "#1d4ed8", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
                     >
-                      <option value="Clinic">Clinic</option>
-                      <option value="Hospital">Hospital</option>
-                      <option value="Specialty Referral Center">Specialty Referral Center</option>
-                      <option value="Diagnostic Center">Diagnostic Center</option>
-                      <option value="Animal Shelter / NGO">Animal Shelter / NGO</option>
-                    </select>
+                      <MapPin size={11} />
+                      <span>{detectingLocation ? "Detecting…" : "Auto Detect"}</span>
+                    </button>
                   </div>
-                  <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                  <div className="zzc-exec-input-shell">
+                    <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_city"
+                        type="text"
+                        placeholder="e.g. Silk Board, Bangalore"
+                        value={form.city}
+                        onChange={(e) => handleCityChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* City (with Auto-generate) */}
-              <div className="zzc-exec-field theme-blue">
-                <div className="zzc-exec-field-header" style={{ justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                {/* Pin Code */}
+                <div className="zzc-exec-field theme-blue">
+                  <div className="zzc-exec-field-header">
                     <span className="zzc-field-label-icon">
                       <MapPin size={14} />
                     </span>
-                    <label htmlFor="doc_city">City</label>
+                    <label htmlFor="doc_pincode">Pin Code (6 Digits)</label>
                   </div>
-                  <button
-                    type="button"
-                    className="doc-detect-btn"
-                    onClick={handleAutoDetectGPS}
-                    disabled={detectingLocation}
-                    title="Auto-detect City & Pincode using GPS"
-                    style={{ fontSize: "0.72rem", padding: "2px 8px", borderRadius: "10px", background: "#dbeafe", color: "#1d4ed8", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                  >
-                    <MapPin size={11} />
-                    <span>{detectingLocation ? "Detecting…" : "Auto Detect"}</span>
-                  </button>
+                  <div className="zzc-exec-input-shell">
+                    <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_pincode"
+                        type="text"
+                        placeholder="e.g. 560068"
+                        maxLength={6}
+                        value={form.pincode}
+                        onChange={(e) => handlePincodeChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="zzc-exec-input-shell">
-                  <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_city"
-                      type="text"
-                      placeholder="e.g. Silk Board, Bangalore"
-                      value={form.city}
-                      onChange={(e) => handleCityChange(e.target.value)}
-                    />
+
+                {/* Consultation Fee */}
+                <div className="zzc-exec-field theme-amber zzc-exec-field-full">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Target size={14} />
+                    </span>
+                    <label htmlFor="doc_fee">Consultation Fee (₹)</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_fee"
+                        type="number"
+                        min="0"
+                        step="10"
+                        placeholder="e.g. 500"
+                        value={form.consultation_fee}
+                        onChange={(e) => handleChange("consultation_fee", e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
+            </section>
 
-              {/* Pin Code */}
-              <div className="zzc-exec-field theme-blue">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <MapPin size={14} />
+            {/* ── SECTION 3: CREDENTIALS & STATUS ── */}
+            <section className="zzc-exec-section">
+              <div className="zzc-exec-section-header">
+                <div className="zzc-exec-section-title-wrap">
+                  <span className="zzc-exec-section-badge">
+                    <LockKeyhole size={15} />
                   </span>
-                  <label htmlFor="doc_pincode">Pin Code (6 Digits)</label>
+                  <h3>Account Credentials & Status</h3>
                 </div>
-                <div className="zzc-exec-input-shell">
-                  <MapPin size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_pincode"
-                      type="text"
-                      placeholder="e.g. 560068"
-                      maxLength={6}
-                      value={form.pincode}
-                      onChange={(e) => handlePincodeChange(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Consultation Fee */}
-              <div className="zzc-exec-field theme-amber zzc-exec-field-full">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Target size={14} />
-                  </span>
-                  <label htmlFor="doc_fee">Consultation Fee (₹)</label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <Target size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_fee"
-                      type="number"
-                      min="0"
-                      step="10"
-                      placeholder="e.g. 500"
-                      value={form.consultation_fee}
-                      onChange={(e) => handleChange("consultation_fee", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* ── SECTION 3: CREDENTIALS & STATUS ── */}
-          <section className="zzc-exec-section">
-            <div className="zzc-exec-section-header">
-              <div className="zzc-exec-section-title-wrap">
-                <span className="zzc-exec-section-badge">
-                  <LockKeyhole size={15} />
+                <span className="zzc-exec-section-subtitle">
+                  Doctor website access & verification 🐾
                 </span>
-                <h3>Account Credentials & Status</h3>
               </div>
-              <span className="zzc-exec-section-subtitle">
-                Doctor website access & verification 🐾
-              </span>
-            </div>
 
-            <div className="zzc-exec-fields">
-              {/* Phone */}
-              <div className="zzc-exec-field theme-pink">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Phone size={14} />
-                  </span>
-                  <label htmlFor="doc_phone">Phone Number <span className="zzc-exec-required">*</span></label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <Phone size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_phone"
-                      type="tel"
-                      placeholder="e.g. 9876543210"
-                      value={form.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      required
-                    />
+              <div className="zzc-exec-fields">
+                {/* Phone */}
+                <div className="zzc-exec-field theme-pink">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Phone size={14} />
+                    </span>
+                    <label htmlFor="doc_phone">Phone Number <span className="zzc-exec-required">*</span></label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Phone size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_phone"
+                        type="tel"
+                        placeholder="e.g. 9876543210"
+                        value={form.phone}
+                        onChange={(e) => handleChange("phone", e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Email */}
-              <div className="zzc-exec-field theme-pink">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Mail size={14} />
-                  </span>
-                  <label htmlFor="doc_email">Doctor Email (Login ID) <span className="zzc-exec-required">*</span></label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <Mail size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_email"
-                      type="email"
-                      placeholder="e.g. doctor@clinic.com"
-                      value={form.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      required
-                    />
+                {/* Email */}
+                <div className="zzc-exec-field theme-pink">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Mail size={14} />
+                    </span>
+                    <label htmlFor="doc_email">Doctor Email (Login ID) <span className="zzc-exec-required">*</span></label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Mail size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_email"
+                        type="email"
+                        placeholder="e.g. doctor@clinic.com"
+                        value={form.email}
+                        onChange={(e) => handleChange("email", e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Password */}
-              <div className="zzc-exec-field theme-pink zzc-exec-field-full">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <LockKeyhole size={14} />
-                  </span>
-                  <label htmlFor="doc_password">Doctor Password <span className="zzc-exec-required">*</span></label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <LockKeyhole size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <input
-                      id="doc_password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Minimum 6 characters"
-                      value={form.password}
-                      onChange={(e) => handleChange("password", e.target.value)}
-                      required
-                      minLength={6}
-                    />
+                {/* Password */}
+                <div className="zzc-exec-field theme-pink zzc-exec-field-full">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <LockKeyhole size={14} />
+                    </span>
+                    <label htmlFor="doc_password">Doctor Password <span className="zzc-exec-required">*</span></label>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    title={showPassword ? "Hide password" : "Show password"}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: 0 }}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Status (Active / Inactive) */}
-              <div className="zzc-exec-field theme-green">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <ShieldCheck size={14} />
-                  </span>
-                  <label htmlFor="doc_active">Active Status</label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <ShieldCheck size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <select
-                      id="doc_active"
-                      value={form.is_active}
-                      onChange={(e) => handleChange("is_active", e.target.value)}
+                  <div className="zzc-exec-input-shell">
+                    <LockKeyhole size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <input
+                        id="doc_password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Minimum 6 characters"
+                        value={form.password}
+                        onChange={(e) => handleChange("password", e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      title={showPassword ? "Hide password" : "Show password"}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: 0 }}
                     >
-                      <option value="Yes">Active</option>
-                      <option value="No">Inactive</option>
-                    </select>
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
-                  <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
                 </div>
-              </div>
 
-              {/* Verification Status */}
-              <div className="zzc-exec-field theme-green">
-                <div className="zzc-exec-field-header">
-                  <span className="zzc-field-label-icon">
-                    <Check size={14} />
-                  </span>
-                  <label htmlFor="doc_verification">Verification Status</label>
-                </div>
-                <div className="zzc-exec-input-shell">
-                  <Check size={16} className="zzc-shell-left-icon" aria-hidden="true" />
-                  <div className="zzc-exec-input-control">
-                    <select
-                      id="doc_verification"
-                      value={form.verification_status}
-                      onChange={(e) => handleChange("verification_status", e.target.value)}
-                    >
-                      <option value="pending">Pending (Admin Approval)</option>
-                      <option value="verified">Verified (Approved)</option>
-                    </select>
+                {/* Status (Active / Inactive) */}
+                <div className="zzc-exec-field theme-green">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <ShieldCheck size={14} />
+                    </span>
+                    <label htmlFor="doc_active">Active Status</label>
                   </div>
-                  <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                  <div className="zzc-exec-input-shell">
+                    <ShieldCheck size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <select
+                        id="doc_active"
+                        value={form.is_active}
+                        onChange={(e) => handleChange("is_active", e.target.value)}
+                      >
+                        <option value="Yes">Active</option>
+                        <option value="No">Inactive</option>
+                      </select>
+                    </div>
+                    <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                  </div>
+                </div>
+
+                {/* Verification Status */}
+                <div className="zzc-exec-field theme-green">
+                  <div className="zzc-exec-field-header">
+                    <span className="zzc-field-label-icon">
+                      <Check size={14} />
+                    </span>
+                    <label htmlFor="doc_verification">Verification Status</label>
+                  </div>
+                  <div className="zzc-exec-input-shell">
+                    <Check size={16} className="zzc-shell-left-icon" aria-hidden="true" />
+                    <div className="zzc-exec-input-control">
+                      <select
+                        id="doc_verification"
+                        value={form.verification_status}
+                        onChange={(e) => handleChange("verification_status", e.target.value)}
+                      >
+                        <option value="pending">Pending (Admin Approval)</option>
+                        <option value="verified">Verified (Approved)</option>
+                      </select>
+                    </div>
+                    <ChevronDown size={15} className="zzc-shell-right-chevron" aria-hidden="true" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
             {/* ── CLINIC PHOTOS SECTION (INSIDE & OUTSIDE CLINIC IMAGES) ── */}
             <div className="clinic-photos-section">
               <div className="clinic-photos-title-row">
                 <div>
                   <h4>
-                    <Building2 size={16} color="#0d9488" />
+                    <Building2 size={16} color={primaryColor} />
                     <span>Clinic Verification Photos</span>
                   </h4>
                   <p>Add inside and outside clinic images for field verification</p>
@@ -3247,8 +3812,9 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
                           type="button"
                           className="btn-del"
                           onClick={() => setForm((prev) => ({ ...prev, inside_clinic_image: null }))}
+                          title="Delete image"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={12} color="#ef4444" />
                         </button>
                       </div>
                     </>
@@ -3304,14 +3870,15 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
                           type="button"
                           className="btn-del"
                           onClick={() => setForm((prev) => ({ ...prev, outside_clinic_image: null }))}
+                          title="Delete image"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={12} color="#ef4444" />
                         </button>
                       </div>
                     </>
                   ) : (
                     <>
-                      <Building2 size={24} color="#0d9488" style={{ opacity: 0.8, marginBottom: "4px" }} />
+                      <Building2 size={24} color={primaryColor} style={{ opacity: 0.8, marginBottom: "4px" }} />
                       <span className="clinic-photo-card-label">Outside Clinic Image</span>
                       <span className="clinic-photo-card-sub">Signboard, entrance, building exterior</span>
                       <button
@@ -3333,7 +3900,7 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
               <div className="clinic-photos-title-row">
                 <div>
                   <h4>
-                    <PenTool size={16} color="#0d9488" />
+                    <PenTool size={16} color={primaryColor} />
                     <span>Doctor / Executive Signature</span>
                   </h4>
                   <p>Official verified signature captured in transparent PNG format</p>
@@ -3373,8 +3940,9 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
                         type="button"
                         className="doc-sig-action-btn btn-del"
                         onClick={() => setForm((prev) => ({ ...prev, digital_signature: null }))}
+                        title="Remove signature"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={13} color="#ef4444" />
                         <span>Remove</span>
                       </button>
                     </div>
@@ -3408,8 +3976,8 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
         {/* Modal Actions Footer */}
         <footer className="zzc-exec-footer">
           <div className="zzc-exec-footer-paws" aria-hidden="true">
-            <PawIcon size={24} color="#0d8b7b" />
-            <PawIcon size={16} color="#0d8b7b" />
+            <PawIcon size={24} color={primaryColor} />
+            <PawIcon size={16} color={primaryColor} />
           </div>
 
           <div className="zzc-exec-footer-actions">
@@ -3445,14 +4013,14 @@ function AddDoctorModal({ defaultCity = "", availablePincodes = [], onClose, onD
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "8px",
-                background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+                background: primaryGradient,
                 color: "#ffffff",
                 border: "none",
                 padding: "10px 24px",
                 borderRadius: "12px",
                 fontWeight: "700",
                 fontSize: "0.88rem",
-                boxShadow: "0 4px 14px rgba(13, 139, 123, 0.35)",
+                boxShadow: primaryGlow,
                 cursor: saving ? "not-allowed" : "pointer",
                 opacity: saving ? 0.7 : 1,
                 transition: "all 0.18s ease",
@@ -3848,7 +4416,20 @@ function DoctorDetailsModal({ doctor, onClose }) {
   );
 }
 
-function DoctorsView({ data, execId }) {
+function DoctorsView({ data, execId, role = "manager" }) {
+  const isRegional = role === "regional";
+  const isExecutive = role === "executive";
+  const newDocGradient = isRegional
+    ? "#7c3aed"
+    : isExecutive
+      ? "linear-gradient(135deg, #0077e6 0%, #0056b3 100%)"
+      : "linear-gradient(135deg, #059669 0%, #047857 100%)";
+  const newDocGlow = isRegional
+    ? "0 0 16px rgba(124, 58, 237, 0.55), 0 4px 12px rgba(124, 58, 237, 0.35)"
+    : isExecutive
+      ? "0 0 16px rgba(0, 119, 230, 0.55), 0 4px 12px rgba(0, 119, 230, 0.35)"
+      : "0 0 16px rgba(5, 150, 105, 0.55), 0 4px 12px rgba(5, 150, 105, 0.35)";
+
   const [search, setSearch] = useState("");
   const [filterPincode, setFilterPincode] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -3935,14 +4516,14 @@ function DoctorsView({ data, execId }) {
             display: "inline-flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, #0d8b7b 0%, #076d60 100%)",
+            background: newDocGradient,
             color: "#ffffff",
             border: "none",
             borderRadius: "12px",
             padding: "0.6rem 1.15rem",
             fontWeight: "700",
             fontSize: "0.9rem",
-            boxShadow: "0 4px 12px rgba(13, 139, 123, 0.28)",
+            boxShadow: newDocGlow,
             cursor: "pointer",
             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -4103,6 +4684,7 @@ function DoctorsView({ data, execId }) {
       {/* ── ADD DOCTOR MODAL ── */}
       {showAddDoctorModal && (
         <AddDoctorModal
+          role={role}
           defaultCity={exec?.city || ""}
           availablePincodes={Array.from(myPincodes)}
           onClose={() => setShowAddDoctorModal(false)}
@@ -4253,7 +4835,12 @@ function PlanTargetPanel({ planStats, monthLabel, onGoToPlan }) {
    TEAM PLAN TARGET PANEL (Managers & Regional Managers)
    Shows aggregate visit target + per-employee breakdown
 ───────────────────────────────────────────────────────── */
-function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, onTeamStatsLoaded }) {
+function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, onTeamStatsLoaded, role = null, isRegional = false }) {
+  const isReg = role === "regional" || isRegional;
+  const isExec = role === "executive";
+  const primaryColor = isReg ? "#7c3aed" : isExec ? "#0077e6" : "#059669";
+  const badgeShadow = isReg ? "0 2px 6px rgba(124, 58, 237, 0.25)" : isExec ? "0 2px 6px rgba(0, 119, 230, 0.25)" : "0 2px 6px rgba(5, 150, 105, 0.25)";
+
   const [teamPlans, setTeamPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -4304,7 +4891,7 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
         setTeamPlans(results);
         setLoading(false);
         if (onTeamStatsLoaded) {
-          const tTarget = results.reduce((s, r) => s + (r.stats?.total_doctors || 0), 0);
+          const tTarget = results.reduce((s, r) => s + (r.stats?.total_doctors || r.stats?.planned_visits || 0), 0);
           const tDone = results.reduce((s, r) => s + (r.stats?.completed || 0), 0);
           const hasAny = results.some((r) => r.stats?.has_plan);
           const pct = tTarget > 0 ? Math.round((tDone / tTarget) * 100) : 0;
@@ -4315,9 +4902,9 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
     return () => { cancelled = true; };
   }, [execsInScope, activeMonth]); // eslint-disable-line
 
-  const totalTarget = teamPlans.reduce((sum, r) => sum + (r.stats?.total_doctors || 0), 0);
+  const totalTarget = teamPlans.reduce((sum, r) => sum + (r.stats?.total_doctors || r.stats?.planned_visits || 0), 0);
   const totalCompleted = teamPlans.reduce((sum, r) => sum + (r.stats?.completed || 0), 0);
-  const totalPending = teamPlans.reduce((sum, r) => sum + (r.stats?.pending || 0), 0);
+  const totalPending = Math.max(0, totalTarget - totalCompleted);
   const totalScheduled = teamPlans.reduce((sum, r) => sum + (r.stats?.planned_visits || 0), 0);
   const overallPct = totalTarget > 0 ? Math.round((totalCompleted / totalTarget) * 100) : 0;
 
@@ -4354,55 +4941,60 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
   return (
     <div className="panel pln-target-panel">
       {/* ── header row ── */}
-      <div className="pln-target-header">
-        <div>
-          <h2 className="pln-target-title">
-            Team Visit Target — {activeMonthLabel}
-          </h2>
-          <p className="pln-hint">
-            Overall team target across {execsInScope.length} executive{execsInScope.length !== 1 ? "s" : ""}
-          </p>
+      <div className="pln-target-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.85rem" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: primaryColor, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0, boxShadow: badgeShadow }}>
+            <Calendar size={16} color="#ffffff" />
+          </div>
+          <div>
+            <h2 className="pln-target-title" style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#0f172a" }}>
+              Team Visit Target — {activeMonthLabel}
+            </h2>
+            <p className="pln-hint" style={{ margin: "3px 0 0 0", fontSize: "0.76rem", color: "#64748b" }}>
+              Overall team target across {execsInScope.length} executive{execsInScope.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
         <div className="pln-target-header-right">
           {onGoToPlan && (
-            <button className="rpt-btn-outline pln-target-btn" onClick={onGoToPlan}>
+            <button className="rpt-btn-outline pln-target-btn" onClick={onGoToPlan} style={{ background: "#ffffff", border: "1.5px solid #d1d5db", borderRadius: 8, padding: "5px 14px", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer", color: "#374151" }}>
               View Plans
             </button>
           )}
         </div>
       </div>
 
-      {/* ── stat pills ── */}
-      <div className="pln-target-pills">
-        <div className="pln-target-pill">
+      {/* ── 4 Colored Metric Summary Boxes ── */}
+      <div className="pln-target-pills-modern">
+        <div className={`pln-target-pill-modern ${isReg ? "purple" : isExec ? "blue" : "mint"}`}>
           <strong>{totalTarget}</strong>
-          <span>Target</span>
+          <span>TARGET</span>
         </div>
-        <div className="pln-target-pill pln-target-pill-green">
+        <div className="pln-target-pill-modern green">
           <strong>{totalCompleted}</strong>
-          <span>Completed</span>
+          <span>COMPLETED</span>
         </div>
-        <div className="pln-target-pill pln-target-pill-orange">
+        <div className="pln-target-pill-modern orange">
           <strong>{totalPending}</strong>
-          <span>Pending</span>
+          <span>PENDING</span>
         </div>
-        <div className="pln-target-pill">
+        <div className="pln-target-pill-modern blue">
           <strong>{totalScheduled}</strong>
-          <span>Scheduled</span>
+          <span>SCHEDULED</span>
         </div>
       </div>
 
       {/* ── overall progress bar ── */}
-      <div className="pln-target-progress-row">
-        <div className="pln-target-progress-track">
+      <div className="pln-target-progress-row" style={{ marginTop: "1rem" }}>
+        <div className="pln-target-progress-track" style={{ height: 10, borderRadius: 9999, background: "#e2e8f0", overflow: "hidden", flex: 1 }}>
           <div
             className="pln-target-progress-fill"
-            style={{ width: `${Math.min(100, overallPct)}%`, background: barColor }}
+            style={{ width: `${Math.min(100, overallPct)}%`, height: "100%", background: primaryColor, borderRadius: 9999, transition: "width 0.4s ease" }}
           />
         </div>
-        <span className="pln-target-pct">{overallPct}%</span>
+        <span className="pln-target-pct" style={{ fontWeight: 700, fontSize: "0.85rem", color: primaryColor }}>{overallPct}%</span>
       </div>
-      <p className="pln-hint" style={{ marginTop: 5 }}>
+      <p className="pln-hint" style={{ marginTop: 6, fontSize: "0.76rem", color: "#64748b" }}>
         <strong>{totalCompleted}</strong> of <strong>{totalTarget}</strong> team visits completed
       </p>
 
@@ -4548,18 +5140,106 @@ function TeamPlanTargetPanel({ execsInScope, monthKey, monthLabel, onGoToPlan, o
 /* ─────────────────────────────────────────────────────────
    EXECUTIVE DASHBOARD
 ───────────────────────────────────────────────────────── */
-function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan }) {
-  const { executives, coverage, tasks, doctors, products } = data;
-  const exec = executives.find((e) => e.id === execId) || executives[0];
-  const myPincodes = new Set(coverage.filter((c) => c.executive_id === exec?.id).map((c) => c.pincode));
-  const myTasks = tasks.filter((t) => !t.pincode || myPincodes.has(t.pincode));
-  const done = myTasks.filter((t) => t.status === "done").length;
-  const inProgress = myTasks.filter((t) => t.status === "in progress").length;
-  const open = myTasks.length - done - inProgress;
-  const donePct = myTasks.length > 0 ? Math.round((done / myTasks.length) * 100) : 0;
+function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan, onGoToTasks }) {
+  const { executives, coverage, tasks, alerts, doctors, products, reload } = data;
+  const exec = executives.find((e) => String(e.id) === String(execId)) || executives[0];
+  const myPincodes = useMemo(() => new Set(coverage.filter((c) => c.executive_id === exec?.id).map((c) => c.pincode)), [coverage, exec?.id]);
+
+  const [taskSummary, setTaskSummary] = useState(null);
+  const [updatingTaskId, setUpdatingTaskId] = useState(null);
+
+  const loadSummary = useCallback(async () => {
+    if (!exec?.id) return;
+    try {
+      const res = await fetchExecutiveTaskSummary(exec.id);
+      if (res) setTaskSummary(res);
+    } catch (err) {
+      console.warn("Could not load executive task summary:", err);
+    }
+  }, [exec?.id]);
+
+  useEffect(() => {
+    loadSummary();
+  }, [loadSummary]);
+
+  const handleQuickStatusUpdate = async (taskId, newStatus) => {
+    try {
+      setUpdatingTaskId(taskId);
+      const payload = {
+        status: newStatus,
+        progress: newStatus === "completed" ? 100 : newStatus === "in progress" ? 50 : 0,
+      };
+      await updateExecutiveTask(taskId, payload);
+      if (reload) await reload();
+      await loadSummary();
+    } catch (err) {
+      alert("Failed to update task: " + err.message);
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
+
+  const handleMarkAlert = async (alertId) => {
+    try {
+      await markAlertRead(alertId);
+      if (reload) await reload();
+      await loadSummary();
+    } catch (err) {
+      console.warn("Could not mark alert read:", err);
+    }
+  };
+
+  // Filter tasks belonging to this executive
+  const myTasks = useMemo(() => {
+    if (taskSummary?.assigned_tasks && taskSummary.assigned_tasks.length > 0) {
+      return taskSummary.assigned_tasks;
+    }
+    return tasks.filter((t) => {
+      if (t.assigned_to_id && String(t.assigned_to_id) === String(exec?.id)) return true;
+      if (t.assigned_to_name && exec?.name && String(t.assigned_to_name).toLowerCase() === String(exec.name).toLowerCase()) return true;
+      if (!t.assigned_to_id && !t.assigned_to_name && t.pincode && myPincodes.has(t.pincode)) return true;
+      return false;
+    });
+  }, [taskSummary, tasks, exec, myPincodes]);
+
+  const done = myTasks.filter((t) => ["completed", "done"].includes(String(t.status || "").toLowerCase())).length;
+  const inProgress = myTasks.filter((t) => String(t.status || "").toLowerCase() === "in progress").length;
+  const pending = myTasks.filter((t) => ["pending", "todo"].includes(String(t.status || "").toLowerCase()) || (!["completed", "done", "in progress"].includes(String(t.status || "").toLowerCase()))).length;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const overdueTasks = useMemo(() => {
+    if (taskSummary?.overdue_tasks) return taskSummary.overdue_tasks;
+    return myTasks.filter((t) => {
+      const isDone = ["completed", "done"].includes(String(t.status || "").toLowerCase());
+      return !isDone && t.due_date && String(t.due_date).slice(0, 10) < todayStr;
+    });
+  }, [taskSummary, myTasks, todayStr]);
+
+  const overdueCount = overdueTasks.length;
+  const totalAssigned = myTasks.length;
+  const completionPct = totalAssigned > 0 ? Math.round((done / totalAssigned) * 100) : 0;
+
+  const upcomingDeadlines = useMemo(() => {
+    if (taskSummary?.upcoming_deadlines && taskSummary.upcoming_deadlines.length > 0) {
+      return taskSummary.upcoming_deadlines;
+    }
+    return myTasks
+      .filter((t) => !["completed", "done"].includes(String(t.status || "").toLowerCase()) && t.due_date)
+      .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)))
+      .slice(0, 5);
+  }, [taskSummary, myTasks]);
+
+  const myAlerts = useMemo(() => {
+    if (taskSummary?.alerts) return taskSummary.alerts;
+    return (alerts || []).filter((a) => !a.executive_id || String(a.executive_id) === String(exec?.id));
+  }, [taskSummary, alerts, exec?.id]);
+
+  const unreadAlerts = myAlerts.filter((a) => !a.is_read);
+
   const PRIORITIES = ["low", "medium", "high"];
   const totals = PRIORITIES.map((p) => myTasks.filter((t) => String(t.priority || "").toLowerCase() === p).length);
-  const doneByPriority = PRIORITIES.map((p) => myTasks.filter((t) => String(t.priority || "").toLowerCase() === p && t.status === "done").length);
+  const doneByPriority = PRIORITIES.map((p) => myTasks.filter((t) => String(t.priority || "").toLowerCase() === p && ["completed", "done"].includes(String(t.status || "").toLowerCase())).length);
+
   const pincodeRows = [...myPincodes].map((pc) => ({
     pc,
     doctorCount: doctors.filter((d) => d.pincode === pc).length,
@@ -4570,53 +5250,323 @@ function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan })
     .sort((a, b) => b.doctorCount + b.productCount - (a.doctorCount + a.productCount))
     .slice(0, 3)
     .map((r) => [r.pc, `${r.doctorCount} doctors · ${r.productCount} products`, `${Math.round(((r.doctorCount + r.productCount) / maxScore) * 100)}%`]);
+
   const statusRows = [
-    ["Open", open, myTasks.length ? `${Math.round((open / myTasks.length) * 100)}%` : "0%"],
-    ["In Progress", inProgress, myTasks.length ? `${Math.round((inProgress / myTasks.length) * 100)}%` : "0%"],
-    ["Done", done, myTasks.length ? `${Math.round((done / myTasks.length) * 100)}%` : "0%"],
+    ["Open / Pending", pending, totalAssigned ? `${Math.round((pending / totalAssigned) * 100)}%` : "0%"],
+    ["In Progress", inProgress, totalAssigned ? `${Math.round((inProgress / totalAssigned) * 100)}%` : "0%"],
+    ["Done / Completed", done, totalAssigned ? `${Math.round((done / totalAssigned) * 100)}%` : "0%"],
   ];
-  const upcoming = myTasks
-    .filter((t) => t.status !== "done" && t.due_date)
-    .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)))
-    .slice(0, 4)
-    .map((t) => [t.title, `pin ${t.pincode || "—"} · ${String(t.priority || "").toUpperCase()}`, t.due_date]);
+
   return (
     <>
-      {/* ── Stat cards ── */}
+      {/* ── 1. Overdue Notifications & Alerts Banner ── */}
+      {overdueCount > 0 ? (
+        <div className="exec-dash-alert-banner overdue">
+          <div className="exec-dash-alert-left">
+            <div className="exec-dash-alert-icon overdue">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <div className="exec-dash-alert-title">
+                Attention: {overdueCount} Overdue Task{overdueCount !== 1 ? "s" : ""} Requiring Action
+              </div>
+              <div className="exec-dash-alert-desc">
+                {overdueTasks.map((t) => `"${t.title}" (Due: ${String(t.due_date).slice(0, 10)})`).slice(0, 2).join("; ")}
+                {overdueCount > 2 ? ` and ${overdueCount - 2} more` : ""}
+              </div>
+            </div>
+          </div>
+          <button className="exec-dash-alert-btn overdue" onClick={onGoToTasks}>
+            Manage Tasks <ArrowRight size={14} />
+          </button>
+        </div>
+      ) : unreadAlerts.length > 0 ? (
+        <div className="exec-dash-alert-banner info">
+          <div className="exec-dash-alert-left">
+            <div className="exec-dash-alert-icon info">
+              <Bell size={20} />
+            </div>
+            <div>
+              <div className="exec-dash-alert-title">
+                {unreadAlerts.length} New Task Notification{unreadAlerts.length !== 1 ? "s" : ""}
+              </div>
+              <div className="exec-dash-alert-desc">{unreadAlerts[0]?.message}</div>
+            </div>
+          </div>
+          <button className="exec-dash-alert-btn info" onClick={onGoToTasks} style={{ background: "#0077e6", color: "#fff" }}>
+            View Tasks <ArrowRight size={14} />
+          </button>
+        </div>
+      ) : null}
+
+      {/* ── 2. Stat Cards ── */}
       <div className="stats">
-        <Stat icon="◎" title="My Tasks" value={myTasks.length} text={`${open} open`} type="blue" />
-        <Stat icon="✓" title="Tasks Done" value={done} text={`${donePct}% complete`} type="green" />
+        <Stat
+          icon="◎"
+          title="My Assigned Tasks"
+          value={totalAssigned}
+          text={`${pending} pending · ${inProgress} in progress`}
+          type="blue"
+        />
+        <Stat
+          icon="✓"
+          title="Task Completion"
+          value={`${completionPct}%`}
+          text={`${done} of ${totalAssigned} completed`}
+          type="green"
+        />
+        <Stat
+          icon="⏰"
+          title="Overdue Tasks"
+          value={overdueCount}
+          text={overdueCount > 0 ? "Needs immediate action" : "All tasks on schedule"}
+          type={overdueCount > 0 ? "red" : "orange"}
+        />
         {planStats?.has_plan ? (
           <Stat
             icon="🗓"
-            title="Plan Target"
+            title="Monthly Plan Target"
             value={`${planStats.completion_pct ?? 0}%`}
             text={`${planStats.completed ?? 0} / ${planStats.total_doctors ?? 0} visits`}
             type="orange"
           />
         ) : (
-          <Stat icon="♙" title="Pin Codes Covered" value={myPincodes.size} text="Assigned coverage" type="orange" />
+          <Stat
+            icon="♙"
+            title="Coverage Pin Codes"
+            value={myPincodes.size}
+            text="Assigned territory"
+            type="orange"
+          />
         )}
-        <Stat icon="⚕" title="Doctors In Area" value={pincodeRows.reduce((s, r) => s + r.doctorCount, 0)} text="Across my pin codes" type="red" />
       </div>
 
-
-      {/* ── Top Grid: Tasks by Priority side-by-side with Plan Target Panel ── */}
+      {/* ── 3. Active Assigned Tasks & Upcoming Deadlines Grid ── */}
       <div className="two-columns">
-        <Chart title="My Tasks by Priority" categories={["Low", "Medium", "High"]} targets={totals} achieved={doneByPriority} />
+        {/* Panel 1: Assigned Tasks */}
+        <div className="panel">
+          <div className="exec-task-panel-header">
+            <div>
+              <h2>Assigned Tasks</h2>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0 0" }}>
+                Tasks assigned to you by Regional and Sales Managers
+              </p>
+            </div>
+            {onGoToTasks && (
+              <button
+                type="button"
+                className="rpt-btn-outline"
+                style={{ fontSize: "11px", padding: "4px 10px" }}
+                onClick={onGoToTasks}
+              >
+                Open Task Manager
+              </button>
+            )}
+          </div>
+
+          {myTasks.length === 0 ? (
+            <p style={{ color: "#7f8b98", fontSize: "13px", padding: "16px 0", textAlign: "center" }}>
+              No tasks currently assigned to you.
+            </p>
+          ) : (
+            <div className="exec-task-grid">
+              {myTasks.slice(0, 4).map((task) => {
+                const isOverdue = !["completed", "done"].includes(String(task.status || "").toLowerCase()) && task.due_date && String(task.due_date).slice(0, 10) < todayStr;
+                const isCompleted = ["completed", "done"].includes(String(task.status || "").toLowerCase());
+                const priorityClass = String(task.priority || "medium").toLowerCase();
+
+                return (
+                  <div
+                    key={task.id}
+                    className={`exec-task-card ${isOverdue ? "is-overdue" : ""} ${isCompleted ? "is-completed" : ""}`}
+                  >
+                    <div className="exec-task-card-header">
+                      <div>
+                        <div className="exec-task-card-title">{task.title}</div>
+                        <div className="exec-task-card-assigner">
+                          Assigned by: <strong>{task.assigned_by_name || "Manager"}</strong> ({task.assigned_by_role || "Sales Manager"})
+                        </div>
+                      </div>
+                      <span className={`exec-task-pill ${priorityClass}`}>
+                        {task.priority || "Medium"}
+                      </span>
+                    </div>
+
+                    {task.description && (
+                      <div style={{ fontSize: "12px", color: "#475569", lineHeight: 1.35 }}>
+                        {task.description}
+                      </div>
+                    )}
+
+                    {/* Progress Bar */}
+                    <div style={{ marginTop: "2px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748b", marginBottom: "3px" }}>
+                        <span>Progress</span>
+                        <strong style={{ color: isCompleted ? "#059669" : "#0f172a" }}>{task.progress || (isCompleted ? 100 : 0)}%</strong>
+                      </div>
+                      <div style={{ height: "5px", background: "#f1f5f9", borderRadius: "99px", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${task.progress || (isCompleted ? 100 : 0)}%`,
+                            height: "100%",
+                            background: isCompleted ? "#10b981" : "#0d9488",
+                            borderRadius: "99px",
+                            transition: "width 0.3s ease",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="exec-task-card-footer">
+                      <div className="exec-task-pills">
+                        {task.category && (
+                          <span style={{ fontSize: "11px", color: "#64748b", background: "#f8fafc", padding: "1px 6px", borderRadius: "4px" }}>
+                            {task.category}
+                          </span>
+                        )}
+                        <span style={{ fontSize: "11px", color: isOverdue ? "#dc2626" : "#64748b", fontWeight: isOverdue ? 700 : 400 }}>
+                          Due: {task.due_date ? String(task.due_date).slice(0, 10) : "No deadline"}
+                          {isOverdue && " (OVERDUE)"}
+                        </span>
+                      </div>
+
+                      <div className="exec-task-actions">
+                        {!isCompleted ? (
+                          <>
+                            {task.status !== "in progress" && (
+                              <button
+                                type="button"
+                                className="exec-task-btn-done"
+                                style={{ background: "#eff6ff", color: "#2563eb", borderColor: "#bfdbfe" }}
+                                disabled={updatingTaskId === task.id}
+                                onClick={() => handleQuickStatusUpdate(task.id, "in progress")}
+                              >
+                                Start
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="exec-task-btn-done"
+                              disabled={updatingTaskId === task.id}
+                              onClick={() => handleQuickStatusUpdate(task.id, "completed")}
+                            >
+                              <Check size={12} /> Complete
+                            </button>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: "11px", color: "#059669", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                            <CheckCircle2 size={13} /> Completed
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Panel 2: Upcoming Deadlines & Task Alerts */}
+        <div className="panel">
+          <div className="exec-task-panel-header">
+            <div>
+              <h2>Upcoming Deadlines &amp; Alerts</h2>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0 0" }}>
+                Approaching deadlines and manager notifications
+              </p>
+            </div>
+          </div>
+
+          <h3 style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.04em", color: "#64748b", marginBottom: "8px" }}>
+            Deadlines Timeline
+          </h3>
+          {upcomingDeadlines.length === 0 ? (
+            <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: "16px" }}>No upcoming deadlines.</p>
+          ) : (
+            <div style={{ marginBottom: "16px" }}>
+              {upcomingDeadlines.map((t) => {
+                const dStr = t.due_date ? String(t.due_date).slice(0, 10) : "";
+                const isOverdue = dStr && dStr < todayStr;
+                const isToday = dStr === todayStr;
+                const badgeClass = isOverdue ? "overdue" : isToday ? "today" : "upcoming";
+                const badgeLabel = isOverdue ? "Overdue" : isToday ? "Due Today" : dStr;
+
+                return (
+                  <div key={t.id} className="exec-deadline-item">
+                    <div className="exec-deadline-info">
+                      <div className="exec-deadline-title">{t.title}</div>
+                      <div className="exec-deadline-meta">
+                        {t.category ? `${t.category} · ` : ""}
+                        Assigned by {t.assigned_by_name || "Manager"}
+                      </div>
+                    </div>
+                    <span className={`exec-deadline-badge ${badgeClass}`}>{badgeLabel}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <h3 style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.04em", color: "#64748b", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>Task-Related Alerts</span>
+            {unreadAlerts.length > 0 && (
+              <span style={{ fontSize: "10px", background: "#fef2f2", color: "#dc2626", padding: "1px 6px", borderRadius: "999px", fontWeight: 700 }}>
+                {unreadAlerts.length} Unread
+              </span>
+            )}
+          </h3>
+          {myAlerts.length === 0 ? (
+            <p style={{ color: "#94a3b8", fontSize: "12px" }}>No recent task alerts.</p>
+          ) : (
+            <div className="exec-alert-feed">
+              {myAlerts.slice(0, 3).map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`exec-alert-card ${!alert.is_read ? "unread" : ""}`}
+                  onClick={() => !alert.is_read && handleMarkAlert(alert.id)}
+                  title={!alert.is_read ? "Click to mark as read" : ""}
+                  style={{ cursor: !alert.is_read ? "pointer" : "default" }}
+                >
+                  {!alert.is_read && <div className="exec-alert-dot" />}
+                  <div style={{ flex: 1 }}>
+                    <div className="exec-alert-msg">{alert.message}</div>
+                    <div className="exec-alert-time">
+                      {alert.created_at ? new Date(alert.created_at).toLocaleString() : "Recently"}
+                      {!alert.is_read && " · Click to mark read"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── 4. Charts & Target Panels ── */}
+      <div className="two-columns">
+        <Chart
+          title="My Tasks by Priority"
+          categories={["Low", "Medium", "High"]}
+          targets={totals}
+          achieved={doneByPriority}
+          role="executive"
+        />
         <PlanTargetPanel planStats={planStats} monthLabel={monthLabel} onGoToPlan={onGoToPlan} />
       </div>
 
-      {/* ── Second Grid: Achievement Overview & Task Status ── */}
+      {/* ── 5. Status Overview & Top Pin Codes ── */}
       <div className="two-columns">
-        <Achievement percentage={`${donePct}%`} achieved={done} progress={inProgress} pending={open} />
-        <StatusList title="My Task Status" rows={statusRows} />
+        <Achievement percentage={`${completionPct}%`} achieved={done} progress={inProgress} pending={pending} role="executive" />
+        <StatusList title="Task Completion Status" rows={statusRows} />
       </div>
 
-      {/* ── Third Grid: Top Pin Codes & Upcoming Tasks ── */}
       <div className="two-columns">
-        <Performers title="Top Pin Codes in My Area" people={topPincodes} />
-        <UpcomingList title="Upcoming Tasks" rows={upcoming} />
+        <Performers title="Top Pin Codes in My Territory" people={topPincodes} />
+        <UpcomingList
+          title="Field Follow-ups & Next Actions"
+          rows={myTasks.slice(0, 4).map((t) => [t.title, `pin ${t.pincode || "—"} · ${String(t.priority || "").toUpperCase()}`, t.due_date ? String(t.due_date).slice(0, 10) : "—"])}
+        />
       </div>
     </>
   );
@@ -4625,12 +5575,17 @@ function ExecutiveDashboard({ data, execId, planStats, monthLabel, onGoToPlan })
 /* ─────────────────────────────────────────────────────────
    EXECUTIVE PERFORMANCE TABLE (With Pagination Controls)
 ───────────────────────────────────────────────────────── */
-function ExecutivePerformanceTable({ rows }) {
+function ExecutivePerformanceTable({ rows, role = null, isRegional = false }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 5;
   const totalRecords = rows.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
   const validPage = Math.min(currentPage, totalPages);
+
+  const isReg = role === "regional" || isRegional;
+  const isExec = role === "executive";
+  const primaryColor = isReg ? "#7c3aed" : isExec ? "#0077e6" : "#059669";
+  const badgeShadow = isReg ? "0 2px 6px rgba(124, 58, 237, 0.25)" : isExec ? "0 2px 6px rgba(0, 119, 230, 0.25)" : "0 2px 6px rgba(5, 150, 105, 0.25)";
 
   // Auto-reset to page 1 whenever row count or region filter changes
   useEffect(() => {
@@ -4646,7 +5601,12 @@ function ExecutivePerformanceTable({ rows }) {
   return (
     <div className="panel table-panel">
       <div className="panel-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>Executive Performance</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: primaryColor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: badgeShadow }}>
+            <Users size={16} color="#ffffff" />
+          </div>
+          <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#0f172a" }}>Executive Performance</h2>
+        </div>
         {totalRecords > 0 && (
           <span className="pln-team-page-pill" style={{ fontSize: "0.7rem" }}>
             {totalRecords} Executive{totalRecords !== 1 ? "s" : ""}
@@ -4673,12 +5633,12 @@ function ExecutivePerformanceTable({ rows }) {
           ) : (
             displayedRows.map((row, i) => {
               const pctVal = parseInt(row[3]) || 0;
-              const barColor = pctVal >= 70 ? "#10b981" : pctVal >= 40 ? "#f59e0b" : "#0d9488";
+              const barColor = pctVal >= 70 ? primaryColor : pctVal >= 40 ? "#f59e0b" : "#94a3b8";
               return (
                 <tr key={i}>
                   <td><strong>{row[0]}</strong></td>
                   <td>{row[1]}</td>
-                  <td><span style={{ color: "#059669", fontWeight: 700 }}>{row[2]}</span></td>
+                  <td><span style={{ color: primaryColor, fontWeight: 700 }}>{row[2]}</span></td>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <div style={{ flex: 1, height: "6px", background: "var(--secondary, #f1f5f9)", borderRadius: "99px", overflow: "hidden", minWidth: "40px" }}>
@@ -4749,16 +5709,53 @@ function ExecutivePerformanceTable({ rows }) {
 /* ─────────────────────────────────────────────────────────
    TEAM DASHBOARD (Managers & Regional Managers)
 ───────────────────────────────────────────────────────── */
-function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToPlan }) {
+function TeamDashboard({
+  data,
+  role,
+  managerId,
+  regionalId,
+  currentRecord,
+  region,
+  scopeLabel,
+  monthKey,
+  monthLabel,
+  onGoToPlan,
+  onGoToTasks,
+  onGoToAttendanceReport,
+}) {
   const { executives, doctors } = data;
 
   const normalizeReg = (r) => (r || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
 
+  const isRegional = role === "regional";
+  const [selectedTerritory, setSelectedTerritory] = useState("");
+
+  // Available unique regions across executives and managers
+  const availableRegions = useMemo(() => {
+    const set = new Set();
+    (data.executives || []).forEach((e) => {
+      if (e.region && e.region.trim()) set.add(e.region.trim());
+    });
+    (data.salesManagers || []).forEach((m) => {
+      if (m.region && m.region.trim()) set.add(m.region.trim());
+    });
+    return Array.from(set).sort();
+  }, [data.executives, data.salesManagers]);
+
+  const effectiveRegion = selectedTerritory || region || "";
+
   const execsInScope = useMemo(() => {
-    if (!region) return executives;
-    const rNorm = normalizeReg(region);
+    if (!effectiveRegion) return executives;
+    const rNorm = normalizeReg(effectiveRegion);
     return executives.filter((e) => normalizeReg(e.region) === rNorm);
-  }, [executives, region]);
+  }, [executives, effectiveRegion]);
+
+  const salesManagersInScope = useMemo(() => {
+    const mgrs = data.salesManagers || [];
+    if (!effectiveRegion) return mgrs;
+    const rNorm = normalizeReg(effectiveRegion);
+    return mgrs.filter((m) => normalizeReg(m.region) === rNorm);
+  }, [data.salesManagers, effectiveRegion]);
 
   const [teamStatsSummary, setTeamStatsSummary] = useState(null);
 
@@ -4798,32 +5795,393 @@ function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToP
     };
   }, [teamStatsSummary, execsInScope]);
 
+  // ---------------------------------------------------------
+  // TASK MANAGEMENT & EMPLOYEE PERFORMANCE ANALYTICS
+  // ---------------------------------------------------------
+  const [taskAnalytics, setTaskAnalytics] = useState(null);
+  const [taskLoading, setTaskLoading] = useState(true);
+  const [taskPerfSearch, setTaskPerfSearch] = useState("");
+
+  // Assign Task Modal State
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignTargetEmployee, setAssignTargetEmployee] = useState(null);
+  const [assignSuccessToast, setAssignSuccessToast] = useState("");
+
+  const handleOpenAssignModal = (emp = null) => {
+    if (emp) {
+      const isMgr = String(emp.role || "").toLowerCase().includes("manager");
+      setAssignTargetEmployee({
+        id: emp.id || emp.employee_id,
+        role: isMgr ? "manager" : "executive",
+        name: emp.name,
+      });
+    } else {
+      setAssignTargetEmployee(null);
+    }
+    setIsAssignModalOpen(true);
+  };
+
+  const handleTaskCreated = (newTask) => {
+    loadTaskData();
+    data.reload?.();
+    const name = newTask?.assigned_to_name || "Employee";
+    setAssignSuccessToast(`Task "${newTask?.title || "New Task"}" successfully assigned to ${name}! Pincode auto-linked to Pin Code Coverage.`);
+    setTimeout(() => setAssignSuccessToast(""), 6000);
+  };
+
+  const effectiveUserId = useMemo(() => {
+    if (role === "regional") return regionalId || currentRecord?.id || null;
+    return managerId || currentRecord?.id || null;
+  }, [role, regionalId, managerId, currentRecord]);
+
+  const loadTaskData = useCallback(() => {
+    setTaskLoading(true);
+    fetchTaskAnalytics({
+      role: role || (regionalId ? "regional" : "manager"),
+      user_id: effectiveUserId,
+      region: effectiveRegion || currentRecord?.region || null,
+    })
+      .then((res) => {
+        setTaskAnalytics(res);
+        setTaskLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load task analytics:", err);
+        setTaskLoading(false);
+      });
+  }, [role, effectiveUserId, effectiveRegion, currentRecord, regionalId]);
+
+  useEffect(() => {
+    loadTaskData();
+  }, [loadTaskData]);
+
+  // Filtered employee performance records
+  const filteredEmployeePerf = useMemo(() => {
+    const list = taskAnalytics?.employee_performance || [];
+    if (!taskPerfSearch.trim()) return list;
+    const q = taskPerfSearch.toLowerCase();
+    return list.filter(
+      (emp) =>
+        (emp.name && emp.name.toLowerCase().includes(q)) ||
+        (emp.code && emp.code.toLowerCase().includes(q)) ||
+        (emp.role && emp.role.toLowerCase().includes(q)) ||
+        (emp.region && emp.region.toLowerCase().includes(q))
+    );
+  }, [taskAnalytics, taskPerfSearch]);
+
+  // Strict 5 data per page pagination
+  const [perfCurrentPage, setPerfCurrentPage] = useState(1);
+  const PERF_PAGE_SIZE = 5;
+
+  useEffect(() => {
+    setPerfCurrentPage(1);
+  }, [taskPerfSearch, filteredEmployeePerf.length]);
+
+  const totalPerfPages = Math.max(1, Math.ceil(filteredEmployeePerf.length / PERF_PAGE_SIZE));
+  const validPerfPage = Math.min(perfCurrentPage, totalPerfPages);
+
+  const displayedEmployeePerf = useMemo(() => {
+    const start = (validPerfPage - 1) * PERF_PAGE_SIZE;
+    return filteredEmployeePerf.slice(start, start + PERF_PAGE_SIZE);
+  }, [filteredEmployeePerf, validPerfPage, PERF_PAGE_SIZE]);
+
+  function handleExportPerfCSV() {
+    const list = taskAnalytics?.employee_performance || [];
+    const headers = [
+      "Employee Name",
+      "Code",
+      "Role",
+      "Region",
+      "Total Assigned",
+      "Completed",
+      "Pending",
+      "Overdue",
+      "Completion Rate",
+      "Performance Badge",
+    ];
+    const rows = list.map((emp) => [
+      `"${emp.name || ""}"`,
+      `"${emp.code || ""}"`,
+      `"${emp.role || ""}"`,
+      `"${emp.region || ""}"`,
+      emp.total_assigned || 0,
+      emp.completed || 0,
+      emp.pending || 0,
+      emp.overdue || 0,
+      `"${emp.completion_rate || 0}%"`,
+      `"${emp.performance_badge || "N/A"}"`,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `${role === "regional" ? "regional-manager" : "sales-manager"}-employee-task-performance.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Pre-computed graph data
+  const totalTasks = taskAnalytics?.total_assigned || 0;
+  const statusItems = [
+    { label: "Completed", count: taskAnalytics?.completed_tasks || 0, color: "#10b981" },
+    { label: "In Progress", count: taskAnalytics?.in_progress_tasks || 0, color: "#3b82f6" },
+    { label: "Pending", count: taskAnalytics?.pending_tasks || 0, color: "#f59e0b" },
+    { label: "Overdue", count: taskAnalytics?.overdue_tasks || 0, color: "#ef4444" },
+  ];
+
+  const priorityItems = [
+    { label: "Urgent", count: taskAnalytics?.priority_breakdown?.Urgent || 0, color: "#dc2626" },
+    { label: "High", count: taskAnalytics?.priority_breakdown?.High || 0, color: "#f97316" },
+    { label: "Medium", count: taskAnalytics?.priority_breakdown?.Medium || 0, color: "#2563eb" },
+    { label: "Low", count: taskAnalytics?.priority_breakdown?.Low || 0, color: "#64748b" },
+  ];
+
+  const roleItems = Object.entries(taskAnalytics?.role_breakdown || {}).map(([rLabel, rCount], idx) => ({
+    label: rLabel,
+    count: rCount,
+    color: idx === 0 ? (isRegional ? "#7c3aed" : "#059669") : (isRegional ? "#a855f7" : "#34d399"),
+  }));
+
+  const overdueCount = taskAnalytics?.overdue_tasks || 0;
+
   return (
     <>
-      <div className="stats">
-        <Stat icon="♙" title="My Executives" value={execsInScope.length} text={scopeLabel} type="blue" />
-        <Stat icon="◎" title="Total Plan Visits" value={totalPlannedVisits} text={monthLabel || "This Month"} type="green" />
-        {teamStatsSummary?.hasAnyPlan ? (
-          <Stat
-            icon="🗓"
-            title="Team Plan Completion"
-            value={`${overallPct}%`}
-            text={`${totalDoneVisits} / ${totalPlannedVisits} visits`}
-            type="orange"
-          />
-        ) : (
-          <Stat icon="▣" title="Doctors in Territory" value={doctors.length} text="Covered" type="orange" />
-        )}
-        <Stat icon="₹" title="Visit Completion" value={`${overallPct}%`} text={`${totalDoneVisits} completed`} type="red" />
+      {/* ── SUCCESS NOTIFICATION TOAST ── */}
+      {assignSuccessToast && (
+        <div style={{ background: "#f0fdf4", border: "1px solid #86efac", color: "#166534", padding: "0.85rem 1.25rem", borderRadius: "10px", marginBottom: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", fontWeight: 600, boxShadow: "0 4px 12px rgba(22, 101, 52, 0.08)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <CheckCircle2 size={18} color="#16a34a" />
+            <span>{assignSuccessToast}</span>
+          </div>
+          <button type="button" onClick={() => setAssignSuccessToast("")} style={{ border: "none", background: "transparent", color: "#166534", cursor: "pointer", fontWeight: 700 }}>✕</button>
+        </div>
+      )}
+
+      {/* ── UNIQUE COMMAND CENTER HERO BANNER ── */}
+      <div className={`team-cmd-hero ${isRegional ? "regional" : "manager"}`}>
+        <div className="team-cmd-hero-inner">
+          <div className="team-cmd-header-row">
+            <div className="team-cmd-title-group">
+              <div className="team-cmd-badge-icon">
+                <Target size={24} color="#ffffff" strokeWidth={2.5} />
+              </div>
+              <div>
+                <h2>
+                  {isRegional ? "Regional Command Center" : "Territory Operations Command"}
+                </h2>
+                <p>
+                  {isRegional
+                    ? `Strategic Command & Territory Performance • Overseeing ${availableRegions.length || 2} Active Territories across South India`
+                    : `Territory Management & Field Operations • Assigned Region: ${currentRecord?.region || region || "Karnataka"}`}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Command Actions */}
+            <div className="team-cmd-actions">
+              <button
+                type="button"
+                className="team-cmd-btn primary emerald"
+                onClick={() => handleOpenAssignModal(null)}
+                title="Open modern Task Assignment dialog"
+              >
+                <Plus size={16} />
+                Assign New Task
+              </button>
+              {onGoToAttendanceReport && (
+                <button
+                  type="button"
+                  className="team-cmd-btn glass"
+                  onClick={onGoToAttendanceReport}
+                  title="View live team punch-in and attendance history"
+                >
+                  <UserCheck size={15} />
+                  Attendance Report
+                </button>
+              )}
+              {onGoToPlan && (
+                <button
+                  type="button"
+                  className="team-cmd-btn glass"
+                  onClick={onGoToPlan}
+                  title="Review monthly doctor visit plans and approvals"
+                >
+                  <ClipboardCheck size={15} />
+                  Plan Approvals
+                </button>
+              )}
+              {onGoToTasks && (
+                <button
+                  type="button"
+                  className="team-cmd-btn glass"
+                  onClick={onGoToTasks}
+                  title="Open interactive Kanban task board"
+                >
+                  <CheckSquare size={15} />
+                  Task Board
+                </button>
+              )}
+            </div>
+
+          </div>
+
+          {/* 4 Quick Stat Metric Boxes inside Hero */}
+          <div className="team-cmd-stats-row">
+            <div className="team-cmd-stat-box">
+              <div className="team-cmd-stat-top">
+                <div className="team-cmd-stat-icon-wrap mint">
+                  <Users size={16} color="#016b5a" />
+                </div>
+                <span>Sales Managers</span>
+              </div>
+              <div className="team-cmd-stat-val">{salesManagersInScope.length || 2}</div>
+              <div className="team-cmd-stat-sub">
+                {effectiveRegion ? `In ${effectiveRegion}` : "Territory Managers"}
+              </div>
+              <div className="team-cmd-stat-trend up">
+                <span>↑ 1 vs last month</span>
+              </div>
+            </div>
+
+            <div className="team-cmd-stat-box">
+              <div className="team-cmd-stat-top">
+                <div className="team-cmd-stat-icon-wrap mint">
+                  <User size={16} color="#016b5a" />
+                </div>
+                <span>Field Executives</span>
+              </div>
+              <div className="team-cmd-stat-val">{execsInScope.length}</div>
+              <div className="team-cmd-stat-sub">Active field workforce</div>
+              <div className="team-cmd-stat-trend up">
+                <span>↑ 1 vs last month</span>
+              </div>
+            </div>
+
+            <div className="team-cmd-stat-box">
+              <div className="team-cmd-stat-top">
+                <div className="team-cmd-stat-icon-wrap mint">
+                  <Stethoscope size={16} color="#016b5a" />
+                </div>
+                <span>Doctor Network</span>
+              </div>
+              <div className="team-cmd-stat-val">{doctors.length}</div>
+              <div className="team-cmd-stat-sub">Clinics &amp; hospitals enrolled</div>
+              <div className="team-cmd-stat-trend neutral">
+                <span>→ 0 vs last month</span>
+              </div>
+            </div>
+
+            <div className="team-cmd-stat-box">
+              <div className="team-cmd-stat-top">
+                <div className="team-cmd-stat-icon-wrap amber">
+                  <Package size={16} color="#d97706" />
+                </div>
+                <span>Plan Delivery</span>
+              </div>
+              <div className="team-cmd-stat-val" style={{ color: "#059669" }}>{overallPct}%</div>
+              <div className="team-cmd-stat-sub">{totalDoneVisits} / {totalPlannedVisits} visits done</div>
+              <div className="team-cmd-stat-trend up">
+                <span>↑ 5% vs last month</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Territory Filter Pills for Regional Manager */}
+          {isRegional && availableRegions.length > 0 && (
+            <div className="team-cmd-territory-bar">
+              <span className="team-cmd-territory-label">
+                <MapPin size={13} />
+                Filter Territory:
+              </span>
+              <button
+                type="button"
+                className={`team-cmd-territory-pill ${!selectedTerritory ? "active" : ""}`}
+                onClick={() => setSelectedTerritory("")}
+              >
+                All Territories ({executives.length} execs)
+              </button>
+              {availableRegions.map((reg) => {
+                const count = executives.filter((e) => normalizeReg(e.region) === normalizeReg(reg)).length;
+                return (
+                  <button
+                    key={reg}
+                    type="button"
+                    className={`team-cmd-territory-pill ${selectedTerritory === reg ? "active" : ""}`}
+                    onClick={() => setSelectedTerritory(reg === selectedTerritory ? "" : reg)}
+                  >
+                    {reg} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Top Grid: Team Target vs Achievement side-by-side with Team Plan Target Panel ── */}
+      {/* ── 1. Territory & Visit Stats ── */}
+      <div className="stats stats-modern-row">
+        <div className="stat-card modern">
+          <div className="stat-icon-modern teal">
+            <Users size={18} />
+          </div>
+          <div>
+            <span className="stat-label-modern">FIELD WORKFORCE</span>
+            <strong className="stat-val-modern">{execsInScope.length}</strong>
+            <small className="stat-sub-modern">{scopeLabel}</small>
+          </div>
+        </div>
+
+        <div className="stat-card modern">
+          <div className="stat-icon-modern mint">
+            <Calendar size={18} />
+          </div>
+          <div>
+            <span className="stat-label-modern">TOTAL PLAN VISITS</span>
+            <strong className="stat-val-modern">{totalPlannedVisits}</strong>
+            <small className="stat-sub-modern">{monthLabel || "October 2026"}</small>
+          </div>
+        </div>
+
+        <div className="stat-card modern">
+          <div className="stat-icon-modern orange">
+            <Target size={18} />
+          </div>
+          <div>
+            <span className="stat-label-modern">TEAM PLAN COMPLETION</span>
+            <strong className="stat-val-modern">{overallPct}%</strong>
+            <small className="stat-sub-modern">{totalDoneVisits} / {totalPlannedVisits} visits</small>
+          </div>
+        </div>
+
+        <div className="stat-card modern">
+          <div className="stat-icon-modern green">
+            <CheckCircle2 size={18} />
+          </div>
+          <div>
+            <span className="stat-label-modern">VISIT COMPLETION</span>
+            <strong className="stat-val-modern">{overallPct}%</strong>
+            <small className="stat-sub-modern">{totalDoneVisits} completed</small>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Team Target vs Achievement side-by-side with Team Plan Target Panel ── */}
       <div className="two-columns">
         <Chart
           title="Team Target vs Achievement"
           categories={chartData.categories}
           targets={chartData.targets}
           achieved={chartData.achieved}
+          execResults={teamStatsSummary?.results}
+          totalTarget={totalPlannedVisits}
+          totalAchieved={totalDoneVisits}
+          role={isRegional ? "regional" : "manager"}
+          isRegional={isRegional}
         />
         <TeamPlanTargetPanel
           execsInScope={execsInScope}
@@ -4831,6 +6189,8 @@ function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToP
           monthLabel={monthLabel}
           onGoToPlan={onGoToPlan}
           onTeamStatsLoaded={setTeamStatsSummary}
+          role={isRegional ? "regional" : "manager"}
+          isRegional={isRegional}
         />
       </div>
 
@@ -4840,9 +6200,461 @@ function TeamDashboard({ data, region, scopeLabel, monthKey, monthLabel, onGoToP
           achieved={totalDoneVisits}
           progress={totalInProgress}
           pending={totalPendingVisits}
+          role={isRegional ? "regional" : "manager"}
+          isRegional={isRegional}
         />
-        <ExecutivePerformanceTable rows={performanceRows} />
+        <ExecutivePerformanceTable rows={performanceRows} role={isRegional ? "regional" : "manager"} isRegional={isRegional} />
       </div>
+
+      {/* ── 3. TASK MANAGEMENT & EMPLOYEE PERFORMANCE SECTION ── */}
+      <section className="team-task-section">
+        <div className="team-task-header">
+          <div className="team-task-header-left" style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: isRegional ? "#7c3aed" : "#059669", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0, boxShadow: isRegional ? "0 2px 8px rgba(124, 58, 237, 0.25)" : "0 2px 8px rgba(5, 150, 105, 0.25)" }}>
+              <CheckSquare size={18} color="#ffffff" />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                Task Management &amp; Employee Performance
+              </h2>
+              <p style={{ margin: "4px 0 0 0" }}>
+                {isRegional
+                  ? "Live overview of tasks assigned across Sales Managers & Executives, overdue tasks, and employee performance"
+                  : "Live overview of tasks assigned to your Sales Executives, completion status, and performance metrics"}
+              </p>
+            </div>
+          </div>
+          <div className="team-task-header-actions">
+            <button
+              type="button"
+              className="team-task-btn outline"
+              onClick={onGoToTasks}
+              title="Open full interactive task board"
+            >
+              <CheckSquare size={14} />
+              Open Task Board
+            </button>
+            <button
+              type="button"
+              className="team-task-btn primary"
+              onClick={() => handleOpenAssignModal(null)}
+              title="Assign task to an employee"
+              style={{
+                background: isRegional ? "#7c3aed" : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                color: "#ffffff",
+                boxShadow: isRegional
+                  ? "0 0 14px rgba(124, 58, 237, 0.55), 0 4px 10px rgba(124, 58, 237, 0.35)"
+                  : "0 0 14px rgba(5, 150, 105, 0.55), 0 4px 10px rgba(5, 150, 105, 0.35)",
+              }}
+            >
+              <Plus size={14} />
+              Assign New Task
+            </button>
+          </div>
+        </div>
+
+        {/* 5 KPI Summary Cards */}
+        <div className="team-task-stats">
+          {/* Card 1: Total Assigned */}
+          <div className="team-task-stat-card blue">
+            <div className="team-task-stat-top">
+              <span className="team-task-stat-label">Total Assigned</span>
+              <div className="team-task-stat-icon">
+                <CheckSquare size={16} />
+              </div>
+            </div>
+            <div className="team-task-stat-value">
+              {taskLoading ? "..." : taskAnalytics?.total_assigned ?? 0}
+            </div>
+            <div className="team-task-stat-sub">
+              {isRegional ? "Across all managers & executives" : "Assigned to your executives"}
+            </div>
+          </div>
+
+          {/* Card 2: Completed % */}
+          <div className="team-task-stat-card green">
+            <div className="team-task-stat-top">
+              <span className="team-task-stat-label">Completion Status</span>
+              <div className="team-task-stat-icon">
+                <CheckCircle2 size={16} />
+              </div>
+            </div>
+            <div className="team-task-stat-value" style={{ color: "#059669" }}>
+              {taskLoading ? "..." : `${taskAnalytics?.completion_rate ?? 0}%`}
+            </div>
+            <div className="team-task-stat-sub">
+              <strong>{taskAnalytics?.completed_tasks ?? 0}</strong> tasks completed
+            </div>
+          </div>
+
+          {/* Card 3: In Progress */}
+          <div className="team-task-stat-card in-progress">
+            <div className="team-task-stat-top">
+              <span className="team-task-stat-label">In Progress</span>
+              <div className="team-task-stat-icon">
+                <TrendingUp size={16} />
+              </div>
+            </div>
+            <div className="team-task-stat-value" style={{ color: "#0d9488" }}>
+              {taskLoading ? "..." : taskAnalytics?.in_progress_tasks ?? 0}
+            </div>
+            <div className="team-task-stat-sub">Actively being worked on</div>
+          </div>
+
+          {/* Card 4: Pending Tasks */}
+          <div className="team-task-stat-card orange">
+            <div className="team-task-stat-top">
+              <span className="team-task-stat-label">Pending Tasks</span>
+              <div className="team-task-stat-icon">
+                <Clock size={16} />
+              </div>
+            </div>
+            <div className="team-task-stat-value" style={{ color: "#d97706" }}>
+              {taskLoading ? "..." : taskAnalytics?.pending_tasks ?? 0}
+            </div>
+            <div className="team-task-stat-sub">Awaiting executive start</div>
+          </div>
+
+          {/* Card 5: Overdue Tasks */}
+          <div className={`team-task-stat-card red ${overdueCount > 0 ? "overdue-active" : ""}`}>
+            <div className="team-task-stat-top">
+              <span className="team-task-stat-label">Overdue Tasks</span>
+              <div className="team-task-stat-icon">
+                <AlertCircle size={16} />
+              </div>
+            </div>
+            <div className="team-task-stat-value" style={{ color: overdueCount > 0 ? "#dc2626" : "var(--foreground)" }}>
+              {taskLoading ? "..." : overdueCount}
+            </div>
+            <div className="team-task-stat-sub" style={{ color: overdueCount > 0 ? "#dc2626" : "var(--muted-foreground)" }}>
+              {overdueCount > 0 ? "⚠️ Action required immediately" : "Zero overdue tasks"}
+            </div>
+          </div>
+        </div>
+
+        {/* Analytical Graphs Grid */}
+        <div className="team-task-graphs">
+          {/* Graph 1: Task Completion & Status Breakdown */}
+          <div className="team-task-graph-panel">
+            <div className="panel-header">
+              <div>
+                <h3>Task Status Breakdown</h3>
+                <span className="graph-sub">Distribution of tasks by current progress state</span>
+              </div>
+            </div>
+            <div className="team-task-bar-list">
+              {statusItems.map((item) => {
+                const pct = totalTasks > 0 ? Math.round((item.count / totalTasks) * 100) : 0;
+                return (
+                  <div key={item.label} className="team-task-bar-item">
+                    <div className="team-task-bar-meta">
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: item.color }} />
+                        {item.label}
+                      </span>
+                      <span>
+                        <strong>{item.count}</strong> ({pct}%)
+                      </span>
+                    </div>
+                    <div className="team-task-bar-track">
+                      <div className="team-task-bar-fill" style={{ width: `${pct}%`, background: item.color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Graph 2: Task Priority Distribution */}
+          <div className="team-task-graph-panel">
+            <div className="panel-header">
+              <div>
+                <h3>Priority Distribution</h3>
+                <span className="graph-sub">Allocation by urgency and delivery priority</span>
+              </div>
+            </div>
+            <div className="team-task-bar-list">
+              {priorityItems.map((item) => {
+                const pct = totalTasks > 0 ? Math.round((item.count / totalTasks) * 100) : 0;
+                return (
+                  <div key={item.label} className="team-task-bar-item">
+                    <div className="team-task-bar-meta">
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: item.color }} />
+                        {item.label} Priority
+                      </span>
+                      <span>
+                        <strong>{item.count}</strong> ({pct}%)
+                      </span>
+                    </div>
+                    <div className="team-task-bar-track">
+                      <div className="team-task-bar-fill" style={{ width: `${pct}%`, background: item.color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Graph 3: Role / Team Task Distribution */}
+          <div className="team-task-graph-panel">
+            <div className="panel-header">
+              <div>
+                <h3>{isRegional ? "Task Role Allocation" : "Team Performance Summary"}</h3>
+                <span className="graph-sub">
+                  {isRegional ? "Tasks assigned to Sales Managers vs Executives" : "Overall completion health"}
+                </span>
+              </div>
+            </div>
+            <div className="team-task-bar-list">
+              {roleItems.length === 0 ? (
+                <p style={{ color: "var(--muted-foreground)", fontSize: "12px" }}>No role data available.</p>
+              ) : (
+                roleItems.map((item) => {
+                  const pct = totalTasks > 0 ? Math.round((item.count / totalTasks) * 100) : 0;
+                  return (
+                    <div key={item.label} className="team-task-bar-item">
+                      <div className="team-task-bar-meta">
+                        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: item.color }} />
+                          {item.label}
+                        </span>
+                        <span>
+                          <strong>{item.count}</strong> ({pct}%)
+                        </span>
+                      </div>
+                      <div className="team-task-bar-track">
+                        <div className="team-task-bar-fill" style={{ width: `${pct}%`, background: item.color }} />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Employee Performance Data Leaderboard Table ── */}
+        <div className="team-task-perf-panel">
+          <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+            <div>
+              <h3>Employee Performance &amp; Task Completion</h3>
+              <span className="graph-sub">
+                {isRegional
+                  ? "Live task performance data for Sales Managers and Sales Executives"
+                  : "Live task performance data for your Sales Executives"}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="text"
+                placeholder="Search employee..."
+                value={taskPerfSearch}
+                onChange={(e) => setTaskPerfSearch(e.target.value)}
+                style={{
+                  padding: "5px 10px",
+                  fontSize: "12px",
+                  borderRadius: "6px",
+                  border: "1px solid var(--border)",
+                  background: "var(--card)",
+                  color: "var(--foreground)",
+                }}
+              />
+              <button
+                type="button"
+                className="team-task-btn outline"
+                onClick={handleExportPerfCSV}
+                title="Export employee performance data to CSV"
+              >
+                <Download size={13} />
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div className="team-task-perf-table-wrap">
+            <table className="team-task-perf-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Role</th>
+                  <th>Region</th>
+                  <th style={{ textAlign: "center" }}>Assigned</th>
+                  <th style={{ textAlign: "center" }}>Completed</th>
+                  <th style={{ textAlign: "center" }}>Pending</th>
+                  <th style={{ textAlign: "center" }}>Overdue</th>
+                  <th>Completion Rate</th>
+                  <th>Status Badge</th>
+                  <th style={{ textAlign: "center" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedEmployeePerf.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} style={{ textAlign: "center", color: "var(--muted-foreground)", padding: "24px" }}>
+                      {taskLoading ? "Loading employee task performance..." : "No employee task performance records found."}
+                    </td>
+                  </tr>
+                ) : (
+                  displayedEmployeePerf.map((emp) => {
+                    const badgeClass =
+                      emp.performance_badge === "Top Performer"
+                        ? "top"
+                        : emp.performance_badge === "On Track"
+                          ? "ontrack"
+                          : "attention";
+
+                    const roleClass = String(emp.role).toLowerCase().includes("manager") ? "manager" : "executive";
+                    const progColor =
+                      emp.completion_rate >= 75 ? "#10b981" : emp.completion_rate >= 40 ? "#3b82f6" : "#f59e0b";
+
+                    return (
+                      <tr key={emp.id || emp.code}>
+                        <td>
+                          <div className="team-perf-emp-cell">
+                            <div className="team-perf-avatar">
+                              {emp.name ? emp.name.charAt(0).toUpperCase() : "E"}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700 }}>{emp.name}</div>
+                              <div style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>{emp.code}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`team-perf-role-badge ${roleClass}`}>{emp.role}</span>
+                        </td>
+                        <td>{emp.region || "All Territories"}</td>
+                        <td style={{ textAlign: "center", fontWeight: 700 }}>{emp.total_assigned}</td>
+                        <td style={{ textAlign: "center", color: "#059669", fontWeight: 700 }}>{emp.completed}</td>
+                        <td style={{ textAlign: "center", color: "#d97706" }}>{emp.pending}</td>
+                        <td
+                          style={{
+                            textAlign: "center",
+                            color: emp.overdue > 0 ? "#dc2626" : "var(--muted-foreground)",
+                            fontWeight: emp.overdue > 0 ? 800 : 400,
+                          }}
+                        >
+                          {emp.overdue > 0 ? `⚠️ ${emp.overdue}` : 0}
+                        </td>
+                        <td>
+                          <div className="team-perf-prog">
+                            <div className="team-perf-prog-track">
+                              <div
+                                className="team-perf-prog-fill"
+                                style={{ width: `${emp.completion_rate}%`, background: progColor }}
+                              />
+                            </div>
+                            <span style={{ fontSize: "11px", fontWeight: 700, minWidth: "32px" }}>
+                              {emp.completion_rate}%
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`team-perf-badge ${badgeClass}`}>
+                            {emp.performance_badge === "Top Performer" && <Award size={12} />}
+                            {emp.performance_badge === "On Track" && <CheckCircle2 size={12} />}
+                            {emp.performance_badge === "Needs Attention" && <ShieldAlert size={12} />}
+                            {emp.performance_badge}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <button
+                            type="button"
+                            className="team-task-btn primary team-perf-assign-btn"
+                            style={{
+                              padding: "6px 14px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              borderRadius: "8px",
+                              background: isRegional
+                                ? "#7c3aed"
+                                : "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                              color: "#ffffff",
+                              border: "none",
+                              boxShadow: isRegional
+                                ? "0 0 14px rgba(124, 58, 237, 0.55), 0 2px 8px rgba(124, 58, 237, 0.35)"
+                                : "0 0 14px rgba(5, 150, 105, 0.55), 0 2px 8px rgba(5, 150, 105, 0.35)",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => handleOpenAssignModal(emp)}
+                            title={`Assign or manage tasks for ${emp.name}`}
+                          >
+                            Assign Task
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Strict 5 data per page pagination controls ── */}
+          <div className="team-task-perf-pagination">
+            <div className="perf-pagination-info">
+              Showing <strong>{filteredEmployeePerf.length === 0 ? 0 : (validPerfPage - 1) * PERF_PAGE_SIZE + 1}</strong> to{" "}
+              <strong>{Math.min(validPerfPage * PERF_PAGE_SIZE, filteredEmployeePerf.length)}</strong> of{" "}
+              <strong>{filteredEmployeePerf.length}</strong> employees
+            </div>
+            {totalPerfPages > 1 && (
+              <div className="perf-pagination-actions">
+                <button
+                  type="button"
+                  className="perf-page-btn nav-btn"
+                  onClick={() => setPerfCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={validPerfPage === 1}
+                  title="Previous page"
+                >
+                  <ChevronLeft size={13} />
+                  <span>Prev</span>
+                </button>
+                {Array.from({ length: totalPerfPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    className={`perf-page-btn num-btn ${pageNum === validPerfPage ? "active" : ""}`}
+                    onClick={() => setPerfCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="perf-page-btn nav-btn"
+                  onClick={() => setPerfCurrentPage((p) => Math.min(totalPerfPages, p + 1))}
+                  disabled={validPerfPage === totalPerfPages}
+                  title="Next page"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── MODULAR MODERN ASSIGN TASK MODAL ── */}
+      <AssignTaskModal
+        isOpen={isAssignModalOpen}
+        onClose={() => {
+          setIsAssignModalOpen(false);
+          setAssignTargetEmployee(null);
+        }}
+        onTaskCreated={handleTaskCreated}
+        role={role}
+        currentRecord={currentRecord}
+        teamMembers={{
+          executives: data.executives || [],
+          managers: data.salesManagers || [],
+          doctors: data.doctors || [],
+          coverage: data.coverage || [],
+        }}
+        initialAssigneeId={assignTargetEmployee?.id || null}
+        initialAssigneeRole={assignTargetEmployee?.role || "executive"}
+      />
     </>
   );
 }
@@ -4870,6 +6682,7 @@ const SECTION_TITLES = {
   plan: "Plan",
   approvals: "Plan Approvals",
   reports: "Reports",
+  tasks: "Task Management",
 };
 
 export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
@@ -4902,10 +6715,14 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
   const [region, setRegion] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [loginModal, setLoginModal] = useState({ isOpen: false, role: "executive" });
+  const [planInitialTab, setPlanInitialTab] = useState(null);
   const [activeSection, setActiveSection] = useState(() => {
     try {
       const hash = window.location.hash.replace("#", "");
-      if (["attendance", "attendance_report", "dashboard", "doctors", "plan", "approvals", "reports"].includes(hash)) {
+      if (["attendance", "attendance_report", "dashboard", "doctors", "plan", "approvals", "reports", "tasks"].includes(hash)) {
+        if (role === ROLES.EXECUTIVE && hash === "tasks") {
+          return "plan";
+        }
         // Managers and regional managers should not land on attendance
         if ((role === ROLES.MANAGER || role === ROLES.REGIONAL) && hash === "attendance") {
           return "dashboard";
@@ -4915,12 +6732,22 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
     } catch {
       /* ignore */
     }
-    // Default: executives start at Attendance, managers/regional start at Dashboard
-    return (role === ROLES.MANAGER || role === ROLES.REGIONAL) ? "dashboard" : "attendance";
+    // Default: Dashboard comes first for all roles (including Executive)
+    return "dashboard";
   });
 
 
   const handleSelectSection = (sec) => {
+    if (role === ROLES.EXECUTIVE && sec === "tasks") {
+      setPlanInitialTab("tasks");
+      setActiveSection("plan");
+      try {
+        window.location.hash = "plan";
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
     setActiveSection(sec);
     try {
       window.location.hash = sec;
@@ -5004,6 +6831,11 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
       t = setTimeout(() => setActiveSection("plan"), 0);
     } else if (role === ROLES.EXECUTIVE && activeSection === "attendance_report") {
       t = setTimeout(() => setActiveSection("attendance"), 0);
+    } else if (role === ROLES.EXECUTIVE && activeSection === "tasks") {
+      t = setTimeout(() => {
+        setPlanInitialTab("tasks");
+        setActiveSection("plan");
+      }, 0);
     }
     return () => clearTimeout(t);
   }, [role, activeSection]);
@@ -5085,8 +6917,8 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
   const pageTitle = `${ROLE_TITLES[role]} — ${SECTION_TITLES[activeSection] ?? "Dashboard"}`;
 
   return (
-    <div className="app">
-      <aside className="sidebar">
+    <div className={`app role-${role} theme-${role} ${role === "executive" ? "theme-blue" : role === "manager" ? "theme-green" : "theme-purple"}`}>
+      <aside className={`sidebar sidebar-${role} ${role === "executive" ? "sidebar-blue" : role === "manager" ? "sidebar-green" : "sidebar-purple"}`}>
         <div className="brand">
           <div className="brand-logo"><img src={logo} alt="Zenve Zippy" /></div>
           <div>
@@ -5098,6 +6930,15 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
         </div>
 
         <nav>
+          {/* DASHBOARD FIRST FOR ALL ROLES */}
+          <button
+            className={"nav-item" + (activeSection === "dashboard" ? " active" : "")}
+            onClick={() => handleSelectSection("dashboard")}
+          >
+            <LayoutGrid size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
+            Dashboard
+          </button>
+
           {role === ROLES.EXECUTIVE && (
             <button
               className={"nav-item" + (activeSection === "attendance" ? " active" : "")}
@@ -5107,6 +6948,8 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
               Attendance
             </button>
           )}
+
+          {/* ATTENDANCE REPORT DIRECTLY UNDER DASHBOARD */}
           {role !== ROLES.EXECUTIVE && (
             <button
               className={"nav-item" + (activeSection === "attendance_report" ? " active" : "")}
@@ -5116,13 +6959,6 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
               Attendance Report
             </button>
           )}
-          <button
-            className={"nav-item" + (activeSection === "dashboard" ? " active" : "")}
-            onClick={() => handleSelectSection("dashboard")}
-          >
-            <LayoutGrid size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
-            Dashboard
-          </button>
           <button
             className={"nav-item" + (activeSection === "doctors" ? " active" : "")}
             onClick={() => handleSelectSection("doctors")}
@@ -5147,6 +6983,15 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
               Approvals
             </button>
           )}
+          {role !== ROLES.EXECUTIVE && (
+            <button
+              className={"nav-item" + (activeSection === "tasks" ? " active" : "")}
+              onClick={() => handleSelectSection("tasks")}
+            >
+              <CheckSquare size={16} style={{ marginRight: "10px", flexShrink: 0 }} />
+              Task Management
+            </button>
+          )}
           <button
             className={"nav-item" + (activeSection === "reports" ? " active" : "")}
             onClick={() => handleSelectSection("reports")}
@@ -5160,6 +7005,7 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
             Log Out
           </button>
         </nav>
+
       </aside>
 
       <main className="main">
@@ -5243,29 +7089,53 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
                   planStats={planStats}
                   monthLabel={selectedMonthLabel}
                   onGoToPlan={() => setActiveSection("plan")}
+                  onGoToTasks={() => {
+                    setPlanInitialTab("tasks");
+                    setActiveSection("plan");
+                  }}
                 />
               )}
               {!data.loading && !data.error && role === ROLES.MANAGER && (
                 <TeamDashboard
                   data={data}
+                  role={role}
+                  managerId={managerId}
+                  currentRecord={currentRecord}
                   region={region || null}
                   scopeLabel="Active team members"
                   monthKey={selectedMonth}
                   monthLabel={selectedMonthLabel}
                   onGoToPlan={() => setActiveSection("approvals")}
+                  onGoToTasks={() => handleSelectSection("tasks")}
+                  onGoToAttendanceReport={() => handleSelectSection("attendance_report")}
                 />
               )}
               {!data.loading && !data.error && role === ROLES.REGIONAL && (
                 <TeamDashboard
                   data={data}
+                  role={role}
+                  regionalId={regionalId}
+                  currentRecord={currentRecord}
                   region={region || null}
                   scopeLabel="Across all regions"
                   monthKey={selectedMonth}
                   monthLabel={selectedMonthLabel}
                   onGoToPlan={() => setActiveSection("approvals")}
+                  onGoToTasks={() => handleSelectSection("tasks")}
+                  onGoToAttendanceReport={() => handleSelectSection("attendance_report")}
                 />
               )}
             </>
+          )}
+
+          {activeSection === "tasks" && (
+            <TaskManagementView
+              role={role}
+              currentRecord={currentRecord}
+              execId={execId}
+              managerId={managerId}
+              regionalId={regionalId}
+            />
           )}
 
           {activeSection === "reports" && (
@@ -5280,7 +7150,7 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
           )}
 
           {activeSection === "doctors" && (
-            <DoctorsView data={data} execId={execId} />
+            <DoctorsView data={data} execId={execId} role={role} />
           )}
 
           {(activeSection === "plan" || activeSection === "approvals") && (
@@ -5290,9 +7160,10 @@ export default function SalesCrm({ role, initialUser, onSwitchRole, onExit }) {
               role={role}
               monthKey={selectedMonth}
               onMonthChange={setSelectedMonth}
-              initialTab={activeSection === "approvals" ? "approvals" : "overview"}
+              initialTab={activeSection === "approvals" ? "approvals" : (planInitialTab || "overview")}
               regionFilter={region}
               onTabChange={(newTab) => {
+                if (planInitialTab) setPlanInitialTab(null);
                 if (newTab === "approvals" && activeSection !== "approvals") {
                   setActiveSection("approvals");
                 } else if (newTab !== "approvals" && activeSection === "approvals") {

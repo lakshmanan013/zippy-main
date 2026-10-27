@@ -521,23 +521,25 @@ a {
 }
 
 .zzc-btn-danger {
-  border-color:
-    color-mix(
-      in oklab,
-      var(--destructive) 40%,
-      transparent
-    );
+  border-color: #fca5a5;
+  background-color: #fef2f2;
+  color: #ef4444;
+}
 
-  color: var(--destructive);
+.zzc-btn-danger svg {
+  stroke: #ef4444;
+  color: #ef4444;
 }
 
 .zzc-btn-danger:hover {
-  background-color:
-    color-mix(
-      in oklab,
-      var(--destructive) 10%,
-      transparent
-    );
+  background-color: #ef4444;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.zzc-btn-danger:hover svg {
+  stroke: #ffffff;
+  color: #ffffff;
 }
 
 

@@ -182,14 +182,25 @@
 }
 
 .admin-action-btn.delete {
-  background: #ffffff;
-  border-color: #fecaca;
-  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #ef4444;
+}
+
+.admin-action-btn.delete svg {
+  stroke: #ef4444;
+  color: #ef4444;
 }
 
 .admin-action-btn.delete:hover {
-  background: #fef2f2;
+  background: #ef4444;
+  color: #ffffff;
   border-color: #dc2626;
+}
+
+.admin-action-btn.delete:hover svg {
+  stroke: #ffffff;
+  color: #ffffff;
 }
 
 /* ── Empty State ── */
