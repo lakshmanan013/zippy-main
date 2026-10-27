@@ -8,10 +8,11 @@
 .zzc-split-auth-container {
   display: flex;
   width: 100vw;
+  height: 100vh;
   min-height: 100vh;
   background-color: #f4f8f6;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
 }
 
@@ -20,13 +21,14 @@
    -------------------------------------------------------------------------- */
 .zzc-auth-hero-panel {
   position: relative;
-  flex: 1.35;
-  min-height: 100vh;
+  flex: 1.15;
+  height: 100vh;
+  max-height: 100vh;
   background: linear-gradient(140deg, #05261f 0%, #08382f 50%, #052720 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 38px 44px;
+  padding: clamp(14px, 2.5vh, 26px) clamp(18px, 2.8vw, 36px);
   overflow: hidden;
   border-right: none;
 }
@@ -118,14 +120,14 @@
 
 /* Hero Body */
 .zzc-hero-body {
-  margin: 30px 0;
+  margin: clamp(8px, 1.8vh, 24px) 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: clamp(8px, 1.4vh, 14px);
 }
 
 .zzc-hero-headline {
-  font-size: 2.25rem;
+  font-size: clamp(1.4rem, 2.3vw, 2.15rem);
   font-weight: 800;
   line-height: 1.18;
   color: #ffffff;
@@ -141,8 +143,8 @@
 }
 
 .zzc-hero-description {
-  font-size: 0.88rem;
-  line-height: 1.5;
+  font-size: clamp(0.76rem, 0.95vw, 0.86rem);
+  line-height: 1.4;
   color: #b0d2cb;
   margin: 0;
   max-width: 380px;
@@ -152,16 +154,16 @@
 .zzc-hero-features-list {
   display: flex;
   flex-direction: column;
-  gap: 11px;
-  margin-top: 10px;
+  gap: clamp(5px, 0.9vh, 9px);
+  margin-top: clamp(4px, 0.8vh, 8px);
 }
 
 .zzc-hero-feature-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 14px;
+  gap: 10px;
+  padding: clamp(6px, 0.9vh, 9px) clamp(10px, 1vw, 13px);
+  border-radius: 12px;
   max-width: 380px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -308,15 +310,20 @@
    RIGHT FORM PANEL (LIGHT THEME & PLAYFUL DOODLES)
    -------------------------------------------------------------------------- */
 .zzc-auth-form-panel {
-  flex: 0.88;
+  flex: 0.95;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 28px;
+  padding: clamp(10px, 1.8vh, 18px) clamp(14px, 2vw, 24px);
   background-color: #f4f8f6;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
+
 
 /* Floating Top-Right Doodles */
 .zzc-doodle-top-right {
@@ -401,26 +408,29 @@
   height: 95px;
 }
 
-/* Centered Form Card - Beautiful & Comfortable Size */
+/* Centered Form Card - Ultra-compact desktop viewport fit */
 .zzc-form-center-box {
   width: 100%;
-  max-width: 410px;
+  max-width: 440px;
+  margin: auto 0;
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  padding: 34px 32px 28px 32px;
-  border-radius: 20px;
+  padding: clamp(10px, 1.6vh, 16px) clamp(14px, 2vw, 22px) clamp(8px, 1.3vh, 12px) clamp(14px, 2vw, 22px);
+  border-radius: 16px;
   border: 1px solid #e2ece7;
-  box-shadow: 0 14px 40px -10px rgba(10, 45, 38, 0.09);
+  box-shadow: 0 12px 36px -8px rgba(10, 45, 38, 0.1);
   position: relative;
   z-index: 2;
-  animation: zzcFormSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  animation: zzcFormSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 @keyframes zzcFormSlideUp {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(12px);
   }
 
   to {
@@ -429,32 +439,34 @@
   }
 }
 
-/* Brand Header Inside Card */
+/* Brand Header Inside Card - Horizontal Inline Row */
 .zzc-card-brand-top {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .zzc-card-paw-logo {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .zzc-card-brand-title {
-  text-align: center;
+  text-align: left;
 }
 
 .zzc-card-brand-title h3 {
-  font-size: 1.42rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #0e2a24;
   margin: 0;
   letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .zzc-zippy-accent {
@@ -462,20 +474,20 @@
 }
 
 .zzc-card-brand-title p {
-  font-size: 0.80rem;
+  font-size: 0.70rem;
   color: #55756d;
   font-weight: 500;
-  margin: 4px 0 0 0;
+  margin: 1px 0 0 0;
 }
 
-/* Form Header */
+/* Form Header (Optional / legacy) */
 .zzc-form-header {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 12px;
 }
 
 .zzc-welcome-title {
-  font-size: 1.7rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: #0e2a24;
   letter-spacing: -0.025em;
@@ -483,20 +495,20 @@
 }
 
 .zzc-welcome-subtitle {
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   color: #5e7c75;
-  margin: 4px 0 0 0;
+  margin: 2px 0 0 0;
 }
 
 /* Login Mode Switcher Tabs */
 .zzc-login-mode-tabs {
   display: flex;
   background: #edf5f1;
-  padding: 4px;
-  border-radius: 12px;
-  margin-bottom: 18px;
+  padding: 2.5px;
+  border-radius: 9px;
+  margin-bottom: 8px;
   border: 1px solid #d9ebe2;
-  gap: 4px;
+  gap: 3px;
 }
 
 .zzc-mode-tab-btn {
@@ -504,16 +516,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 9px 12px;
+  gap: 6px;
+  padding: 5px 8px;
   border: none;
   background: transparent;
-  border-radius: 9px;
-  font-size: 0.84rem;
+  border-radius: 7px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #55756d;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .zzc-mode-tab-btn:hover {
@@ -523,7 +535,7 @@
 .zzc-mode-tab-btn.active {
   background: #ffffff;
   color: #00876c;
-  box-shadow: 0 2px 8px rgba(0, 135, 108, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 135, 108, 0.12);
   font-weight: 700;
 }
 
@@ -531,16 +543,16 @@
 .zzc-auth-alert-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background-color: #ecfdf5;
   border: 1px solid #a7f3d0;
   color: #047857;
-  padding: 10px 14px;
-  border-radius: 11px;
-  font-size: 0.84rem;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.76rem;
   font-weight: 500;
-  margin-bottom: 16px;
-  animation: zzcAlertSlide 0.25s ease-out;
+  margin-bottom: 8px;
+  animation: zzcAlertSlide 0.2s ease-out;
 }
 
 .zzc-info-icon {
@@ -563,30 +575,25 @@
 .zzc-auth-alert-error {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background-color: #fef2f2;
   border: 1px solid #fecaca;
   color: #b91c1c;
-  padding: 11px 15px;
-  border-radius: 11px;
-  font-size: 0.86rem;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.76rem;
   font-weight: 500;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   animation: zzcShake 0.3s ease-in-out;
 }
 
-
 @keyframes zzcShake {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translateX(0);
   }
-
   25% {
     transform: translateX(-4px);
   }
-
   75% {
     transform: translateX(4px);
   }
@@ -596,13 +603,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   background-color: #ef4444;
   color: #ffffff;
   border-radius: 50%;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 10px;
   flex-shrink: 0;
 }
 
@@ -610,17 +617,17 @@
 .zzc-login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 7px;
 }
 
 .zzc-field-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .zzc-field-group label {
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #17362f;
 }
@@ -639,12 +646,12 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
   color: #d97706;
   background: #fef3c7;
-  padding: 2px 7px;
-  border-radius: 5px;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 
 .zzc-input-container {
@@ -656,7 +663,7 @@
 
 .zzc-input-left-icon {
   position: absolute;
-  left: 14px;
+  left: 11px;
   color: #8da49c;
   pointer-events: none;
   transition: color 0.2s ease;
@@ -664,20 +671,21 @@
 
 .zzc-input-container input {
   width: 100%;
-  height: 46px;
-  padding: 0 42px 0 42px;
+  height: 36px;
+  padding: 0 34px 0 34px;
   background: #ffffff;
   border: 1.5px solid #d4e3dc;
-  border-radius: 11px;
-  font-size: 0.94rem;
+  border-radius: 8px;
+  font-size: 0.86rem;
   color: #0e2a24;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
 }
 
 .zzc-input-container input::placeholder {
   color: #a0b8b0;
-  font-size: 0.90rem;
+  font-size: 0.82rem;
 }
 
 .zzc-input-container input:hover:not(:disabled) {
@@ -686,16 +694,27 @@
 
 .zzc-input-container input:focus {
   border-color: #00967a;
-  box-shadow: 0 0 0 3.5px rgba(0, 150, 122, 0.16);
+  box-shadow: 0 0 0 2.5px rgba(0, 150, 122, 0.16);
 }
 
 .zzc-input-container:focus-within .zzc-input-left-icon {
   color: #00967a;
 }
 
-.zzc-password-eye-btn {
+/* Prevent Chrome/Edge yellow & blue autofill tinting */
+.zzc-input-container input:-webkit-autofill,
+.zzc-input-container input:-webkit-autofill:hover, 
+.zzc-input-container input:-webkit-autofill:focus, 
+.zzc-input-container input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+  -webkit-text-fill-color: #0e2a24 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.zzc-password-eye-btn,
+.zzc-password-toggle-btn {
   position: absolute;
-  right: 12px;
+  right: 8px;
   background: transparent;
   border: none;
   color: #8da49c;
@@ -703,38 +722,51 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
-  border-radius: 6px;
+  padding: 4px;
+  border-radius: 5px;
   transition: color 0.2s ease;
 }
 
-.zzc-password-eye-btn:hover {
+.zzc-password-eye-btn:hover,
+.zzc-password-toggle-btn:hover {
   color: #0e2a24;
 }
 
+/* Actions Row: 1-Click Demo + Sign In */
+.zzc-form-actions-row {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 3px;
+  width: 100%;
+}
+
+
 /* Primary Sign In Button */
 .zzc-signin-btn {
-  height: 48px;
+  height: 36px;
+  flex: 1;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 0;
   background: linear-gradient(135deg, #00876c 0%, #009c7d 100%);
   color: #ffffff;
   border: none;
-  border-radius: 11px;
-  font-size: 0.98rem;
+  border-radius: 8px;
+  font-size: 0.86rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px -2px rgba(0, 135, 108, 0.35);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 3px 10px -2px rgba(0, 135, 108, 0.32);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 12px;
 }
 
 .zzc-signin-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #00705a 0%, #00876c 100%);
-  box-shadow: 0 6px 20px -2px rgba(0, 135, 108, 0.5);
-  transform: translateY(-1.5px);
+  box-shadow: 0 5px 14px -2px rgba(0, 135, 108, 0.45);
+  transform: translateY(-1px);
 }
 
 .zzc-signin-btn:active:not(:disabled) {
@@ -748,7 +780,7 @@
 
 .zzc-btn-success {
   background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-  box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 3px 10px -2px rgba(16, 185, 129, 0.4) !important;
 }
 
 .zzc-btn-text-content {
@@ -830,13 +862,13 @@
 }
 
 /* --------------------------------------------------------------------------
-   MOBILE LOGIN & OTP VERIFICATION STYLES
+   MOBILE LOGIN & OTP VERIFICATION STYLES (COMPACT FIT)
    -------------------------------------------------------------------------- */
 .zzc-mobile-step-form,
 .zzc-otp-verify-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 7px;
 }
 
 .zzc-phone-input-container {
@@ -846,40 +878,41 @@
 .zzc-phone-prefix {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 12px 0 14px;
+  gap: 5px;
+  padding: 0 10px 0 12px;
   height: 100%;
   border-right: 1.5px solid #d4e3dc;
   background: #f7faf9;
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
   flex-shrink: 0;
   user-select: none;
 }
 
 .zzc-flag-icon {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   line-height: 1;
 }
 
 .zzc-code-text {
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: #17362f;
   letter-spacing: -0.01em;
 }
 
 .zzc-phone-input-container input {
-  padding-left: 14px !important;
+  padding-left: 10px !important;
   font-weight: 600;
   letter-spacing: 0.04em;
+  height: 36px;
 }
 
 .zzc-field-hint {
-  font-size: 0.77rem;
+  font-size: 0.70rem;
   color: #64817a;
-  margin-top: 3px;
-  line-height: 1.35;
+  margin-top: 1px;
+  line-height: 1.25;
 }
 
 /* Phone Target Badge in OTP Step */
@@ -889,15 +922,15 @@
   justify-content: space-between;
   background: #f0fdf9;
   border: 1px solid #cceee4;
-  padding: 9px 13px;
-  border-radius: 10px;
+  padding: 5px 10px;
+  border-radius: 8px;
 }
 
 .zzc-phone-target {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.83rem;
+  gap: 6px;
+  font-size: 0.76rem;
   color: #164e43;
 }
 
@@ -909,15 +942,15 @@
 .zzc-change-phone-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: transparent;
   border: none;
   color: #00876c;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
   transition: all 0.15s ease;
 }
 
@@ -926,26 +959,27 @@
   color: #006853;
 }
 
-/* 6-Digit OTP Boxes */
+/* 6-Digit OTP Boxes - Compact */
 .zzc-otp-boxes-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  margin-top: 4px;
+  gap: 5px;
+  margin-top: 2px;
 }
 
 .zzc-otp-box {
   width: 100%;
-  height: 52px;
+  height: 38px;
   text-align: center;
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: #0e2a24;
   background: #ffffff;
   border: 1.5px solid #d4e3dc;
-  border-radius: 11px;
+  border-radius: 8px;
   outline: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 .zzc-otp-box:hover:not(:disabled) {
@@ -954,8 +988,8 @@
 
 .zzc-otp-box:focus {
   border-color: #00967a;
-  box-shadow: 0 0 0 3.5px rgba(0, 150, 122, 0.18);
-  transform: translateY(-2px);
+  box-shadow: 0 0 0 2.5px rgba(0, 150, 122, 0.18);
+  transform: translateY(-1px);
 }
 
 .zzc-otp-box.filled {
@@ -969,12 +1003,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
-  margin: 2px 0;
+  min-height: 20px;
+  margin: 1px 0;
 }
 
 .zzc-otp-timer-text {
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   color: #64817a;
 }
 
@@ -986,15 +1020,15 @@
 .zzc-resend-otp-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: none;
   border: none;
   color: #00876c;
-  font-size: 0.83rem;
+  font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 2px 8px;
+  border-radius: 5px;
   transition: all 0.2s ease;
 }
 
@@ -1003,26 +1037,6 @@
   color: #006853;
 }
 
-/* Demo Helper Banner */
-.zzc-demo-otp-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fefce8;
-  border: 1px dashed #eab308;
-  color: #854d0e;
-  padding: 7px 12px;
-  border-radius: 8px;
-  font-size: 0.79rem;
-  text-align: center;
-}
-
-.zzc-demo-otp-banner strong {
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #713f12;
-  margin-left: 4px;
-}
 
 
 
@@ -1055,3 +1069,207 @@
     display: none;
   }
 }
+
+/* /* --------------------------------------------------------------------------
+   COMPACT MULTI-PORTAL SWITCHER & SEPARATE LOGINS
+   -------------------------------------------------------------------------- */
+.zzc-form-role-portal-box {
+  max-width: 440px;
+}
+
+.zzc-hero-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.74rem;
+  backdrop-filter: blur(8px);
+  width: fit-content;
+  margin-bottom: 2px;
+}
+
+/* Compact Segmented Portal Switcher */
+.zzc-compact-portal-control {
+  margin-bottom: 7px;
+}
+
+.zzc-portal-segment-tabs {
+  display: flex;
+  background: #edf5f1;
+  padding: 2.5px;
+  border-radius: 9px;
+  border: 1px solid #d9ebe2;
+  gap: 3px;
+}
+
+.zzc-segment-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.zzc-segment-tab-btn:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.zzc-segment-tab-btn.active-ceo {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.28);
+}
+
+.zzc-segment-tab-btn.active-dept {
+  background: #ffffff;
+  color: #00876c;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+
+.zzc-dept-chips-container {
+  margin-top: 5px;
+  padding: 5px 6px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  animation: zzcFadeIn 0.2s ease;
+}
+
+.zzc-dept-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+}
+
+.zzc-dept-chip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3.5px 6px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 0.69rem;
+  text-align: left;
+}
+
+.zzc-dept-chip-btn:hover {
+  border-color: var(--dept-color, #0d9488);
+  background: #f1f5f9;
+}
+
+.zzc-dept-chip-btn.active {
+  border-color: var(--dept-color, #0d9488);
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.zzc-chip-icon {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.zzc-chip-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #1e293b;
+}
+
+.zzc-chip-badge {
+  font-size: 0.58rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-left: 3px;
+  flex-shrink: 0;
+}
+
+.zzc-compact-scope-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3.5px 8px;
+  border-radius: 7px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.68rem;
+  margin-bottom: 7px;
+}
+
+.zzc-scope-pill-text {
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zzc-login-card-footer {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px dashed #e2e8f0;
+  text-align: center;
+}
+
+.zzc-footer-note {
+  font-size: 0.67rem;
+  color: #64748b;
+  line-height: 1.25;
+}
+
+/* Responsive adjustment for small screens */
+@media (max-width: 1024px) {
+  .zzc-split-auth-container {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    flex-direction: column;
+  }
+
+  .zzc-auth-hero-panel {
+    height: auto;
+    min-height: auto;
+    padding: 28px 20px;
+  }
+
+  .zzc-hero-bg-image {
+    width: 100%;
+    opacity: 0.3;
+  }
+
+  .zzc-auth-form-panel {
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+    padding: 24px 16px 40px 16px;
+  }
+
+  .zzc-form-center-box {
+    margin: 0 auto;
+    max-width: 100%;
+  }
+
+  .zzc-doodle-top-right,
+  .zzc-doodle-bottom-right {
+    display: none;
+  }
+}

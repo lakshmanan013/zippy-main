@@ -39,20 +39,54 @@ def send_sms_otp(phone: str, otp_code: str, force_mock: bool = False):
     if env_root.exists():
         load_dotenv(env_root, override=True)
 
+    # Also check api.txt files
+    api_txt_files = [
+        Path(__file__).resolve().parent.parent / "api.txt",
+        Path(__file__).resolve().parent.parent.parent / "api.txt"
+    ]
+    txt_api_key = None
+    txt_provider = None
+    for af in api_txt_files:
+        if af.exists():
+            try:
+                for line in af.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        k = k.strip().upper()
+                        v = v.strip()
+                        if k in ("APITXT_AUTHKEY", "APITXT_API_KEY", "APITXT_KEY"):
+                            if v:
+                                txt_api_key = v
+                                txt_provider = "apitxt"
+                        elif k in ("PROVIDER", "SMS_PROVIDER"):
+                            if v:
+                                txt_provider = v.lower()
+                        elif k in ("API_KEY", "SMS_API_KEY", "KEY", "AUTHKEY"):
+                            if v:
+                                txt_api_key = v
+                    elif not txt_api_key and len(line) >= 8 and not line.startswith("//"):
+                        txt_api_key = line
+                        txt_provider = "apitxt"
+            except Exception:
+                pass
+
     fast2sms_key = os.getenv("FAST2SMS_API_KEY", "").strip()
-    apitxt_key = (os.getenv("APITXT_AUTHKEY") or os.getenv("APITXT_API_KEY", "")).strip()
+    apitxt_key = (txt_api_key or os.getenv("APITXT_AUTHKEY") or os.getenv("APITXT_API_KEY", "")).strip()
     twofactor_key = (os.getenv("TWOFACTOR_API_KEY") or os.getenv("2FACTOR_API_KEY", "")).strip()
-    sms_api_key = os.getenv("SMS_API_KEY", "").strip()
+    sms_api_key = (txt_api_key or os.getenv("SMS_API_KEY", "")).strip()
     custom_url = os.getenv("SMS_API_URL", "").strip()
 
-    provider = (os.getenv("SMS_PROVIDER") or "").strip().lower()
+    provider = (txt_provider or os.getenv("SMS_PROVIDER") or "").strip().lower()
     if not provider:
-        if fast2sms_key:
+        if apitxt_key:
+            provider = "apitxt"
+        elif fast2sms_key:
             provider = "fast2sms"
         elif twofactor_key:
             provider = "2factor"
-        elif apitxt_key:
-            provider = "apitxt"
         elif custom_url:
             provider = "custom"
         else:
@@ -65,11 +99,11 @@ def send_sms_otp(phone: str, otp_code: str, force_mock: bool = False):
     elif provider in ("apitxt", "api_txt"):
         api_key = apitxt_key or sms_api_key
     else:
-        api_key = sms_api_key or apitxt_key or fast2sms_key or twofactor_key
+        api_key = apitxt_key or sms_api_key or fast2sms_key or twofactor_key
 
     if force_mock or not api_key:
-        print(f"[OTP Service] (Notice: Set APITXT_AUTHKEY, FAST2SMS_API_KEY, or TWOFACTOR_API_KEY in .env for live SMS) OTP for {clean_digits}: {otp_code}")
-        return "mock", f"Test Mode: SMS Gateway key not configured. Your OTP is {otp_code} (or master 123456)", otp_code
+        print(f"[OTP Service] (Notice: Set APITXT_AUTHKEY in api.txt or .env for live SMS) OTP for {clean_digits}: {otp_code}")
+        return "mock", f"Test Mode: SMS Gateway key not configured in api.txt. Your OTP is {otp_code} (or master 123456)", otp_code
 
     try:
         if provider in ("apitxt", "api_txt"):

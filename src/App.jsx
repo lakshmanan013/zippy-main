@@ -1,5 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { findLabel, findGroupLabel, SALES_TEAM_STATS } from "./data.js";
+import {
+  findLabel,
+  findGroupLabel,
+  SALES_TEAM_STATS,
+  getAllowedNavGroups,
+  isTableAllowed,
+  getDefaultTableForUser,
+  getRoleConfig,
+} from "./data.js";
 import { SEARCH_CONFIG } from "./searchConfig.js";
 import {
   TABLE_CONFIG,
@@ -32,8 +40,13 @@ export default function App() {
       const saved = localStorage.getItem("zippy_admin_user") || sessionStorage.getItem("zippy_admin_user");
       if (!saved) return null;
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.name === "Zenve Admin") {
-        parsed.name = "Admin";
+      if (parsed) {
+        if (!parsed.role || parsed.name === "Zenve Admin" || parsed.role === "Administrator") {
+          parsed.role = "ceo";
+          parsed.is_ceo = true;
+          parsed.name = "CEO";
+          parsed.role_label = "CEO (Whole Website)";
+        }
       }
       return parsed;
     } catch {
@@ -41,10 +54,39 @@ export default function App() {
     }
   });
 
+  const [ceoPreviewRole, setCeoPreviewRole] = useState(null);
+
+  const isActualCeo = Boolean(
+    adminUser?.is_ceo ||
+    adminUser?.isCeo ||
+    adminUser?.role === "ceo" ||
+    adminUser?.role === "Administrator"
+  );
+
+  const effectiveUser = useMemo(() => {
+    if (!adminUser) return null;
+    if (isActualCeo && ceoPreviewRole) {
+      const previewCfg = getRoleConfig(ceoPreviewRole);
+      return {
+        ...adminUser,
+        role: ceoPreviewRole,
+        role_label: previewCfg.name,
+        is_ceo: false,
+        allowed_groups: previewCfg.allowedGroups,
+      };
+    }
+    return adminUser;
+  }, [adminUser, isActualCeo, ceoPreviewRole]);
+
+  const allowedNavGroups = useMemo(() => {
+    return getAllowedNavGroups(effectiveUser);
+  }, [effectiveUser]);
+
   function handleLogout() {
     localStorage.removeItem("zippy_admin_user");
     sessionStorage.removeItem("zippy_admin_user");
     setAdminUser(null);
+    setCeoPreviewRole(null);
   }
 
   const [salesLoginModal, setSalesLoginModal] = useState(() => {
@@ -165,7 +207,18 @@ export default function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-  const [currentKey, setCurrentKey] = useState("pet_parents");
+  const [currentKey, setCurrentKey] = useState(() => {
+    return getDefaultTableForUser(effectiveUser);
+  });
+
+  useEffect(() => {
+    if (effectiveUser && !isTableAllowed(currentKey, effectiveUser)) {
+      const defaultTable = getDefaultTableForUser(effectiveUser);
+      setCurrentKey(defaultTable);
+      setCurrentPage(1);
+    }
+  }, [effectiveUser, currentKey]);
+
   const [records, setRecords] = useState([]); // raw objects from the API, in list order
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -233,6 +286,7 @@ export default function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [taskViewMode, setTaskViewMode] = useState("table");
   function selectTable(key) {
+    if (!isTableAllowed(key, effectiveUser)) return;
     setCurrentKey(key);
     setCurrentPage(1);
     setSearchTerm("");
@@ -394,8 +448,29 @@ export default function App() {
         onClose={() => {
           setSalesLoginModal({ isOpen: false, role: "executive" });
           try {
-            if (window.location.pathname === "/login") {
+            if (
+              window.location.pathname === "/login" ||
+              window.location.pathname === "/manager-login" ||
+              window.location.pathname === "/regional-login" ||
+              window.location.pathname === "/executive-login"
+            ) {
               history.replaceState(null, "", "/");
+            }
+          } catch {
+            /* ignore */
+          }
+        }}
+        onSwitchRole={(role) => {
+          setSalesLoginModal({ isOpen: true, role });
+          try {
+            const targetPath =
+              role === "manager"
+                ? "/manager-login"
+                : role === "regional"
+                ? "/regional-login"
+                : "/executive-login";
+            if (window.location.pathname !== targetPath) {
+              history.pushState(null, "", targetPath);
             }
           } catch {
             /* ignore */
@@ -410,6 +485,7 @@ export default function App() {
     return (
       <AdminLogin
         onLoginSuccess={(user) => setAdminUser(user)}
+        onOpenSalesLogin={(role) => handleOpenSalesCrmLogin(role)}
       />
     );
   }
@@ -419,8 +495,9 @@ export default function App() {
       <Sidebar
         currentKey={currentKey}
         onSelect={selectTable}
-        adminUser={adminUser}
+        adminUser={effectiveUser}
         onLogout={handleLogout}
+        navGroups={allowedNavGroups}
       />
 
       <main className="zzc-main">
@@ -441,6 +518,8 @@ export default function App() {
           onOpenSalesCRM={(view) => handleOpenSalesCrmLogin(view)}
           adminUser={adminUser}
           onLogout={handleLogout}
+          ceoPreviewRole={ceoPreviewRole}
+          onSetCeoPreviewRole={setCeoPreviewRole}
         />
 
         {error && (
@@ -460,10 +539,9 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === "dashboard" && <Dashboard />}
+        {activeTab === "dashboard" && <Dashboard adminUser={effectiveUser} />}
 
-        {activeTab === "bulk" && <BulkTools />}
-
+        {activeTab === "bulk" && <BulkTools adminUser={effectiveUser} />}
         {activeTab === "data" && (
           <>
             {findGroupLabel(currentKey) === "Sales team" ? (
