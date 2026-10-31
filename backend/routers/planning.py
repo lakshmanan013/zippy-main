@@ -83,7 +83,7 @@ def submit_monthly_plan(plan_id: int, db: Session = Depends(get_db)):
     if not plan:
         raise HTTPException(status_code=404, detail="Monthly plan not found")
     plan.status = "Submitted"
-    plan.submitted_at = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    plan.submitted_at = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
     db.commit()
     db.refresh(plan)
     return plan_response(plan)
@@ -110,7 +110,7 @@ def approve_monthly_plan(plan_id: int,approved_by: Optional[str] = "Manager",db:
     if not plan:
         raise HTTPException(status_code=404, detail="Monthly plan not found")
     plan.status = "Approved"
-    plan.approved_at = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    plan.approved_at = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
     plan.approved_by = _normalize_approvers(plan.approved_by, approved_by)
     plan.rejection_reason = None
     db.commit()
@@ -204,7 +204,7 @@ def delete_plan_visit(visit_id: int, db: Session = Depends(get_db)):
 def create_visit_report(data: VisitReportCreate, db: Session = Depends(get_db)):
     report: Any = VisitReport(**data.model_dump())
     if data.status == "Submitted" and not report.submitted_at:
-        report.submitted_at = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+        report.submitted_at = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
     db.add(report)
     try:
         db.commit()
@@ -246,7 +246,7 @@ def update_visit_report(report_id: int, data: VisitReportUpdate, db: Session = D
         raise HTTPException(status_code=404, detail="Visit report not found")
     updates = data.model_dump(exclude_unset=True)
     if updates.get("status") == "Submitted" and not report.submitted_at:
-        updates["submitted_at"] = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+        updates["submitted_at"] = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
     for field, value in updates.items():
         setattr(report, field, value)
     try:
@@ -345,7 +345,7 @@ def update_submission_report(report_id: int, data: ExecutiveSubmissionReportUpda
     updates = data.model_dump(exclude_unset=True)
     for k, v in updates.items():
         setattr(r, k, v)
-    r.reviewed_at = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    r.reviewed_at = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
     db.commit()
     db.refresh(r)
     return plan_response(r)

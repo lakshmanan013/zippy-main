@@ -1,6 +1,13 @@
 from typing import Any
 from datetime import datetime, date, time, timedelta, timezone
-from zoneinfo import ZoneInfo
+try:
+    from zoneinfo import ZoneInfo
+    try:
+        KOLKATA_TZ = KOLKATA_TZ
+    except Exception:
+        KOLKATA_TZ = timezone(timedelta(hours=5, minutes=30))
+except Exception:
+    KOLKATA_TZ = timezone(timedelta(hours=5, minutes=30))
 from sqlalchemy import Integer, Column
 from sqlalchemy import String, Boolean, Float, Date, DateTime, Time, ForeignKey, text, Text, UniqueConstraint, LargeBinary
 from database import Base
@@ -12,7 +19,7 @@ class PetParent(Base):
     email = Column(String(100) , unique = True, nullable =False)
     phone = Column(String(30))
     city = Column(String(150))
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class Pet(Base):
     __tablename__ = "pets"
     id = Column(Integer,primary_key= True , index=True)
@@ -54,7 +61,7 @@ class UserRole(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False)
     role = Column(String(100), nullable=False)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class Doctor(Base):
     __tablename__ = "doctors"
     id = Column(Integer, primary_key=True, index=True)
@@ -106,7 +113,7 @@ class DoctorDocument(Base):
     file_path: Any = Column(String(500), nullable=True)
     file_data: Any = Column(LargeBinary(length=(2**32)-1), nullable=True)
     content_type: Any = Column(String(100), nullable=True)
-    created_at: Any = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at: Any = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class Appointment(Base):
     __tablename__ = "appointments"
     id = Column(Integer, primary_key=True, index=True)
@@ -125,14 +132,14 @@ class Consultation(Base):
     consultation_mode = Column(String(100))
     diagnosis = Column(String(500))
     follow_up_date = Column(Date)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class Prescription(Base):
     __tablename__ = "prescriptions"
     id = Column(Integer, primary_key=True, index=True)
     doctor_id = Column(Integer, ForeignKey("doctors.id"), nullable=False)
     pet_id = Column(Integer, ForeignKey("pets.id"), nullable=False)
     valid_until = Column(Date)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class ServiceProvider(Base):
     __tablename__ = "service_providers"
     id = Column(Integer, primary_key=True, index=True)
@@ -196,7 +203,7 @@ class Brand(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(150), nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class SellerStore(Base):
     __tablename__ = "seller_stores"
     id = Column(Integer, primary_key=True, index=True)
@@ -219,10 +226,10 @@ class Cart(Base):
     __tablename__ = "carts"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
     updated_at = Column(DateTime,
-    default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None),
-    onupdate=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None),
+    onupdate=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 )
 class CartItem(Base):
     __tablename__ = "cart_items"
@@ -265,7 +272,7 @@ class Payment(Base):
     gateway = Column(String(100))
     status = Column(String(50), default="pending")
     webhook_verified = Column(Boolean, default=False)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class Refund(Base):
     __tablename__ = "refunds"
     id = Column(Integer, primary_key=True, index=True)
@@ -273,7 +280,7 @@ class Refund(Base):
     amount = Column(Float, default=0)
     reason = Column(String(500))
     status = Column(String(50), default="pending")
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class Payout(Base):
     __tablename__ = "payouts"
     id = Column(Integer, primary_key=True, index=True)
@@ -307,7 +314,7 @@ class Review(Base):
     rating = Column(Float)
     review_text = Column(String(1000))
     status = Column(String(50), default="pending")
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class Notification(Base):
     __tablename__ = "notifications"
     id = Column(Integer, primary_key=True, index=True)
@@ -315,7 +322,7 @@ class Notification(Base):
     title = Column(String(200), nullable=False)
     channel = Column(String(100))
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class VendorMembershipPlan(Base):
     __tablename__ = "vendor_membership_plans"
     id = Column(Integer, primary_key=True, index=True)
@@ -345,7 +352,7 @@ class SupportTicket(Base):
     subject = Column(String(300), nullable=False)
     category = Column(String(100))
     status = Column(String(50), default="open")
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class GeocodingCache(Base):
     __tablename__ = "geocoding_cache"
     id = Column(Integer, primary_key=True, index=True)
@@ -359,7 +366,7 @@ class AuditLog(Base):
     action = Column(String(100), nullable=False)
     entity_type = Column(String(100))
     entity_id = Column(Integer)
-    created_at = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class RegionalManager(Base):
     __tablename__ = "regional_managers"
     id: Any = Column(Integer, primary_key=True, index=True)
@@ -405,7 +412,7 @@ class MobileOTP(Base):
     role: Any = Column(String(50), nullable=True)       # "executive", "manager", "regional"
     is_verified: Any = Column(Boolean, default=False)
     expires_at: Any = Column(DateTime, nullable=False)
-    created_at: Any = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at: Any = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 
 class Attendance(Base):
     __tablename__ = "attendance"
@@ -508,8 +515,8 @@ class Attendance(Base):
 
     total_working_minutes = Column(Integer)
     status: Any = Column(String(50), default="LOGGED_IN")
-    created_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
-    updated_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None), onupdate=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
+    updated_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None), onupdate=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 
 class PincodeCoverage(Base):
     __tablename__ = "pincode_coverages"
@@ -518,7 +525,7 @@ class PincodeCoverage(Base):
     pincode: Any = Column(String(20), nullable=False)
     city: Any = Column(String(150))
     state: Any = Column(String(150))
-    created_at: Any = Column(DateTime,default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at: Any = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class ExecutiveTask(Base):
     __tablename__ = "executive_tasks"
     id = Column(Integer, primary_key=True, index=True)
@@ -542,8 +549,8 @@ class ExecutiveTask(Base):
     progress = Column(Integer, default=0)
     remarks = Column(Text, nullable=True)
     completed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
-    updated_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None), onupdate=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
+    updated_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None), onupdate=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 
 class ExecutiveAlert(Base):
     __tablename__ = "executive_alerts"
@@ -557,7 +564,7 @@ class ExecutiveAlert(Base):
     executive_id = Column(Integer, nullable=True)
     task_id = Column(Integer, nullable=True)
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class MonthlyPlan(Base):
     __tablename__ = "monthly_plans"
     id = Column(Integer, primary_key=True, index=True)
@@ -573,7 +580,7 @@ class MonthlyPlan(Base):
     approved_at: Any = Column(DateTime, nullable=True)
     approved_by: Any = Column(String(150), nullable=True)
     rejection_reason: Any = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
     __table_args__ = (UniqueConstraint("executive_id", "month_key", name="uq_exec_month"),)
 class PlanVisit(Base):
     __tablename__ = "plan_visits"
@@ -589,7 +596,7 @@ class PlanVisit(Base):
     cancel_requested = Column(Boolean, default=False)
     cancel_approved_by = Column(String(150), nullable=True)
     cancel_reason = Column(String(200), nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class VisitReport(Base):
     __tablename__ = "visit_reports"
     id = Column(Integer, primary_key=True, index=True)
@@ -610,7 +617,7 @@ class VisitReport(Base):
     follow_up_required = Column(Boolean, default=True)
     status: Any = Column(String(30), default="Draft")
     submitted_at: Any = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 class ExecutiveSubmissionReport(Base):
     __tablename__ = "executive_submission_reports"
     id = Column(Integer, primary_key=True, index=True)
@@ -633,5 +640,5 @@ class ExecutiveSubmissionReport(Base):
     manager_remarks = Column(Text, nullable=True)
     regional_remarks = Column(Text, nullable=True)
     reviewed_at = Column(DateTime, nullable=True)
-    submitted_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
-    created_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None))
+    submitted_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
+    created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))

@@ -251,7 +251,7 @@ def api_send_otp(req: SendOtpRequest, db: Session = Depends(get_db)):
         purpose=req.purpose or "login",
         role=role_norm or None,
         is_verified=False,
-        expires_at=datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None) + timedelta(minutes=10)
+        expires_at=datetime.now(KOLKATA_TZ).replace(tzinfo=None) + timedelta(minutes=10)
     )
     db.add(otp_entry)
     db.commit()
@@ -275,7 +275,7 @@ def api_verify_otp(req: VerifyOtpRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail="Invalid phone number. Must be 10 digits.")
 
     otp_str = req.otp.strip()
-    now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
     # Master mock OTP
     is_master_mock = (otp_str == "123456")
@@ -318,7 +318,7 @@ def api_mobile_login(req: MobileLoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail="Invalid phone number. Must be 10 digits.")
 
     otp_str = req.otp.strip()
-    now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
     is_master_mock = (otp_str == "123456")
     valid = is_master_mock

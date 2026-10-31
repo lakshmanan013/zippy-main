@@ -1,7 +1,8 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from database import engine, Base, auto_migrate_db
 import models 
@@ -18,7 +19,7 @@ from routers import (
     admin,
 )
 
-app = FastAPI(title= "Pet Management API",version= "1.0.0") 
+app = FastAPI(title="Pet Management API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +36,22 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    traceback.print_exc()
+    origin = request.headers.get("origin") or "http://localhost:5173"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Methods": "*",
+        }
+    )
+
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 os.makedirs("media", exist_ok=True)
@@ -46,7 +63,7 @@ auto_migrate_db()
 
 @app.get("/")
 def home():
-    return{"message":"Pet Management API is Running"}
+    return {"message": "Pet Management API is Running"}
 
 app.include_router(pets.router)
 app.include_router(doctors.router)

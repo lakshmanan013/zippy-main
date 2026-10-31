@@ -446,7 +446,7 @@ def create_executive_task(data: ExecutiveTaskCreate, db: Session = Depends(get_d
                 if cov and cov.pincode:
                     task_pincode = cov.pincode
 
-    kolkata_now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    kolkata_now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
     task = ExecutiveTask(
         title=data.title,
         description=data.description,
@@ -536,7 +536,7 @@ def get_executive_tasks(
 ):
     query = db.query(ExecutiveTask)
 
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
 
     # Dynamic role-based filtering
     user_role = (role or "").lower().strip()
@@ -627,7 +627,7 @@ def get_executive_task(task_id: int, db: Session = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=404, detail="Executive task not found")
     r = model_response(task)
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
     is_done = str(task.status or "").lower() in ["completed", "done", "closed", "cancelled"]
     r["is_overdue"] = bool(task.due_date and task.due_date < today and not is_done)
     return r
@@ -639,7 +639,7 @@ def update_executive_task(task_id: int, data: ExecutiveTaskUpdate, db: Session =
         raise HTTPException(status_code=404, detail="Executive task not found")
 
     update_data = data.model_dump(exclude_unset=True)
-    kolkata_now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    kolkata_now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
     # Handle completion status updates
     if "status" in update_data and update_data["status"]:
@@ -686,7 +686,7 @@ def get_task_analytics(
     Returns complete task analytics, KPI summary numbers, status/priority breakdowns,
     and individual employee performance metrics dynamically filtered by user role.
     """
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
 
     tasks_q = db.query(ExecutiveTask)
     execs_q = db.query(SalesExecutive)
@@ -875,7 +875,7 @@ def get_executive_summary(executive_id: int, db: Session = Depends(get_db)):
     Returns specific task summary, upcoming deadlines, alerts, overdue notifications,
     and progress metrics for the Sales Executive Dashboard.
     """
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
     in_7_days = today + timedelta(days=7)
 
     tasks = db.query(ExecutiveTask).filter(
@@ -939,7 +939,7 @@ def get_executive_summary(executive_id: int, db: Session = Depends(get_db)):
             "severity": "urgent",
             "alert_type": "overdue",
             "is_read": False,
-            "created_at": datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(),
+            "created_at": datetime.now(KOLKATA_TZ).isoformat(),
         })
 
     completion_percentage = round((len(completed_list) / total * 100)) if total > 0 else 0
@@ -969,7 +969,7 @@ def get_executive_summary(executive_id: int, db: Session = Depends(get_db)):
 
 @router.post("/executive-alerts")
 def create_executive_alert(data: ExecutiveAlertCreate, db: Session = Depends(get_db)):
-    kolkata_now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    kolkata_now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
     alert = ExecutiveAlert(
         title=data.title,
         message=data.message,

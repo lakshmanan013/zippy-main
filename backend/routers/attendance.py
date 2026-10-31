@@ -312,7 +312,7 @@ def _execute_punch_in(req: AttendanceActionRequest, db: Session):
     if not exec_record:
         raise HTTPException(404, "Sales Executive not found")
 
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
     existing = db.query(Attendance).filter(Attendance.executive_id == exec_id, Attendance.attendance_date == today).first()
     if existing:
         raise HTTPException(400, "Already logged in / punched in for today")
@@ -339,7 +339,7 @@ def _execute_punch_in(req: AttendanceActionRequest, db: Session):
         formatted_addr += f" - {pincode}"
 
     selfie_url = req.selfie_url or (save_base64_image(req.selfie_data) if req.selfie_data else "")
-    now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
     print(f"[Attendance Punch In] Exec {exec_id} ({exec_record.name}) at {now} | Lat: {req.latitude}, Lng: {req.longitude}, Acc: {accuracy}m, Source: {loc_source} | Area+Street: {area}, City: {city}, District: {district}, State: {state}, PIN: {pincode}")
 
@@ -387,7 +387,7 @@ def _execute_lunch_out(req: AttendanceActionRequest, db: Session):
     if not exec_id:
         raise HTTPException(400, "sales_executive_id or executive_id is required")
 
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
     att: Any = db.query(Attendance).filter(Attendance.executive_id == exec_id, Attendance.attendance_date == today).first()
     if not att:
         raise HTTPException(400, "No active login found for today")
@@ -418,7 +418,7 @@ def _execute_lunch_out(req: AttendanceActionRequest, db: Session):
         formatted_addr += f" - {pincode}"
 
     selfie_url = req.selfie_url or (save_base64_image(req.selfie_data) if req.selfie_data else "")
-    now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
     print(f"[Attendance Lunch Out] Exec {exec_id} at {now} | Lat: {req.latitude}, Lng: {req.longitude}, Acc: {accuracy}m, Source: {loc_source} | Area+Street: {area}, City: {city}, District: {district}, PIN: {pincode}")
 
@@ -449,7 +449,7 @@ def _execute_lunch_in(req: AttendanceActionRequest, db: Session):
     if not exec_id:
         raise HTTPException(400, "sales_executive_id or executive_id is required")
 
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
     att: Any = db.query(Attendance).filter(Attendance.executive_id == exec_id, Attendance.attendance_date == today).first()
     if not att:
         raise HTTPException(400, "No active login found for today")
@@ -482,7 +482,7 @@ def _execute_lunch_in(req: AttendanceActionRequest, db: Session):
         formatted_addr += f" - {pincode}"
 
     selfie_url = req.selfie_url or (save_base64_image(req.selfie_data) if req.selfie_data else "")
-    now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
     print(f"[Attendance Lunch In] Exec {exec_id} at {now} | Lat: {req.latitude}, Lng: {req.longitude}, Acc: {accuracy}m, Source: {loc_source} | Area+Street: {area}, City: {city}, District: {district}, PIN: {pincode}")
 
@@ -513,7 +513,7 @@ def _execute_punch_out(req: AttendanceActionRequest, db: Session):
     if not exec_id:
         raise HTTPException(400, "sales_executive_id or executive_id is required")
 
-    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    today = datetime.now(KOLKATA_TZ).date()
     att: Any = db.query(Attendance).filter(Attendance.executive_id == exec_id, Attendance.attendance_date == today).first()
     if not att:
         raise HTTPException(400, "No active login found for today")
@@ -542,7 +542,7 @@ def _execute_punch_out(req: AttendanceActionRequest, db: Session):
         formatted_addr += f" - {pincode}"
 
     selfie_url = req.selfie_url or (save_base64_image(req.selfie_data) if req.selfie_data else "")
-    now = datetime.now(ZoneInfo("Asia/Kolkata")).replace(tzinfo=None)
+    now = datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
     print(f"[Attendance Punch Out] Exec {exec_id} at {now} | Lat: {req.latitude}, Lng: {req.longitude}, Acc: {accuracy}m, Source: {loc_source} | Area+Street: {area}, City: {city}, District: {district}, PIN: {pincode}")
 
@@ -750,9 +750,9 @@ def get_today_attendance_route(
         try:
             target_date = datetime.strptime(attendance_date, "%Y-%m-%d").date()
         except Exception:
-            target_date = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+            target_date = datetime.now(KOLKATA_TZ).date()
     else:
-        target_date = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+        target_date = datetime.now(KOLKATA_TZ).date()
 
     att = db.query(Attendance).filter(
         Attendance.executive_id == executive_id,
@@ -829,13 +829,13 @@ def get_attendance_by_date(date_str: str, db: Session = Depends(get_db)):
 
 @router.get("/api/attendance/executive/{executive_id}/history")
 def get_executive_history(executive_id: int, days: int = 45, db: Session = Depends(get_db)):
-    cutoff = datetime.now(ZoneInfo("Asia/Kolkata")).date() - timedelta(days=days)
+    cutoff = datetime.now(KOLKATA_TZ).date() - timedelta(days=days)
     recs = db.query(Attendance).filter(Attendance.executive_id == executive_id, Attendance.attendance_date >= cutoff).order_by(Attendance.attendance_date.desc()).all()
     return [plan_response(r) for r in recs]
 
 @router.get("/api/attendance/search")
 def search_executive_attendance(name: str, days: int = 45, db: Session = Depends(get_db)):
-    cutoff = datetime.now(ZoneInfo("Asia/Kolkata")).date() - timedelta(days=days)
+    cutoff = datetime.now(KOLKATA_TZ).date() - timedelta(days=days)
     execs = db.query(SalesExecutive).filter(SalesExecutive.name.ilike(f"%{name}%")).all()
     if not execs: return []
     exec_ids = [e.id for e in execs]
