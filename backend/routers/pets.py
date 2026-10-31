@@ -36,7 +36,7 @@ def create_pet_parent(
     db.refresh(parent)
     return model_response(parent)
 @router.get("/pet-parents")
-def get_pet_parent(db:Session=Depends(get_db)):
+def get_pet_parents(db:Session=Depends(get_db)):
     return [model_response(item) for item in db.query(PetParent).all()]
 @router.get("/pet-parents/{parent_id}")
 def get_pet_parent(

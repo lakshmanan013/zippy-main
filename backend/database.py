@@ -15,7 +15,22 @@ load_dotenv(override=False)
 
 from sqlalchemy.engine import make_url
 
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:Vasanth%40zenve@127.0.0.1:3306/pet_management")
+import urllib.parse
+
+# Support direct DATABASE_URL or individual DB parameters (auto URL-encoding password)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    db_user = os.getenv("DB_USER")
+    db_pass = os.getenv("DB_PASSWORD", "")
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT", "3306")
+    db_name = os.getenv("DB_NAME", "pet_management")
+
+    if db_host and db_user:
+        encoded_pass = urllib.parse.quote_plus(db_pass)
+        DATABASE_URL = f"mysql+pymysql://{db_user}:{encoded_pass}@{db_host}:{db_port}/{db_name}"
+    else:
+        DATABASE_URL = "mysql+pymysql://root:Vasanth%40zenve@127.0.0.1:3306/pet_management"
 
 def _ensure_database_exists(db_url: str):
     try:
