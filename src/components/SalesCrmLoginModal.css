@@ -28,33 +28,6 @@
   pointer-events: auto;
 }
 
-.zenve-back-admin-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  color: #0f766e;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  text-decoration: none;
-}
-
-.zenve-back-admin-btn:hover {
-  background: #0f766e;
-  color: #ffffff;
-  border-color: #0f766e;
-  box-shadow: 0 6px 20px rgba(15, 118, 110, 0.28);
-  transform: translateX(-3px);
-}
-
 .zenve-portal-switcher-pill {
   display: flex;
   align-items: center;
