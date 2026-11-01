@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, LogOut, ShieldCheck } from "lucide-react";
+import { Search, LogOut, ShieldCheck, Database } from "lucide-react";
 import { getRoleConfig } from "../data.js";
 import "./TopBar.css";
 
@@ -17,6 +17,7 @@ export default function TopBar({
   onOpenSalesCRM,
   adminUser,
   onLogout,
+  onOpenDualDb,
 }) {
   const [salesMenuOpen, setSalesMenuOpen] = useState(false);
   const salesDropdownRef = useRef(null);
@@ -136,6 +137,17 @@ export default function TopBar({
             )}
           </div>
         )}
+
+        <button
+          type="button"
+          className="zzc-topbar-btn"
+          onClick={onOpenDualDb}
+          title="Dual Database Status & Sync"
+          style={{ display: "inline-flex", alignItems: "center", gap: "6px", borderColor: "#bae6fd", background: "#f0f9ff", color: "#0369a1", fontWeight: 600 }}
+        >
+          <Database size={15} color="#0284c7" />
+          <span>Dual DB Sync</span>
+        </button>
 
         {/* Right side of Sales CRM: Admin */}
         <button

@@ -1,3 +1,4 @@
+import sync_service
 import os
 import random
 import re
@@ -217,6 +218,7 @@ def create_visit_report(data: VisitReportCreate, db: Session = Depends(get_db)):
         if visit:
             setattr(visit, "status", "Completed")
             db.commit()
+        sync_service.sync_visit_to_doctor(data.doctor_id, feedback=data.doctor_feedback)
     return plan_response(report)
 @router.get("/visit-reports")
 def get_visit_reports(

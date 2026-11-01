@@ -1,10 +1,14 @@
 import os
+import urllib.parse
 from pathlib import Path
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, event, inspect
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
-
+# ------------------------------------------------------------------------------
+# 1. Environment Initialization
+# ------------------------------------------------------------------------------
 _backend_dir = Path(__file__).resolve().parent
 _root_dir = _backend_dir.parent
 if (_backend_dir / ".env").exists():
@@ -13,62 +17,280 @@ if (_root_dir / ".env").exists():
     load_dotenv(_root_dir / ".env", override=True)
 load_dotenv(override=False)
 
-from sqlalchemy.engine import make_url
+# ------------------------------------------------------------------------------
+# 2. Remote Ubuntu MySQL Server Configuration Helper (SSH Tunnel / Direct)
+# ------------------------------------------------------------------------------
+DEFAULT_DB_HOST = "127.0.0.1"
+DEFAULT_DB_PORT = "3307"
 
-import urllib.parse
+def _build_url(prefix: str, default_name: str, default_user: str = "root", default_pass: str = "") -> str:
+    """
+    Constructs a MySQL SQLAlchemy connection URL for the remote Ubuntu MySQL server.
+    Prioritizes specific prefix environment variables (ZIPPY_DATABASE_URL, ZENVE_DATABASE_URL, etc.)
+    with default fallback to the SSH tunnel (127.0.0.1:3307 -> 95.135.254.123:3306).
+    Automatically normalizes 'mysql://' to 'mysql+pymysql://' and URL-encodes passwords.
+    """
+    direct_url = os.getenv(f"{prefix}_DATABASE_URL")
+    if direct_url:
+        if direct_url.startswith("mysql://"):
+            direct_url = direct_url.replace("mysql://", "mysql+pymysql://", 1)
+        return direct_url
 
-# Support direct DATABASE_URL or individual DB parameters (auto URL-encoding password)
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    db_user = os.getenv("DB_USER")
-    db_pass = os.getenv("DB_PASSWORD", "")
-    db_host = os.getenv("DB_HOST")
-    db_port = os.getenv("DB_PORT", "3306")
-    db_name = os.getenv("DB_NAME", "pet_management")
+    db_host = os.getenv(f"{prefix}_DB_HOST") or os.getenv("DB_HOST", DEFAULT_DB_HOST)
+    db_port = os.getenv(f"{prefix}_DB_PORT") or os.getenv("DB_PORT", DEFAULT_DB_PORT)
+    db_user = os.getenv(f"{prefix}_DB_USER") or os.getenv("DB_USER", default_user)
+    db_pass = os.getenv(f"{prefix}_DB_PASSWORD") or os.getenv("DB_PASSWORD", default_pass)
+    db_name = os.getenv(f"{prefix}_DB_NAME") or default_name
 
-    if db_host and db_user:
-        encoded_pass = urllib.parse.quote_plus(db_pass)
-        DATABASE_URL = f"mysql+pymysql://{db_user}:{encoded_pass}@{db_host}:{db_port}/{db_name}"
-    else:
-        DATABASE_URL = "mysql+pymysql://root:Vasanth%40zenve@127.0.0.1:3306/pet_management"
+    encoded_pass = urllib.parse.quote_plus(db_pass)
+    return f"mysql+pymysql://{db_user}:{encoded_pass}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
 
-def _ensure_database_exists(db_url: str):
+# Database 1: Zippy CRM (Primary CRM Database: field operations, attendance, planning, visits)
+ZIPPY_DATABASE_URL = _build_url("ZIPPY", "zippy_crm", default_user="zippy_crm_app", default_pass="zippy-123")
+
+# Database 2: zenve_main (Centralized Master Database: pet parents, pets, doctors, services, shop)
+ZENVE_DATABASE_URL = _build_url("ZENVE", "zenve_main", default_user="zenve_main_user", default_pass="zenvemain-123")
+
+# Legacy compatibility alias
+DATABASE_URL = ZIPPY_DATABASE_URL
+
+# ------------------------------------------------------------------------------
+# 3. Remote Database Engines with Resilient Connection Pooling & Reconnection
+# ------------------------------------------------------------------------------
+_engine_options = {
+    "echo": False,
+    "pool_pre_ping": True,         # Automatically tests connection vitality; auto-reconnects if dropped
+    "pool_recycle": 280,           # Recycles connections every ~4.5 mins to prevent remote wait_timeout drops
+    "pool_size": 10,               # Active connection pool size
+    "max_overflow": 20,            # Max burst connections beyond pool size
+    "pool_timeout": 30,            # Seconds to wait for a connection before timeout
+    "connect_args": {
+        "connect_timeout": 15,      # Remote TCP connection timeout
+        "charset": "utf8mb4"
+    }
+}
+
+engine_zippy = create_engine(ZIPPY_DATABASE_URL, **_engine_options)
+engine_zenve = create_engine(ZENVE_DATABASE_URL, **_engine_options)
+
+print(f"[DB Config] Zippy CRM Target: {engine_zippy.url.host}:{engine_zippy.url.port}/{engine_zippy.url.database} (User: {engine_zippy.url.username})")
+print(f"[DB Config] Zenve Main Target: {engine_zenve.url.host}:{engine_zenve.url.port}/{engine_zenve.url.database} (User: {engine_zenve.url.username})")
+
+# Aliases
+engine_main = engine_zenve
+engine = engine_zippy
+
+BaseZippy = declarative_base()
+BaseMain = declarative_base()
+Base = BaseMain  # Default base for backward compatibility
+
+# List of tables dedicated to Zippy CRM database
+ZIPPY_TABLES = {
+    "regional_managers",
+    "sales_managers",
+    "sales_executives",
+    "mobile_otps",
+    "attendance",
+    "pincode_coverages",
+    "executive_tasks",
+    "executive_alerts",
+    "monthly_plans",
+    "plan_visits",
+    "visit_reports",
+    "executive_submission_reports",
+}
+
+# ------------------------------------------------------------------------------
+# 5. Intelligent Multi-Database Routing Session
+# ------------------------------------------------------------------------------
+class RoutingSession(Session):
+    """
+    Intelligently routes database operations to the correct server/database:
+    - Tables in ZIPPY_TABLES or entities marked __bind_key__ = 'zippy' -> engine_zippy (zippy_crm)
+    - All other tables/entities -> engine_zenve (zenve_main)
+    Supports cross-model transactions in a single FastAPI request.
+    """
+    def get_bind(self, mapper=None, clause=None, bind=None, **kw):
+        if bind is not None:
+            return bind
+        if mapper is not None:
+            entity = getattr(mapper, "class_", mapper)
+            bind_key = getattr(entity, "__bind_key__", None)
+            if bind_key == "zippy":
+                return engine_zippy
+            if bind_key in ("zenve", "main"):
+                return engine_zenve
+            
+            tablename = getattr(getattr(entity, "__table__", None), "name", None)
+            if tablename and tablename in ZIPPY_TABLES:
+                return engine_zippy
+            return engine_zenve
+
+        if clause is not None:
+            froms = getattr(clause, "froms", [])
+            for t in froms:
+                tname = getattr(t, "name", "")
+                if tname in ZIPPY_TABLES:
+                    return engine_zippy
+            clause_str = str(clause).lower()
+            for tname in ZIPPY_TABLES:
+                if tname in clause_str:
+                    return engine_zippy
+            return engine_zenve
+
+        return engine_zenve
+
+# Dedicated & Unified Session Makers
+SessionLocal = sessionmaker(class_=RoutingSession, autocommit=False, autoflush=False)
+SessionZippy = sessionmaker(autocommit=False, autoflush=False, bind=engine_zippy)
+SessionZenve = sessionmaker(autocommit=False, autoflush=False, bind=engine_zenve)
+SessionMain = SessionZenve
+
+# ------------------------------------------------------------------------------
+# 5b. Automatic Real-Time Replication: zippy_crm -> zenve_main
+# ------------------------------------------------------------------------------
+@event.listens_for(Session, "after_flush")
+def auto_replicate_zippy_to_zenve_main(session, flush_context):
+    """
+    Automatic Real-Time Replication:
+    Any record inserted, updated, or deleted in zippy_crm is automatically
+    mirrored and stored directly inside zenve_main.
+    """
+    if getattr(session, "_is_replicating", False):
+        return
+
+    replicate_items = []
+    delete_items = []
+
+    for obj in session.new:
+        table = getattr(obj, "__table__", None)
+        if table is not None:
+            bind = session.get_bind(obj.__class__)
+            if bind == engine_zippy:
+                replicate_items.append((table.name, obj))
+
+    for obj in session.dirty:
+        table = getattr(obj, "__table__", None)
+        if table is not None:
+            bind = session.get_bind(obj.__class__)
+            if bind == engine_zippy:
+                replicate_items.append((table.name, obj))
+
+    for obj in session.deleted:
+        table = getattr(obj, "__table__", None)
+        if table is not None:
+            bind = session.get_bind(obj.__class__)
+            if bind == engine_zippy:
+                delete_items.append((table.name, obj))
+
+    if not replicate_items and not delete_items:
+        return
+
     try:
-        url = make_url(db_url)
-        if url.database and "mysql" in url.drivername:
-            import pymysql
-            conn = pymysql.connect(
-                host=url.host or "127.0.0.1",
-                user=url.username or "root",
-                password=url.password or "",
-                port=url.port or 3306,
-                autocommit=True
-            )
-            try:
-                with conn.cursor() as cursor:
-                    cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{url.database}` CHARACTER SET utf8mb4")
-            finally:
-                conn.close()
-    except Exception as e:
-        print(f"[DB Setup] Warning: Could not auto-create database: {e}")
+        with engine_zenve.begin() as conn:
+            for table_name, obj in replicate_items:
+                insp = inspect(obj)
+                cols_dict = {}
+                for attr in insp.mapper.column_attrs:
+                    col_name = attr.key
+                    cols_dict[col_name] = getattr(obj, col_name, None)
 
-_ensure_database_exists(DATABASE_URL)
+                if cols_dict:
+                    col_names = list(cols_dict.keys())
+                    placeholders = ", ".join([f":{c}" for c in col_names])
+                    update_clause = ", ".join([f"`{c}` = VALUES(`{c}`)" for c in col_names])
+                    sql = text(f"""
+                        INSERT INTO `{table_name}` ({', '.join([f'`{c}`' for c in col_names])})
+                        VALUES ({placeholders})
+                        ON DUPLICATE KEY UPDATE {update_clause}
+                    """)
+                    conn.execute(sql, cols_dict)
 
-engine = create_engine(DATABASE_URL, echo=True, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
-Base = declarative_base()
+            for table_name, obj in delete_items:
+                insp = inspect(obj)
+                pk_dict = {pk.name: getattr(obj, pk.name) for pk in insp.mapper.primary_key}
+                if pk_dict:
+                    where_clause = " AND ".join([f"`{k}` = :{k}" for k in pk_dict.keys()])
+                    sql = text(f"DELETE FROM `{table_name}` WHERE {where_clause}")
+                    conn.execute(sql, pk_dict)
 
+    except Exception as exc:
+        print(f"[Auto-Replicate Notice] zippy_crm -> zenve_main: {exc}")
+
+# ------------------------------------------------------------------------------
+# 6. Session Dependency Providers
+# ------------------------------------------------------------------------------
 def get_db():
+    """Default dependency: smart session automatically routed across both databases."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-def auto_migrate_db():
-    """Ensure newly added columns exist in tables without breaking existing tables."""
+def get_zippy_db():
+    """Explicit dependency for Zippy CRM database operations."""
+    db = SessionZippy()
     try:
-        with engine.begin() as conn:
+        yield db
+    finally:
+        db.close()
+
+def get_zenve_db():
+    """Explicit dependency for Zenve_Main centralized database operations."""
+    db = SessionZenve()
+    try:
+        yield db
+    finally:
+        db.close()
+
+get_main_db = get_zenve_db
+
+# ------------------------------------------------------------------------------
+# 7. Connection Verification & Schema Protections
+# ------------------------------------------------------------------------------
+def verify_remote_connections():
+    """
+    Verifies live connectivity to both remote Ubuntu MySQL databases (95.135.254.123:3306).
+    Preserves all existing tables and production data without modifications.
+    """
+    status = {}
+    for name, eng in [("zippy_crm (Primary CRM)", engine_zippy), ("zenve_main (Central Master)", engine_zenve)]:
+        try:
+            with eng.connect() as conn:
+                res = conn.execute(text("SELECT DATABASE(), VERSION()")).fetchone()
+                status[name] = {"connected": True, "database": res[0], "version": res[1]}
+                print(f"[Remote DB] ✓ {name}: Connected to {eng.url.host}:{eng.url.port} (DB: {res[0]}, MySQL: {res[1]})")
+        except Exception as exc:
+            status[name] = {"connected": False, "error": str(exc)}
+            print(f"[Remote DB] ⚠️ {name} connection notice: {exc}")
+    return status
+
+def init_db():
+    """
+    Equalizes all schema tables across both databases (zippy_crm and zenve_main).
+    create_all() strictly creates missing tables and NEVER alters, drops, or overwrites existing tables or records.
+    """
+    # 1. Initialize all tables in zenve_main (both Marketplace and CRM models)
+    try:
+        BaseMain.metadata.create_all(bind=engine_zenve)
+        BaseZippy.metadata.create_all(bind=engine_zenve)
+        print("[DB Init] ✓ All tables (Marketplace + CRM) verified/created in zenve_main")
+    except Exception as e:
+        print(f"[DB Init] Note for zenve_main tables: {e}")
+
+    # 2. Initialize all tables in zippy_crm (both Marketplace and CRM models)
+    try:
+        BaseMain.metadata.create_all(bind=engine_zippy)
+        BaseZippy.metadata.create_all(bind=engine_zippy)
+        print("[DB Init] ✓ All tables (Marketplace + CRM) verified/created in zippy_crm")
+    except Exception as e:
+        print(f"[DB Init] Note for zippy_crm tables: {e}")
+
+def auto_migrate_db():
+    """Ensure newly added columns exist in Zippy CRM tables without breaking existing records."""
+    try:
+        with engine_zippy.begin() as conn:
             columns_to_ensure = [
                 ("sales_executives", "password", "VARCHAR(100) NULL"),
                 ("sales_executives", "is_phone_verified", "BOOLEAN DEFAULT FALSE"),
@@ -108,6 +330,6 @@ def auto_migrate_db():
                         conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col} {col_def}"))
                         print(f"[DB Migration] Successfully added column {col} to {tbl}")
                 except Exception as ex:
-                    print(f"[DB Migration] Note for {tbl}.{col}: {ex}")
+                    pass
     except Exception as e:
-        print(f"[DB Migration] Migration check error: {e}")
+        print(f"[DB Migration] Migration notice: {e}")

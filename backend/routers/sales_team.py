@@ -18,6 +18,7 @@ from database import *
 from models import *
 from schemas import *
 from utils import *
+import sync_service
 
 router = APIRouter()
 
@@ -39,6 +40,7 @@ def create_regional_manager(data: RegionalManagerCreate,db: Session = Depends(ge
     db.add(manager)
     db.commit()
     db.refresh(manager)
+    sync_service.sync_user_to_zenve(manager.id, "regional_manager", action="CREATE")
     return model_response(manager)
 @router.get("/regional-managers")
 def get_regional_managers(db: Session = Depends(get_db)):
@@ -78,6 +80,7 @@ def delete_regional_manager(manager_id: int,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404,detail="Regional manager not found")
     db.delete(manager)
     db.commit()
+    sync_service.sync_user_to_zenve(manager_id, "regional_manager", action="DELETE")
     return {
         "message": "Regional manager deleted successfully",
         "id": manager_id
@@ -100,6 +103,7 @@ def create_sales_manager(data: SalesManagerCreate,db: Session = Depends(get_db))
     db.add(manager)
     db.commit()
     db.refresh(manager)
+    sync_service.sync_user_to_zenve(manager.id, "sales_manager", action="CREATE")
     return model_response(manager)
 @router.get("/sales-managers")
 def get_sales_managers(db: Session = Depends(get_db)):
@@ -139,6 +143,7 @@ def delete_sales_manager(manager_id: int,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404,detail="Sales manager not found")
     db.delete(manager)
     db.commit()
+    sync_service.sync_user_to_zenve(manager_id, "sales_manager", action="DELETE")
     return {
         "message": "Sales manager deleted successfully",
         "id": manager_id
@@ -160,6 +165,7 @@ def create_sales_executive(data: SalesExecutiveCreate,db: Session = Depends(get_
     db.add(executive)
     db.commit()
     db.refresh(executive)
+    sync_service.sync_user_to_zenve(executive.id, "sales_executive", action="CREATE")
     return model_response(executive)
 @router.get("/sales-executives")
 def get_sales_executives(db: Session = Depends(get_db)):
@@ -274,6 +280,7 @@ def delete_sales_executive(executive_id: int,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404,detail="Sales executive not found")
     db.delete(executive)
     db.commit()
+    sync_service.sync_user_to_zenve(executive_id, "sales_executive", action="DELETE")
     return {
         "message": "Sales executive deleted successfully",
         "id": executive_id

@@ -10,7 +10,7 @@ except Exception:
     KOLKATA_TZ = timezone(timedelta(hours=5, minutes=30))
 from sqlalchemy import Integer, Column
 from sqlalchemy import String, Boolean, Float, Date, DateTime, Time, ForeignKey, text, Text, UniqueConstraint, LargeBinary
-from database import Base
+from database import Base, BaseMain, BaseZippy
 
 class PetParent(Base):
     __tablename__ = "pet_parents"
@@ -367,7 +367,7 @@ class AuditLog(Base):
     entity_type = Column(String(100))
     entity_id = Column(Integer)
     created_at = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
-class RegionalManager(Base):
+class RegionalManager(BaseZippy):
     __tablename__ = "regional_managers"
     id: Any = Column(Integer, primary_key=True, index=True)
     name: Any = Column(String(150), nullable=False)
@@ -378,7 +378,7 @@ class RegionalManager(Base):
     region: Any = Column(String(150))
     is_phone_verified: Any = Column(Boolean, default=False)
     is_active: Any = Column(Boolean, default=True)
-class SalesManager(Base):
+class SalesManager(BaseZippy):
     __tablename__ = "sales_managers"
     id: Any = Column(Integer, primary_key=True, index=True)
     name: Any = Column(String(150), nullable=False)
@@ -389,7 +389,7 @@ class SalesManager(Base):
     region: Any = Column(String(150))
     is_phone_verified: Any = Column(Boolean, default=False)
     is_active: Any = Column(Boolean, default=True)
-class SalesExecutive(Base):
+class SalesExecutive(BaseZippy):
     __tablename__ = "sales_executives"
     id: Any = Column(Integer, primary_key=True, index=True)
     name: Any = Column(String(150), nullable=False)
@@ -403,7 +403,7 @@ class SalesExecutive(Base):
     is_phone_verified: Any = Column(Boolean, default=False)
     is_active: Any = Column(Boolean, default=True)
 
-class MobileOTP(Base):
+class MobileOTP(BaseZippy):
     __tablename__ = "mobile_otps"
     id: Any = Column(Integer, primary_key=True, index=True)
     phone: Any = Column(String(30), index=True, nullable=False)
@@ -414,7 +414,7 @@ class MobileOTP(Base):
     expires_at: Any = Column(DateTime, nullable=False)
     created_at: Any = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 
-class Attendance(Base):
+class Attendance(BaseZippy):
     __tablename__ = "attendance"
     id = Column(Integer, primary_key=True, index=True)
     executive_id = Column(Integer, ForeignKey("sales_executives.id"), nullable=False)
@@ -518,7 +518,7 @@ class Attendance(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
     updated_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None), onupdate=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 
-class PincodeCoverage(Base):
+class PincodeCoverage(BaseZippy):
     __tablename__ = "pincode_coverages"
     id: Any = Column(Integer, primary_key=True, index=True)
     executive_id: Any = Column(Integer,ForeignKey("sales_executives.id"),nullable=False)
@@ -526,7 +526,7 @@ class PincodeCoverage(Base):
     city: Any = Column(String(150))
     state: Any = Column(String(150))
     created_at: Any = Column(DateTime,default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
-class ExecutiveTask(Base):
+class ExecutiveTask(BaseZippy):
     __tablename__ = "executive_tasks"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
@@ -552,7 +552,7 @@ class ExecutiveTask(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
     updated_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None), onupdate=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
 
-class ExecutiveAlert(Base):
+class ExecutiveAlert(BaseZippy):
     __tablename__ = "executive_alerts"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
@@ -565,7 +565,7 @@ class ExecutiveAlert(Base):
     task_id = Column(Integer, nullable=True)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
-class MonthlyPlan(Base):
+class MonthlyPlan(BaseZippy):
     __tablename__ = "monthly_plans"
     id = Column(Integer, primary_key=True, index=True)
     executive_id = Column(Integer, ForeignKey("sales_executives.id"), nullable=False)
@@ -582,12 +582,12 @@ class MonthlyPlan(Base):
     rejection_reason: Any = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
     __table_args__ = (UniqueConstraint("executive_id", "month_key", name="uq_exec_month"),)
-class PlanVisit(Base):
+class PlanVisit(BaseZippy):
     __tablename__ = "plan_visits"
     id = Column(Integer, primary_key=True, index=True)
     plan_id = Column(Integer, ForeignKey("monthly_plans.id"), nullable=False)
     executive_id = Column(Integer, ForeignKey("sales_executives.id"), nullable=False)
-    doctor_id = Column(Integer, ForeignKey("doctors.id"), nullable=False)
+    doctor_id = Column(Integer, nullable=False, index=True)  # References Doctor.id in zenve_main
     scheduled_date = Column(Date, nullable=False)
     visit_time = Column(String(20), default="10:00 AM")
     status: Any = Column(String(30), default="Planned")
@@ -597,12 +597,12 @@ class PlanVisit(Base):
     cancel_approved_by = Column(String(150), nullable=True)
     cancel_reason = Column(String(200), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
-class VisitReport(Base):
+class VisitReport(BaseZippy):
     __tablename__ = "visit_reports"
     id = Column(Integer, primary_key=True, index=True)
     plan_visit_id = Column(Integer, ForeignKey("plan_visits.id"), nullable=False)
     executive_id = Column(Integer, ForeignKey("sales_executives.id"), nullable=False)
-    doctor_id = Column(Integer, ForeignKey("doctors.id"), nullable=False)
+    doctor_id = Column(Integer, nullable=False, index=True)  # References Doctor.id in zenve_main
     visit_date = Column(Date, nullable=False)
     visit_time = Column(String(20))
     location = Column(String(300))
@@ -618,7 +618,7 @@ class VisitReport(Base):
     status: Any = Column(String(30), default="Draft")
     submitted_at: Any = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(KOLKATA_TZ).replace(tzinfo=None))
-class ExecutiveSubmissionReport(Base):
+class ExecutiveSubmissionReport(BaseZippy):
     __tablename__ = "executive_submission_reports"
     id = Column(Integer, primary_key=True, index=True)
     executive_id = Column(Integer, ForeignKey("sales_executives.id"), nullable=False)

@@ -24,6 +24,7 @@ import TopBar from "./components/TopBar.jsx";
 import StatsGrid from "./components/StatsGrid.jsx";
 import DataTable from "./components/DataTable.jsx";
 import RecordModal from "./components/RecordModal.jsx";
+import DualDbModal from "./components/DualDbModal.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import BulkTools from "./components/BulkTools.jsx";
 import SalesCrmClone from "./components/SalesCrm.jsx";
@@ -55,6 +56,7 @@ export default function App() {
   });
 
   const [ceoPreviewRole, setCeoPreviewRole] = useState(null);
+  const [isDualDbModalOpen, setIsDualDbModalOpen] = useState(false);
 
   const isActualCeo = Boolean(
     adminUser?.is_ceo ||
@@ -560,6 +562,7 @@ export default function App() {
           onOpenSalesCRM={(view) => handleOpenSalesCrmLogin(view)}
           adminUser={adminUser}
           onLogout={handleLogout}
+          onOpenDualDb={() => setIsDualDbModalOpen(true)}
         />
 
         {error && (
@@ -626,6 +629,7 @@ export default function App() {
         onCancel={closeModal}
         saving={saving}
       />
+      <DualDbModal isOpen={isDualDbModalOpen} onClose={() => setIsDualDbModalOpen(false)} />
     </div>
   );
 }

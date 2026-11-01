@@ -908,3 +908,21 @@ export async function markAlertRead(alertId) {
 }
 
 
+
+
+export async function fetchDatabaseHealth() {
+  const res = await fetch(`${API_BASE}/api/sync/verify`);
+  return handleResponse(res);
+}
+
+export async function fetchSyncStatus() {
+  const res = await fetch(`${API_BASE}/api/sync/status`);
+  return handleResponse(res);
+}
+
+export async function triggerDatabaseSync() {
+  const res = await fetch(`${API_BASE}/api/sync/run`, {
+    method: "POST",
+  });
+  return handleResponse(res);
+}

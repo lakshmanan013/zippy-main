@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { NAV_GROUPS, getAllowedNavGroups, getRoleConfig } from "../data.js";
 import logo from "../assets/zenve-zippy-logo.png";
+import { ShieldCheck } from "lucide-react";
 
 export default function Sidebar({
   currentKey,
