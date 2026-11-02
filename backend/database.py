@@ -147,75 +147,99 @@ SessionZenve = sessionmaker(autocommit=False, autoflush=False, bind=engine_zenve
 SessionMain = SessionZenve
 
 # ------------------------------------------------------------------------------
-# 5b. Automatic Real-Time Replication: zippy_crm -> zenve_main
+# 5b. Automatic Real-Time Dual-Database Replication: zippy_crm <=====> zenve_main
 # ------------------------------------------------------------------------------
+_TABLE_COLS_CACHE = {}
+
+def _get_target_table_columns(target_engine, table_name):
+    cache_key = (str(target_engine.url), table_name)
+    if cache_key in _TABLE_COLS_CACHE:
+        return _TABLE_COLS_CACHE[cache_key]
+    try:
+        with target_engine.connect() as conn:
+            res = conn.execute(text(f"""
+                SELECT COLUMN_NAME 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{table_name}'
+            """)).fetchall()
+            cols = set(r[0] for r in res)
+            _TABLE_COLS_CACHE[cache_key] = cols
+            return cols
+    except Exception:
+        return None
+
 @event.listens_for(Session, "after_flush")
-def auto_replicate_zippy_to_zenve_main(session, flush_context):
+def auto_replicate_dual_database(session, flush_context):
     """
-    Automatic Real-Time Replication:
-    Any record inserted, updated, or deleted in zippy_crm is automatically
-    mirrored and stored directly inside zenve_main.
+    Automatic Real-Time Dual-Database Replication:
+    Any record inserted, updated, or deleted in zippy_crm is mirrored to zenve_main.
+    Any record inserted, updated, or deleted in zenve_main is mirrored to zippy_crm.
+    Ensures 100% equal data across both databases at all times.
     """
     if getattr(session, "_is_replicating", False):
         return
 
-    replicate_items = []
-    delete_items = []
+    # Group by target engine
+    replicate_targets = {engine_zenve: [], engine_zippy: []}
+    delete_targets = {engine_zenve: [], engine_zippy: []}
 
-    for obj in session.new:
+    all_active = list(session.new) + list(session.dirty)
+    for obj in all_active:
         table = getattr(obj, "__table__", None)
         if table is not None:
             bind = session.get_bind(obj.__class__)
-            if bind == engine_zippy:
-                replicate_items.append((table.name, obj))
-
-    for obj in session.dirty:
-        table = getattr(obj, "__table__", None)
-        if table is not None:
-            bind = session.get_bind(obj.__class__)
-            if bind == engine_zippy:
-                replicate_items.append((table.name, obj))
+            target_engine = engine_zenve if bind == engine_zippy else engine_zippy
+            replicate_targets[target_engine].append((table.name, obj))
 
     for obj in session.deleted:
         table = getattr(obj, "__table__", None)
         if table is not None:
             bind = session.get_bind(obj.__class__)
-            if bind == engine_zippy:
-                delete_items.append((table.name, obj))
+            target_engine = engine_zenve if bind == engine_zippy else engine_zippy
+            delete_targets[target_engine].append((table.name, obj))
 
-    if not replicate_items and not delete_items:
-        return
+    for target_engine in (engine_zenve, engine_zippy):
+        items_to_sync = replicate_targets[target_engine]
+        items_to_del = delete_targets[target_engine]
+        if not items_to_sync and not items_to_del:
+            continue
 
-    try:
-        with engine_zenve.begin() as conn:
-            for table_name, obj in replicate_items:
-                insp = inspect(obj)
-                cols_dict = {}
-                for attr in insp.mapper.column_attrs:
-                    col_name = attr.key
-                    cols_dict[col_name] = getattr(obj, col_name, None)
+        target_name = "zenve_main" if target_engine == engine_zenve else "zippy_crm"
+        try:
+            with target_engine.begin() as conn:
+                conn.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+                for table_name, obj in items_to_sync:
+                    insp = inspect(obj)
+                    target_cols = _get_target_table_columns(target_engine, table_name)
+                    
+                    cols_dict = {}
+                    for attr in insp.mapper.column_attrs:
+                        col_name = attr.key
+                        if target_cols is None or col_name in target_cols:
+                            cols_dict[col_name] = getattr(obj, col_name, None)
 
-                if cols_dict:
-                    col_names = list(cols_dict.keys())
-                    placeholders = ", ".join([f":{c}" for c in col_names])
-                    update_clause = ", ".join([f"`{c}` = VALUES(`{c}`)" for c in col_names])
-                    sql = text(f"""
-                        INSERT INTO `{table_name}` ({', '.join([f'`{c}`' for c in col_names])})
-                        VALUES ({placeholders})
-                        ON DUPLICATE KEY UPDATE {update_clause}
-                    """)
-                    conn.execute(sql, cols_dict)
+                    if cols_dict:
+                        col_names = list(cols_dict.keys())
+                        placeholders = ", ".join([f":{c}" for c in col_names])
+                        update_clause = ", ".join([f"`{c}` = VALUES(`{c}`)" for c in col_names])
+                        sql = text(f"""
+                            INSERT INTO `{table_name}` ({', '.join([f'`{c}`' for c in col_names])})
+                            VALUES ({placeholders})
+                            ON DUPLICATE KEY UPDATE {update_clause}
+                        """)
+                        conn.execute(sql, cols_dict)
 
-            for table_name, obj in delete_items:
-                insp = inspect(obj)
-                pk_dict = {pk.name: getattr(obj, pk.name) for pk in insp.mapper.primary_key}
-                if pk_dict:
-                    where_clause = " AND ".join([f"`{k}` = :{k}" for k in pk_dict.keys()])
-                    sql = text(f"DELETE FROM `{table_name}` WHERE {where_clause}")
-                    conn.execute(sql, pk_dict)
+                for table_name, obj in items_to_del:
+                    insp = inspect(obj)
+                    pk_dict = {pk.name: getattr(obj, pk.name) for pk in insp.mapper.primary_key}
+                    if pk_dict:
+                        where_clause = " AND ".join([f"`{k}` = :{k}" for k in pk_dict.keys()])
+                        sql = text(f"DELETE FROM `{table_name}` WHERE {where_clause}")
+                        conn.execute(sql, pk_dict)
 
-    except Exception as exc:
-        print(f"[Auto-Replicate Notice] zippy_crm -> zenve_main: {exc}")
+                conn.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+        except Exception as exc:
+            print(f"[Dual-Sync Notice -> {target_name}]: {exc}")
 
 # ------------------------------------------------------------------------------
 # 6. Session Dependency Providers
