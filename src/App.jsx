@@ -237,23 +237,40 @@ export default function App() {
   const tableColumns = columns.filter((f) => !f.formOnly); // e.g. password is never shown in the table
   const searchConfig = SEARCH_CONFIG[currentKey];
 
-  const loadRecords = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadRecords = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await fetchList(currentKey);
       setRecords(Array.isArray(data) ? data : []);
+      if (isSilent) setError(null);
     } catch (err) {
-      setError(err.message || "Failed to load data from the API");
-      setRecords([]);
+      if (!isSilent) {
+        setError(err.message || "Failed to load data from the API");
+        setRecords([]);
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [currentKey]);
 
   useEffect(() => {
-    const t = setTimeout(() => loadRecords(), 0);
+    const t = setTimeout(() => loadRecords(false), 0);
     return () => clearTimeout(t);
+  }, [loadRecords]);
+
+  // Real-time automatic polling: auto-fetch database details every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadRecords(true);
+      setRefreshTrigger((n) => n + 1);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [loadRecords]);
 
   // Immediately refresh CRM when executive tasks are created, updated, or deleted
@@ -582,7 +599,7 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === "dashboard" && <Dashboard adminUser={effectiveUser} />}
+        {activeTab === "dashboard" && <Dashboard adminUser={effectiveUser} refreshTrigger={refreshTrigger} />}
 
         {activeTab === "bulk" && <BulkTools adminUser={effectiveUser} />}
         {activeTab === "data" && (
@@ -659,7 +676,9 @@ function SalesTeamStats({ refreshTrigger }) {
 
   useEffect(() => {
     let cancelled = false;
-    setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
+    if (Object.keys(counts).length === 0) {
+      setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
+    }
     Promise.all([
       fetchStatCounts(SALES_TEAM_STATS),
       fetchList("executive_tasks").catch(() => []),

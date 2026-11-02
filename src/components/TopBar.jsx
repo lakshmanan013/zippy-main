@@ -138,6 +138,35 @@ export default function TopBar({
           </div>
         )}
 
+        <div
+          className="zzc-auto-sync-indicator"
+          title="Live Polling Active: Automatically fetching database updates every 10 seconds"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "#059669",
+            background: "#ecfdf5",
+            border: "1px solid #a7f3d0",
+            padding: "5px 10px",
+            borderRadius: "20px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span
+            style={{
+              width: "7px",
+              height: "7px",
+              borderRadius: "50%",
+              backgroundColor: "#10b981",
+              boxShadow: "0 0 0 2px rgba(16, 185, 129, 0.25)",
+            }}
+          />
+          <span>Auto-fetch 10s</span>
+        </div>
+
         <button
           type="button"
           className="zzc-topbar-btn"

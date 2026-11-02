@@ -343,7 +343,7 @@ function Panel({ title, subtitle, wide, onExport, children }) {
 
 import { getRoleConfig } from "../data.js";
 
-export default function Dashboard({ adminUser }) {
+export default function Dashboard({ adminUser, refreshTrigger }) {
   const isCeo = Boolean(
     !adminUser ||
     adminUser?.is_ceo ||
@@ -360,12 +360,14 @@ export default function Dashboard({ adminUser }) {
 
   useEffect(() => {
     let cancelled = false;
-    setTimeout(() => {
-      if (!cancelled) {
-        setLoading(true);
-        setError(null);
-      }
-    }, 0);
+    if (!d) {
+      setTimeout(() => {
+        if (!cancelled) {
+          setLoading(true);
+          setError(null);
+        }
+      }, 0);
+    }
 
     Promise.all([
       fetchList("pet_parents"),
@@ -486,7 +488,7 @@ export default function Dashboard({ adminUser }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshTrigger]);
 
   if (error) {
     return (

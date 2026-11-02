@@ -9,7 +9,9 @@ export default function StatsGrid({ refreshTrigger, stats = STATS }) {
 
   useEffect(() => {
     let cancelled = false;
-    setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
+    if (Object.keys(counts).length === 0) {
+      setTimeout(() => { if (!cancelled) setLoading(true); }, 0);
+    }
     fetchStatCounts(stats).then((result) => {
       if (!cancelled) {
         setCounts(result);
